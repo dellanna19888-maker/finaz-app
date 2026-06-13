@@ -1,0 +1,21 @@
+{
+  "name": "lernprojekt-ki-agenten-web",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Web-Oberflaeche fuer das Social-Media-Content-Team",
+  "scripts": {
+    "start": "tsx server.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.104.1",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.9.3",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3"
+  }
+}

@@ -54,16 +54,19 @@ neuesten Community-Richtlinien (TikTok, Instagram …) und rechtlichen Vorgaben
 > wenig extra. Im Code kannst du sie mit `WEB_SUCHE_AKTIV = False/false`
 > abschalten – dann nutzt der Agent nur sein vorhandenes Wissen.
 
-## 📂 Zwei Versionen zum Vergleichen
+## 📂 Drei Varianten zum Vergleichen
 
-Wie bei deinem ersten Lernprojekt gibt es dasselbe Programm in zwei Sprachen:
+Dasselbe Agenten-Team in drei Verpackungen:
 
-| Ordner | Sprache | Start |
-|--------|---------|-------|
-| `python/` | Python | `python agents.py "Fitness" "TikTok"` |
-| `typescript/` | TypeScript | `npm start -- "Fitness" "TikTok"` |
+| Ordner | Variante | Start |
+|--------|----------|-------|
+| `python/` | Kommandozeile (Python) | `python agents.py "Fitness" "TikTok"` |
+| `typescript/` | Kommandozeile (TypeScript) | `npm start -- "Fitness" "TikTok"` |
+| `web/` | 🌐 **Webseite** (Server + Browser) | `npm start` → http://localhost:3000 |
 
-Beide tun **genau dasselbe** – schau sie dir nebeneinander an!
+Alle drei nutzen **dieselbe Agenten-Logik** – schau sie dir nebeneinander an!
+Die Web-Version (`web/`) zeigt die Agenten **live im Browser** und ist ideal,
+wenn du das System ohne Terminal benutzen möchtest.
 
 ---
 

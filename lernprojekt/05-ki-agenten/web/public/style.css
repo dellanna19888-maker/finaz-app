@@ -1,0 +1,178 @@
+/* ============================================================
+   Styling fuer das Social-Media-Content-Team
+   ============================================================ */
+
+:root {
+  --lila: #6d28d9;
+  --lila-hell: #8b5cf6;
+  --pink: #ec4899;
+  --grau: #f3f4f6;
+  --text: #1f2937;
+  --karte-schatten: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--text);
+  background: var(--grau);
+  line-height: 1.6;
+}
+
+/* Kopfbereich mit Farbverlauf */
+.kopf {
+  background: linear-gradient(135deg, var(--lila), var(--pink));
+  color: white;
+  text-align: center;
+  padding: 2.5rem 1rem;
+}
+
+.kopf h1 {
+  margin: 0 0 0.5rem;
+  font-size: 2rem;
+}
+
+.kopf p {
+  margin: 0 auto;
+  max-width: 600px;
+  opacity: 0.95;
+}
+
+main {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3rem;
+}
+
+/* Allgemeine Karten */
+.karte {
+  background: white;
+  border-radius: 14px;
+  padding: 1.5rem;
+  margin-bottom: 1.25rem;
+  box-shadow: var(--karte-schatten);
+}
+
+/* Eingabe-Formular */
+.eingabe {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: -2rem; /* ragt leicht in den Kopfbereich */
+}
+
+.feld {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.feld label {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.feld input,
+.feld select {
+  padding: 0.7rem 0.9rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-family: inherit;
+}
+
+.feld input:focus,
+.feld select:focus {
+  outline: none;
+  border-color: var(--lila-hell);
+}
+
+button {
+  background: linear-gradient(135deg, var(--lila), var(--lila-hell));
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.1s ease, opacity 0.2s ease;
+}
+
+button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Status-Anzeige mit Spinner */
+.status {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: #ede9fe;
+  color: var(--lila);
+  border-radius: 10px;
+  padding: 0.85rem 1.1rem;
+  font-weight: 600;
+  margin-bottom: 1.25rem;
+}
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 3px solid #ddd6fe;
+  border-top-color: var(--lila);
+  border-radius: 50%;
+  animation: dreh 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes dreh {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Ergebnis-Karten */
+.ergebnis h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.15rem;
+}
+
+.ergebnis .inhalt {
+  white-space: pre-wrap; /* erhaelt Zeilenumbrueche und Listen */
+  word-wrap: break-word;
+  font-size: 0.97rem;
+}
+
+/* Die finale Karte wird hervorgehoben */
+.final {
+  border: 2px solid var(--lila-hell);
+  background: #faf5ff;
+}
+
+/* Fehlermeldung */
+.fehler {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+/* Hilfsklasse zum Aus-/Einblenden */
+.versteckt {
+  display: none;
+}
+
+footer {
+  text-align: center;
+  padding: 1.5rem;
+  color: #9ca3af;
+  font-size: 0.85rem;
+}

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Social-Media-Content-Team 🤖</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header class="kopf">
+      <h1>🤖 Social-Media-Content-Team</h1>
+      <p>
+        Vier KI-Agenten erstellen dir Content für Instagram, TikTok &amp; Co. –
+        mit frischen Ideen und den neuesten Regeln (per Web-Suche).
+      </p>
+    </header>
+
+    <main>
+      <!-- Eingabe-Formular -->
+      <form id="formular" class="karte eingabe">
+        <div class="feld">
+          <label for="nische">Deine Nische / dein Thema</label>
+          <input
+            id="nische"
+            name="nische"
+            type="text"
+            placeholder="z.B. Fitness für Anfänger"
+            value="Gesunde Ernährung"
+            required
+          />
+        </div>
+
+        <div class="feld">
+          <label for="plattform">Plattform</label>
+          <select id="plattform" name="plattform">
+            <option>Instagram und TikTok</option>
+            <option>TikTok</option>
+            <option>Instagram</option>
+            <option>YouTube Shorts</option>
+            <option>LinkedIn</option>
+            <option>Facebook</option>
+          </select>
+        </div>
+
+        <button id="startKnopf" type="submit">✨ Content erstellen</button>
+      </form>
+
+      <!-- Status-Anzeige (zeigt, welcher Agent gerade arbeitet) -->
+      <div id="status" class="status versteckt">
+        <span class="spinner"></span>
+        <span id="statusText"></span>
+      </div>
+
+      <!-- Die vier Ergebnis-Karten (erscheinen nacheinander) -->
+      <section id="ergebnisse">
+        <article class="karte ergebnis versteckt" id="karte-recherche">
+          <h2>🔎 1. Recherche: Trends &amp; Regeln</h2>
+          <div class="inhalt" id="text-recherche"></div>
+        </article>
+
+        <article class="karte ergebnis versteckt" id="karte-ideen">
+          <h2>💡 2. Content-Ideen</h2>
+          <div class="inhalt" id="text-ideen"></div>
+        </article>
+
+        <article class="karte ergebnis versteckt" id="karte-post">
+          <h2>✍️ 3. Roh-Post</h2>
+          <div class="inhalt" id="text-post"></div>
+        </article>
+
+        <article class="karte ergebnis final versteckt" id="karte-fertig">
+          <h2>✅ 4. Fertiger, geprüfter Post</h2>
+          <div class="inhalt" id="text-fertig"></div>
+        </article>
+      </section>
+    </main>
+
+    <footer>
+      <p>Lernprojekt 05 · angetrieben von Claude (claude-opus-4-8)</p>
+    </footer>
+
+    <script src="app.js"></script>
+  </body>
+</html>
