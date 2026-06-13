@@ -1,0 +1,19 @@
+{
+  "name": "lernprojekt-ki-agenten",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Multi-Agenten-System (Content-Creator-Team) mit der Claude-API",
+  "scripts": {
+    "start": "tsx src/agents.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.104.1",
+    "dotenv": "^17.4.2"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.3",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3"
+  }
+}

@@ -1,0 +1,5 @@
+# Pakete für das Python-Agenten-Projekt.
+# Installieren mit:  pip install -r requirements.txt
+
+anthropic        # offizielle Claude-/Anthropic-Bibliothek
+python-dotenv    # liest den API-Schlüssel aus einer .env-Datei

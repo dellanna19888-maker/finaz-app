@@ -1,0 +1,18 @@
+# Geheimnisse – NIEMALS committen!
+.env
+.env.local
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# Node / TypeScript
+node_modules/
+dist/
+
+# Generierte Artikel
+output/
+
+.DS_Store
