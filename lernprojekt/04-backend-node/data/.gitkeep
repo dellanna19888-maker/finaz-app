@@ -1,0 +1,3 @@
+# Dieser Ordner speichert die Datei todos.json (wird beim ersten
+# Hinzufügen automatisch angelegt). Die .gitkeep-Datei sorgt nur dafür,
+# dass der ansonsten leere Ordner in Git erhalten bleibt.

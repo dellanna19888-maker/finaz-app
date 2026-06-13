@@ -1,0 +1,133 @@
+/* ============================================================
+    Aufgabenliste – Projekt 1: Web-Grundlagen (Aussehen)
+   ============================================================
+   CSS beschreibt das AUSSEHEN der Seite: Farben, Abstände,
+   Schriftarten. Probiere ruhig aus, Werte zu verändern! */
+
+/* "*" bedeutet "alle Elemente". So setzen wir einen sauberen Start. */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+/* Die weiße Karte in der Mitte */
+.card {
+  background: #ffffff;
+  width: 100%;
+  max-width: 480px;
+  padding: 2rem;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+}
+
+h1 {
+  font-size: 1.6rem;
+  color: #1e1b4b;
+}
+
+.untertitel {
+  color: #6b7280;
+  font-size: 0.9rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Das Eingabe-Formular: Feld + Button nebeneinander */
+#todo-form {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+#todo-input {
+  flex: 1; /* nimmt den restlichen Platz ein */
+  padding: 0.75rem 1rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+#todo-input:focus {
+  border-color: #6366f1;
+}
+
+button[type="submit"] {
+  padding: 0.75rem 1.25rem;
+  background: #6366f1;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+button[type="submit"]:hover {
+  background: #4f46e5;
+}
+
+.counter {
+  font-size: 0.85rem;
+  color: #9ca3af;
+  margin-bottom: 0.75rem;
+}
+
+/* Die Liste der Aufgaben */
+ul {
+  list-style: none;
+}
+
+li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.75rem 0.5rem;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+li label {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  cursor: pointer;
+  flex: 1;
+}
+
+li input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+/* Erledigte Aufgaben werden durchgestrichen und blasser */
+li.erledigt span {
+  text-decoration: line-through;
+  color: #9ca3af;
+}
+
+.loeschen {
+  background: transparent;
+  border: none;
+  color: #ef4444;
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+}
+
+.loeschen:hover {
+  background: #fef2f2;
+}

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Aufgabenliste – Node.js Backend</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="card">
+      <h1>📝 Meine Aufgaben</h1>
+      <p class="untertitel">Daten werden auf dem Server gespeichert (Node.js)</p>
+
+      <form id="todo-form">
+        <input
+          id="todo-input"
+          type="text"
+          placeholder="Was möchtest du erledigen?"
+          autocomplete="off"
+        />
+        <button type="submit">Hinzufügen</button>
+      </form>
+
+      <p id="counter" class="counter">0 offen / 0 gesamt</p>
+
+      <ul id="todo-list"></ul>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<!--
+  ============================================================
+   Aufgabenliste – Projekt 1: Web-Grundlagen
+  ============================================================
+  Dies ist die HTML-Datei. HTML beschreibt die STRUKTUR der
+  Seite (Überschrift, Eingabefeld, Liste). Das Aussehen kommt
+  aus style.css, die Logik aus app.js.
+
+  So startest du: Doppelklick auf diese Datei – sie öffnet sich
+  direkt im Browser. Keine Installation nötig!
+-->
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aufgabenliste – Web-Grundlagen</title>
+
+  <!-- Wir laden unsere Stildatei (CSS) -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="card">
+    <h1>📝 Meine Aufgaben</h1>
+    <p class="untertitel">Reines HTML, CSS &amp; JavaScript – ganz ohne Framework</p>
+
+    <!--
+      Ein Formular mit Eingabefeld und Button.
+      Mit "id" können wir diese Elemente später in app.js ansprechen.
+    -->
+    <form id="todo-form">
+      <input
+        id="todo-input"
+        type="text"
+        placeholder="Was möchtest du erledigen?"
+        autocomplete="off"
+      />
+      <button type="submit">Hinzufügen</button>
+    </form>
+
+    <!-- Hier zeigen wir an, wie viele Aufgaben offen / erledigt sind -->
+    <p id="counter" class="counter">0 offen / 0 gesamt</p>
+
+    <!-- Diese Liste wird per JavaScript mit Aufgaben gefüllt -->
+    <ul id="todo-list"></ul>
+  </main>
+
+  <!-- Ganz am Ende laden wir unsere Logik (JavaScript) -->
+  <script src="app.js"></script>
+</body>
+</html>
