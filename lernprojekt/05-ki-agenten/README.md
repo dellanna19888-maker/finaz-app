@@ -54,19 +54,24 @@ neuesten Community-Richtlinien (TikTok, Instagram …) und rechtlichen Vorgaben
 > wenig extra. Im Code kannst du sie mit `WEB_SUCHE_AKTIV = False/false`
 > abschalten – dann nutzt der Agent nur sein vorhandenes Wissen.
 
-## 📂 Drei Varianten zum Vergleichen
+## 📂 Vier Varianten zum Vergleichen
 
-Dasselbe Agenten-Team in drei Verpackungen:
+Dasselbe Agenten-Team in vier Verpackungen:
 
 | Ordner | Variante | Start |
 |--------|----------|-------|
 | `python/` | Kommandozeile (Python) | `python agents.py "Fitness" "TikTok"` |
 | `typescript/` | Kommandozeile (TypeScript) | `npm start -- "Fitness" "TikTok"` |
-| `web/` | 🌐 **Webseite** (Server + Browser) | `npm start` → http://localhost:3000 |
+| `web/` | 🌐 Webseite mit Server (dein Schlüssel) | `npm start` → http://localhost:3000 |
+| `web-statisch/` | 📤 **Eine Datei zum Weitergeben** (eigener Schlüssel) | `index.html` im Browser öffnen |
 
-Alle drei nutzen **dieselbe Agenten-Logik** – schau sie dir nebeneinander an!
-Die Web-Version (`web/`) zeigt die Agenten **live im Browser** und ist ideal,
-wenn du das System ohne Terminal benutzen möchtest.
+Alle nutzen **dieselbe Agenten-Logik** – schau sie dir nebeneinander an!
+
+- **`web/`** – ein Server hält **deinen** Schlüssel geheim (du zahlst für alle
+  Besucher). Gut, wenn andere die Seite **ohne eigenen Schlüssel** nutzen sollen.
+- **`web-statisch/`** – **eine einzige HTML-Datei ohne Server**, ideal zum
+  **Weitergeben**: Jede Person trägt ihren **eigenen** Schlüssel ein und zahlt
+  selbst. (Siehe `web-statisch/README.md` für die 3 Wege zum Teilen.)
 
 ---
 
