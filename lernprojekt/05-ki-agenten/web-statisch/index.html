@@ -197,6 +197,10 @@
           <input id="webSuche" type="checkbox" checked />
           🌐 Web-Suche nutzen (neueste Trends &amp; Regeln)
         </label>
+        <label class="checkbox-zeile">
+          <input id="demoModus" type="checkbox" />
+          🎮 Demo-Modus (kostenlos testen – ohne Schlüssel &amp; ohne KI)
+        </label>
         <button id="startKnopf" type="submit">✨ Content erstellen</button>
       </form>
 
@@ -257,7 +261,7 @@
         document
           .getElementById("schluesselLoeschen")
           .classList.toggle("versteckt", !gesetzt);
-        startKnopf.disabled = !gesetzt;
+        aktualisiereStartKnopf();
         if (gesetzt) {
           schluesselFeld.value = "";
           schluesselFeld.placeholder = "✓ Schlüssel gespeichert";
@@ -407,18 +411,135 @@
         document.getElementById("karte-" + name).classList.remove("versteckt");
       }
 
+      // --- Start-Knopf passend aktivieren/deaktivieren ---
+      // Aktiv, sobald ein Schlüssel gespeichert ODER der Demo-Modus an ist.
+      function aktualisiereStartKnopf() {
+        const demo = document.getElementById("demoModus").checked;
+        startKnopf.disabled = !(apiSchluessel || demo);
+      }
+      document
+        .getElementById("demoModus")
+        .addEventListener("change", aktualisiereStartKnopf);
+
+      // --- Kleine Pause (damit man im Demo-Modus die Schritte sieht) ---
+      function warte(ms) {
+        return new Promise((r) => setTimeout(r, ms));
+      }
+
+      // --- Beispiel-Texte für den kostenlosen Demo-Modus (ohne KI) ---
+      function demoRecherche(nische, plattform) {
+        return `📊 Briefing (DEMO-Beispiel – keine echten Live-Daten)
+
+Trends für „${nische}" auf ${plattform}:
+• Kurze Videos (15–30 Sek.) mit Mehrwert in den ersten 3 Sekunden
+• „Vorher/Nachher" und Schritt-für-Schritt-Formate laufen aktuell gut
+• Authentische, ungeschönte Clips schlagen Hochglanz-Produktionen
+
+Neueste Plattform-Regeln:
+• Werbung/Kooperationen klar kennzeichnen (z.B. „Werbung", „Anzeige")
+• Keine irreführenden Heils- oder Erfolgsversprechen
+• Musik/Material nur mit passender Lizenz verwenden
+
+Rechtliche Hinweise:
+• Werbekennzeichnung: bezahlte Inhalte deutlich markieren
+• Urheberrecht: nur eigene oder lizenzierte Bilder/Musik
+• Datenschutz: keine fremden Personen ohne Einwilligung zeigen
+
+(Im echten Betrieb sucht Agent 1 diese Infos live im Web und nennt Quellen.)`;
+      }
+
+      function demoIdeen(nische, plattform) {
+        return `💡 5 Content-Ideen für „${nische}" auf ${plattform} (DEMO):
+
+1. „3 Mythen über ${nische}"
+   Format: Reel (20 Sek.) · Hook: „Das glaubst du bestimmt auch – stimmt aber nicht!"
+
+2. „Mein ${nische}-Setup für Anfänger"
+   Format: Karussell (5 Bilder) · Hook: „Starte mit diesen 5 Dingen"
+
+3. „Vorher/Nachher: 30 Tage ${nische}"
+   Format: Reel · Hook: „Was in 30 Tagen wirklich passiert"
+
+4. „Die häufigsten Anfängerfehler"
+   Format: Story-Serie · Hook: „Fehler Nr. 2 macht fast jeder"
+
+5. „Q&A: Eure Fragen zu ${nische}"
+   Format: Reel · Hook: „Die meistgestellte Frage – ehrlich beantwortet"`;
+      }
+
+      function demoPost(nische, plattform) {
+        const tag = nische.replace(/\s+/g, "");
+        return `✍️ Roh-Post (DEMO) für ${plattform}:
+
+HOOK: „Stopp! Wenn du mit ${nische} startest, mach NICHT diesen Fehler 👇"
+
+CAPTION:
+Viele machen am Anfang denselben Fehler – und geben dann frustriert auf.
+Dabei reicht oft eine kleine Umstellung. Hier kommen die 3 wichtigsten Punkte
+für einen leichten Einstieg in ${nische}. Speichere dir den Post! 💪
+
+HASHTAGS:
+#${tag} #tipps #anfänger #motivation #routine #lernen`;
+      }
+
+      function demoFertig(nische, plattform) {
+        const tag = nische.replace(/\s+/g, "");
+        return `HOOK: „Stopp! 🛑 Diesen einen Fehler machen fast alle, die mit ${nische} starten 👇"
+
+CAPTION:
+Die meisten geben am Anfang zu früh auf – oft wegen einer Kleinigkeit.
+Die 3 wichtigsten Punkte für deinen leichten Start in ${nische}:
+1) Klein anfangen  2) Dranbleiben  3) Fortschritt sichtbar machen.
+Speichere dir den Post für später! 💪
+
+HASHTAGS:
+#${tag} #tipps #anfänger #motivation #routine #lernen
+
+— Compliance-Checkliste —
+✓ Werbung würde bei Kooperation klar gekennzeichnet
+✓ Keine übertriebenen Versprechen
+✓ Nur eigene/lizenzierte Inhalte vorgesehen
+✓ Sprache klar und gut lesbar
+
+(DEMO-Beispiel – im echten Betrieb erstellt Claude diesen Text individuell für dich.)`;
+      }
+
+      // --- Demo-Durchlauf: zeigt die Schritte mit Beispiel-Texten ---
+      async function demoLauf(nische, plattform) {
+        setzeStatus("Agent 1 (Trend- & Regel-Rechercheur) ... (Demo)");
+        await warte(800);
+        fuelleKarte("recherche", demoRecherche(nische, plattform));
+
+        setzeStatus("Agent 2 (Ideen-Agent) ... (Demo)");
+        await warte(800);
+        fuelleKarte("ideen", demoIdeen(nische, plattform));
+
+        setzeStatus("Agent 3 (Content-Agent) ... (Demo)");
+        await warte(800);
+        fuelleKarte("post", demoPost(nische, plattform));
+
+        setzeStatus("Agent 4 (Compliance-Lektor) ... (Demo)");
+        await warte(800);
+        fuelleKarte("fertig", demoFertig(nische, plattform));
+      }
+
       // --- Der Orchestrator: ruft die Agenten nacheinander auf ---
       document.getElementById("formular").addEventListener("submit", async (e) => {
         e.preventDefault();
-        if (!apiSchluessel) {
-          zeigeFehler("Bitte zuerst deinen API-Schlüssel speichern.");
-          return;
-        }
 
         const nische = document.getElementById("nische").value.trim();
         const plattform = document.getElementById("plattform").value;
         const mitWebSuche = document.getElementById("webSuche").checked;
+        const demo = document.getElementById("demoModus").checked;
         if (!nische) return;
+
+        // Ohne Demo-Modus brauchen wir einen Schlüssel.
+        if (!demo && !apiSchluessel) {
+          zeigeFehler(
+            "Bitte einen API-Schlüssel speichern – oder den Demo-Modus aktivieren (kostenlos).",
+          );
+          return;
+        }
 
         // Oberfläche zurücksetzen
         for (const name of ["recherche", "ideen", "post", "fertig"]) {
@@ -426,25 +547,30 @@
           document.getElementById("text-" + name).textContent = "";
         }
         startKnopf.disabled = true;
-        startKnopf.textContent = "⏳ Agenten arbeiten ...";
+        startKnopf.textContent = demo ? "🎮 Demo läuft ..." : "⏳ Agenten arbeiten ...";
 
         try {
-          setzeStatus("Agent 1 (Trend- & Regel-Rechercheur) recherchiert ...");
-          const briefing = await trendUndRegelRechercheur(nische, plattform, mitWebSuche);
-          fuelleKarte("recherche", briefing);
+          if (demo) {
+            // Kostenloser Demo-Modus (ohne KI, ohne Kosten)
+            await demoLauf(nische, plattform);
+          } else {
+            // Echter Modus: ruft die Anthropic-API auf
+            setzeStatus("Agent 1 (Trend- & Regel-Rechercheur) recherchiert ...");
+            const briefing = await trendUndRegelRechercheur(nische, plattform, mitWebSuche);
+            fuelleKarte("recherche", briefing);
 
-          setzeStatus("Agent 2 (Ideen-Agent) sammelt Ideen ...");
-          const ideen = await ideenAgent(nische, plattform, briefing);
-          fuelleKarte("ideen", ideen);
+            setzeStatus("Agent 2 (Ideen-Agent) sammelt Ideen ...");
+            const ideen = await ideenAgent(nische, plattform, briefing);
+            fuelleKarte("ideen", ideen);
 
-          setzeStatus("Agent 3 (Content-Agent) schreibt den Post ...");
-          const post = await contentAgent(plattform, ideen);
-          fuelleKarte("post", post);
+            setzeStatus("Agent 3 (Content-Agent) schreibt den Post ...");
+            const post = await contentAgent(plattform, ideen);
+            fuelleKarte("post", post);
 
-          setzeStatus("Agent 4 (Compliance-Lektor) prüft die Regeln ...");
-          const fertig = await complianceLektor(post, briefing);
-          fuelleKarte("fertig", fertig);
-
+            setzeStatus("Agent 4 (Compliance-Lektor) prüft die Regeln ...");
+            const fertig = await complianceLektor(post, briefing);
+            fuelleKarte("fertig", fertig);
+          }
           statusBox.classList.add("versteckt");
         } catch (fehler) {
           zeigeFehler(fehler.message || String(fehler));

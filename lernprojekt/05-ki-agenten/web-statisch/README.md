@@ -47,6 +47,15 @@ macht einen **Doppelklick** darauf – sie öffnet sich im Browser.
    die Ergebnisse erscheinen live.
 4. Den fertigen Post mit **„📋 Kopieren"** übernehmen.
 
+## 🎮 Kostenlos testen (Demo-Modus)
+
+Du willst nur sehen, wie alles aussieht – ohne Schlüssel und ohne Kosten?
+Setze auf der Seite das Häkchen bei **„Demo-Modus"** und klick auf
+„Content erstellen". Dann laufen die vier Agenten mit **Beispiel-Texten** durch
+(inkl. Spinner und Live-Karten). So kannst du die Oberfläche und den Ablauf in
+Ruhe ausprobieren. Für **echte** KI-Ergebnisse einfach das Häkchen entfernen und
+oben einen API-Schlüssel eintragen.
+
 ## 🔧 Anpassen (im `<script>`-Teil der Datei)
 
 - **Modell/Geschwindigkeit:** `MODELL` auf `claude-haiku-4-5` ändern
