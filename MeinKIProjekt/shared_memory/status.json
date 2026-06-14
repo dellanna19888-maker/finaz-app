@@ -1,23 +1,39 @@
 {
   "version": "1.0",
-  "last_updated": "",
-  "workflow_stage": "idle",
+  "last_updated": "2026-06-14T03:10:38.149008",
+  "workflow_stage": "agent_d_approved",
   "agent_a": {
-    "status": "idle",
-    "task": "",
+    "status": "pending",
+    "task": "Retry-Test-Thema",
     "draft": "",
     "error": ""
   },
   "agent_b": {
-    "status": "idle",
+    "status": "done",
     "task": "",
-    "final_output": "",
+    "final_output": "SKRIPT:\n[Szene 1 – Text auf schwarzem Hintergrund]\nVoiceover: 'Die meisten ETF-Anleger machen diesen einen Fehler – KI nicht.'\n\n[Szene 2 – Diagramm: ETF vs. KI-Kurve]\nVoiceover: 'Ein klassischer Sparplan läuft passiv. Keine Anpassung, egal was der Markt macht.'\n\n[Szene 3 – Highlight +2,3%]\nVoiceover: 'KI-gesteuerte Portfolios haben von 2023 bis 2025 im Schnitt 2,3% mehr Rendite erzielt – durch automatisches Rebalancing.'\n\n[Szene 4 – Kosten-Vergleich Tabelle]\nVoiceover: 'Der Haken: KI-Dienste kosten zwischen 0,2 und 0,8% pro Jahr. Rechne das gegen deinen Vorteil.'\n\n[Szene 5 – FinazBrain Logo]\nVoiceover: 'Speicher dir das, bevor du deinen nächsten Sparplan startest.'\n\nON-SCREEN-TEXT:\nSzene 1: 'ETF vs. KI – wer gewinnt?'\nSzene 2: 'ETF-Sparplan = passiv'\nSzene 3: '+2,3% Rendite durch KI'\nSzene 4: 'Kosten: 0,2–0,8% p.a.'\nSzene 5: 'FinazBrain'\n\nCAPTION:\nETF oder KI-Portfolio? Die Antwort hängt von deinem Zeithorizont und deiner Risikobereitschaft ab. Was du oben siehst, sind Durchschnittswerte – kein Versprechen.\n\nSpeicher dir das für deine nächste Anlage-Entscheidung 📌\n\nHASHTAGS:\n#finanzen #etf #kiinvestieren #investieren #finanzbildung #geldanlegen #aitools #finanzwissen #finanzbrain #passiveseinkommen",
     "error": ""
   },
   "metadata": {
     "input_file": "",
-    "output_file": "",
-    "started_at": "",
-    "completed_at": ""
+    "output_file": "/home/user/finaz-app/MeinKIProjekt/shared_memory/final_script.txt",
+    "started_at": "2026-06-14T03:10:38.146754",
+    "completed_at": "2026-06-14T03:10:38.148701"
+  },
+  "agent_c": {
+    "status": "idle",
+    "thumbnail": "",
+    "background": "",
+    "text_overlay_style": "",
+    "error": ""
+  },
+  "agent_d": {
+    "status": "done",
+    "decision": "APPROVED",
+    "issues": [],
+    "corrections": [],
+    "required_disclaimer": "Keine Anlageberatung. Nur allgemeine Information.",
+    "retries": 1,
+    "error": ""
   }
 }
