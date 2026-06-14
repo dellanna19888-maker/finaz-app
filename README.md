@@ -85,10 +85,20 @@ Standardprofil ist **DSGVO**. Endpoints: `POST /api/assist`,
 
 ## Deployment
 
-`npm run build` erzeugt ein statisches Frontend (`dist/`, z. B. für GitHub Pages).
-Die **KI-Funktionen benötigen das laufende Backend** (`server/`) – dieses separat
-hosten (oder denselben Prozess nutzen: der Server liefert `dist/` mit aus, falls
-vorhanden). Die Compliance-Seite funktioniert auch rein statisch (lokale Prüfung).
+Vollständige Anleitung: [`DEPLOY.md`](./DEPLOY.md).
+
+**Volle Version inkl. KI (mit eigenem Key):**
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/dellanna19888-maker/finaz-app)
+
+In Render den richtigen Branch wählen (oder vorher nach `main` mergen) und
+`ANTHROPIC_API_KEY` als Secret setzen. Universell auch per `Dockerfile`
+(jeder Container-Host) – siehe `DEPLOY.md`.
+
+**Kostenloser Vorschau-Link (GitHub Pages, ohne Key):** Der Workflow
+`.github/workflows/deploy.yml` veröffentlicht das statische Frontend. Dort laufen
+Finanz-App + Compliance; die **KI braucht ein Backend** (siehe oben). Voraussetzung:
+GitHub Pages aktiviert (Settings → Pages → Source: „GitHub Actions").
 
 ---
 
