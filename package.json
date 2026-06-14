@@ -8,6 +8,7 @@
     "build": "vue-tsc -b && vite build",
     "preview": "vite preview",
     "api": "tsx server/index.ts",
+    "start": "tsx server/index.ts",
     "api:dev": "tsx watch server/index.ts",
     "dev:all": "concurrently -k -n web,api -c blue,green \"npm:dev\" \"npm:api:dev\"",
     "demo": "npm run build && npm run api"
