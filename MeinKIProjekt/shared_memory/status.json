@@ -1,0 +1,23 @@
+{
+  "version": "1.0",
+  "last_updated": "2026-06-14T01:38:53.614022",
+  "workflow_stage": "agent_a_pending",
+  "agent_a": {
+    "status": "pending",
+    "task": "Analysiere meine Finanz-App und erstelle eine Zusammenfassung der wichtigsten Features",
+    "draft": "",
+    "error": ""
+  },
+  "agent_b": {
+    "status": "idle",
+    "task": "",
+    "final_output": "",
+    "error": ""
+  },
+  "metadata": {
+    "input_file": "",
+    "output_file": "/home/user/finaz-app/MeinKIProjekt/shared_memory/final_script.txt",
+    "started_at": "2026-06-14T01:38:53.613797",
+    "completed_at": ""
+  }
+}
