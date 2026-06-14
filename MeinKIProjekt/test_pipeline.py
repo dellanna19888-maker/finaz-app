@@ -31,6 +31,25 @@ MOCK_AGENT_A = json.dumps({
     }
 })
 
+MOCK_AGENT_C = json.dumps({
+    "agent_c": {
+        "status": "done",
+        "thumbnail": (
+            "A sleek dark background with glowing gold upward arrow, stock chart lines, "
+            "'+2.3%' in large bold white text. Minimalist fintech aesthetic, sharp contrast. --ar 9:16 --style raw"
+        ),
+        "background": (
+            "Abstract dark blue financial data visualization, floating numbers and graph lines, "
+            "subtle gold glow, no text, cinematic depth of field, 4K quality. --ar 9:16"
+        ),
+        "text_overlay_style": (
+            "Font: bold sans-serif (Inter/Helvetica). Colors: white text on dark (#0a0a0a) background, "
+            "gold (#FFD700) for key numbers. Style: minimal, high contrast, no drop shadows."
+        ),
+        "error": ""
+    }
+})
+
 MOCK_AGENT_B = json.dumps({
     "agent_b": {
         "status": "done",
@@ -66,7 +85,8 @@ MOCK_AGENT_B = json.dumps({
 
 def mock_call_ollama(prompt: str, model: str = "") -> str:
     """Gibt je nach Agenten-Kontext die passende Mock-Antwort zurück."""
-    # Agent B bekommt den Draft als Eingabe – eindeutiges Erkennungsmerkmal
+    if "SKRIPT VON AGENT B" in prompt:
+        return MOCK_AGENT_C
     if "DRAFT VON AGENT A" in prompt:
         return MOCK_AGENT_B
     return MOCK_AGENT_A
@@ -116,7 +136,7 @@ mc.OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
 mc.run_auto("ETF vs. KI-Portfolio – was bringt 2026 mehr Rendite?")
 
 status = mc.load_status()
-check("Workflow stage = agent_b_done", status["workflow_stage"] == "agent_b_done")
+check("Workflow stage = agent_c_done", status["workflow_stage"] == "agent_c_done")
 check("Agent A hat Draft",             bool(status["agent_a"]["draft"]))
 check("Agent B hat final_output",      bool(status["agent_b"]["final_output"]))
 check("HOOK im Draft",                 "HOOK" in status["agent_a"]["draft"])
@@ -149,18 +169,34 @@ if log_files:
     ok_count = sum(1 for e in log if e["status"] == "ok")
     check("Alle 3 im Log als 'ok'",    ok_count == 3, f"ok: {ok_count}/3")
 
-# Erste Ausgabe-Datei inhaltlich prüfen
+# Erste Ausgabe-Datei inhaltlich prüfen (Skript + Thumbnails)
 if output_files:
     content = output_files[0].read_text(encoding="utf-8")
-    check("Header 'THEMA:' in Datei",  "THEMA:" in content)
-    check("'SKRIPT' im Datei-Inhalt",  "SKRIPT" in content)
+    check("Header 'THEMA:' in Datei",        "THEMA:" in content)
+    check("'SKRIPT' im Datei-Inhalt",         "SKRIPT" in content)
+    check("'THUMBNAIL-PROMPTS' in Datei",     "THUMBNAIL-PROMPTS" in content)
+    check("Midjourney-Prompt '--ar 9:16'",    "--ar 9:16" in content)
 
 # Aufräumen
 mc.BATCH_OUTPUT_DIR = original_dir
 shutil.rmtree(test_output_dir, ignore_errors=True)
 
-# --- Test 5: Dateiname-Generator ---
-print("\n[5] Dateiname-Generator (_safe_filename)")
+# --- Test 5: Agent C (Thumbnail-Prompts, Einzellauf) ---
+print("\n[5] Agent C – Thumbnail-Prompt-Generator")
+status = mc.load_status()
+check("Agent C in status.json",              "agent_c" in status)
+check("Thumbnail nicht leer",                bool(status.get("agent_c", {}).get("thumbnail")))
+check("'--ar 9:16' im Thumbnail-Prompt",     "--ar 9:16" in status.get("agent_c", {}).get("thumbnail", ""))
+check("Hintergrund nicht leer",              bool(status.get("agent_c", {}).get("background")))
+check("Text-Overlay-Stil nicht leer",        bool(status.get("agent_c", {}).get("text_overlay_style")))
+check("thumbnail_prompts.txt erstellt",      mc.THUMBNAIL_FILE.exists())
+if mc.THUMBNAIL_FILE.exists():
+    tp_content = mc.THUMBNAIL_FILE.read_text(encoding="utf-8")
+    check("'THUMBNAIL' im Prompt-File",      "THUMBNAIL" in tp_content)
+    check("'Midjourney' im Prompt-File",     "Midjourney" in tp_content)
+
+# --- Test 6: Dateiname-Generator ---
+print("\n[6] Dateiname-Generator (_safe_filename)")
 check("Umlaute & Sonderzeichen",
       mc._safe_filename("Über KI & Geld?!") != "",
       mc._safe_filename("Über KI & Geld?!"))

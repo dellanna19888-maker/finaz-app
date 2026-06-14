@@ -1,5 +1,6 @@
 # Generierte Outputs nicht committen
 shared_memory/final_script.txt
+shared_memory/thumbnail_prompts.txt
 outputs/
 
 # Python

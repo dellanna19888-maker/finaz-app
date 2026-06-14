@@ -17,8 +17,10 @@ BASE_DIR = Path(__file__).parent
 SHARED_MEMORY = BASE_DIR / "shared_memory" / "status.json"
 AGENT_A_PROMPT = BASE_DIR / "agent_a_scripts" / "system_prompt_agent_a.txt"
 AGENT_B_PROMPT = BASE_DIR / "agent_b_scripts" / "system_prompt_agent_b.txt"
+AGENT_C_PROMPT = BASE_DIR / "agent_c_scripts" / "system_prompt_agent_c.txt"
 PROFILE_FILE = BASE_DIR / "config" / "profile.json"
 OUTPUT_FILE = BASE_DIR / "shared_memory" / "final_script.txt"
+THUMBNAIL_FILE = BASE_DIR / "shared_memory" / "thumbnail_prompts.txt"
 BATCH_TOPICS_FILE = BASE_DIR / "config" / "batch_topics.json"
 BATCH_OUTPUT_DIR = BASE_DIR / "outputs"
 
@@ -64,6 +66,7 @@ def reset_workflow(task: str = "", input_file: str = ""):
     status["workflow_stage"] = "agent_a_pending"
     status["agent_a"] = {"status": "pending", "task": task, "draft": "", "error": ""}
     status["agent_b"] = {"status": "idle", "task": "", "final_output": "", "error": ""}
+    status["agent_c"] = {"status": "idle", "thumbnail": "", "background": "", "text_overlay_style": "", "error": ""}
     status["metadata"]["input_file"] = input_file
     status["metadata"]["output_file"] = str(OUTPUT_FILE)
     status["metadata"]["started_at"] = datetime.datetime.now().isoformat()
@@ -114,6 +117,34 @@ def save_final_output(status: dict):
         print(f"[Controller] Finales Ergebnis gespeichert: {OUTPUT_FILE}")
 
 
+def save_thumbnail_prompts(status: dict):
+    """Speichert die Thumbnail-Prompts von Agent C in eine Textdatei."""
+    c = status.get("agent_c", {})
+    thumbnail = c.get("thumbnail", "")
+    if not thumbnail:
+        return
+    lines = [
+        "=== THUMBNAIL-PROMPTS (FinazBrain) ===",
+        f"Erstellt: {datetime.datetime.now().isoformat()}",
+        "",
+        "--- THUMBNAIL (Vorschaubild) ---",
+        thumbnail,
+        "",
+        "--- HINTERGRUNDBILD ---",
+        c.get("background", ""),
+        "",
+        "--- TEXT-OVERLAY-STIL ---",
+        c.get("text_overlay_style", ""),
+        "",
+        "=== VERWENDUNG ===",
+        "Midjourney: /imagine <prompt>",
+        "DALL-E:     Prompt direkt einfügen",
+        "Stable Diffusion: txt2img, Prompt-Feld",
+    ]
+    THUMBNAIL_FILE.write_text("\n".join(lines), encoding="utf-8")
+    print(f"[Controller] Thumbnail-Prompts gespeichert: {THUMBNAIL_FILE}")
+
+
 def inject_agent_response(agent: str, response_json: str):
     """
     Nimmt die JSON-Antwort eines Agenten entgegen und aktualisiert status.json.
@@ -141,6 +172,19 @@ def inject_agent_response(agent: str, response_json: str):
             if status["agent_b"]["status"] == "done":
                 status["workflow_stage"] = "agent_b_done"
             print(f"[Controller] Agent B Antwort verarbeitet.")
+
+        elif agent == "c":
+            agent_data = response.get("agent_c", {})
+            if "agent_c" not in status:
+                status["agent_c"] = {}
+            status["agent_c"]["status"] = agent_data.get("status", "done")
+            status["agent_c"]["thumbnail"] = agent_data.get("thumbnail", "")
+            status["agent_c"]["background"] = agent_data.get("background", "")
+            status["agent_c"]["text_overlay_style"] = agent_data.get("text_overlay_style", "")
+            status["agent_c"]["error"] = agent_data.get("error", "")
+            if status["agent_c"]["status"] == "done":
+                status["workflow_stage"] = "agent_c_done"
+            print(f"[Controller] Agent C Antwort verarbeitet.")
 
         save_status(status)
         check_and_trigger_agent_b()
@@ -280,11 +324,22 @@ def run_auto(task: str, model: str = OLLAMA_MODEL):
         print("[Auto] Abbruch bei Agent B.")
         return
 
+    # --- Agent C (Thumbnail-Prompts aus finalem Skript) ---
+    final_script = OUTPUT_FILE.read_text(encoding="utf-8") if OUTPUT_FILE.exists() else ""
+    if final_script and AGENT_C_PROMPT.exists():
+        prompt_c = AGENT_C_PROMPT.read_text(encoding="utf-8")
+        prompt_c += load_profile_block()
+        prompt_c += f"\n--- SKRIPT VON AGENT B ---\n{final_script}\n\nAntworte NUR mit dem JSON-Objekt."
+        if run_agent_via_ollama("c", prompt_c, model):
+            save_thumbnail_prompts(load_status())
+
     print("\n[Auto] ✓ Fertig! Ergebnis:")
     print("-" * 60)
     print(OUTPUT_FILE.read_text(encoding="utf-8"))
     print("-" * 60)
-    print(f"[Auto] Gespeichert in: {OUTPUT_FILE}")
+    print(f"[Auto] Skript gespeichert:     {OUTPUT_FILE}")
+    if THUMBNAIL_FILE.exists():
+        print(f"[Auto] Thumbnails gespeichert: {THUMBNAIL_FILE}")
 
 
 # ============================================================
@@ -343,10 +398,25 @@ def run_batch(topics: list[str], model: str = OLLAMA_MODEL):
                 ergebnisse.append({"thema": task, "status": "fehler_agent_b", "datei": ""})
                 continue
 
-            # Ergebnis in eigene Datei schreiben
-            inhalt = OUTPUT_FILE.read_text(encoding="utf-8")
+            # Agent C (Thumbnail-Prompts)
+            final_script = OUTPUT_FILE.read_text(encoding="utf-8") if OUTPUT_FILE.exists() else ""
+            thumbnail_section = ""
+            if final_script and AGENT_C_PROMPT.exists():
+                prompt_c = AGENT_C_PROMPT.read_text(encoding="utf-8")
+                prompt_c += load_profile_block()
+                prompt_c += f"\n--- SKRIPT VON AGENT B ---\n{final_script}\n\nAntworte NUR mit dem JSON-Objekt."
+                if run_agent_via_ollama("c", prompt_c, model):
+                    c_status = load_status().get("agent_c", {})
+                    thumbnail_section = (
+                        f"\n{'='*60}\nTHUMBNAIL-PROMPTS\n{'='*60}\n"
+                        f"THUMBNAIL:\n{c_status.get('thumbnail', '')}\n\n"
+                        f"HINTERGRUND:\n{c_status.get('background', '')}\n\n"
+                        f"TEXT-OVERLAY-STIL:\n{c_status.get('text_overlay_style', '')}\n"
+                    )
+
+            # Alles in eine Datei
             header = f"THEMA: {task}\nERSTELLT: {datetime.datetime.now().isoformat()}\n{'='*60}\n\n"
-            out_file.write_text(header + inhalt, encoding="utf-8")
+            out_file.write_text(header + final_script + thumbnail_section, encoding="utf-8")
             ergebnisse.append({"thema": task, "status": "ok", "datei": str(out_file)})
             print(f"[Batch] ✓ Gespeichert: {out_file.name}")
 
