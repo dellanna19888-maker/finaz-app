@@ -1,2 +1,6 @@
 # Generierte Outputs nicht committen
 shared_memory/final_script.txt
+
+# Python
+__pycache__/
+*.pyc
