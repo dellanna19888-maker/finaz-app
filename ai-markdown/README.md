@@ -97,6 +97,11 @@ im Editor) lassen sich Operationen interaktiv prüfen (Simulation via
 `POST /api/compliance/check`, ohne API-Key) und das Audit-Log durchsuchen sowie
 als **CSV** exportieren.
 
+Zum **schnellen Ansehen ohne Setup** gibt es eine eigenständige Offline-Demo:
+[`preview/console-preview.html`](./preview/console-preview.html) – einfach im
+Browser öffnen (oder auf einen Static-Host wie GitHub Pages legen, um eine echte
+URL zu erhalten).
+
 > ⚠ Technisches Governance-Gerüst, **keine Rechtsberatung** und keine
 > zertifizierte Compliance.
 
