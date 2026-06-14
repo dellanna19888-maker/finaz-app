@@ -25,6 +25,9 @@ const links = [
   { to: '/transactions', label: 'Transaktionen', short: 'Buchungen', icon: '💸' },
   { to: '/budget', label: 'Budget', short: 'Budget', icon: '🎯' },
   { to: '/reports', label: 'Berichte', short: 'Berichte', icon: '📊' },
+  { to: '/assistant', label: 'KI-Assistent', short: 'KI', icon: '🤖' },
+  { to: '/notes', label: 'Notizen', short: 'Notizen', icon: '📝' },
+  { to: '/compliance', label: 'Compliance', short: 'Comp.', icon: '🛡️' },
 ]
 </script>
 
