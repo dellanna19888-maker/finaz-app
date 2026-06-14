@@ -32,11 +32,37 @@ in deinem Stil klingt. Einfach die Felder anpassen – keine Code-Änderung nöt
 
 ## Workflow
 
+### Variante A – Auto-Modus (empfohlen, via Ollama)
+
+Vollautomatisch: Thema rein → fertiges Skript raus. Kein Copy-Paste.
+
+```bash
+# Einmalig: Ollama installieren (https://ollama.com) und ein Modell laden
+ollama pull llama3.1
+ollama serve            # Server starten (falls nicht schon aktiv)
+
+# Dann: kompletter Workflow in EINEM Befehl
+python3 main_controller.py auto "3 KI-Tools, die deine Finanzen automatisieren"
+```
+
+Der Controller ruft Agent A und Agent B nacheinander automatisch auf,
+reicht den Draft selbstständig weiter und speichert das Ergebnis in
+`shared_memory/final_script.txt`.
+
+**Konfiguration** (optional, per Umgebungsvariable):
+
+```bash
+OLLAMA_MODEL=mistral python3 main_controller.py auto "Mein Thema"
+OLLAMA_URL=http://192.168.1.50:11434 python3 main_controller.py auto "Mein Thema"
+```
+
+### Variante B – Manueller Modus (Copy-Paste, z. B. mit Claude-App)
+
 ```bash
 # 1. Workflow starten – zeigt den Prompt für Agent A
-python3 main_controller.py start "Thema: Wie spare ich als Student 200€/Monat. Zielgruppe: 18-25, Instagram"
+python3 main_controller.py start "3 KI-Tools, die deine Finanzen automatisieren"
 
-# 2. Prompt in Claude / Ollama einfügen → JSON-Antwort kopieren → einspeisen
+# 2. Prompt in Claude einfügen → JSON-Antwort kopieren → einspeisen
 python3 main_controller.py inject-a '{"agent_a": {"status": "done", "draft": "...", "error": ""}}'
 
 # 3. Prompt für Agent B anzeigen (enthält automatisch den Draft von A)

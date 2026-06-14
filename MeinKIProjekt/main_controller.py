@@ -6,8 +6,11 @@ Postbote: Liest status.json und steuert den Workflow zwischen Agent A und B.
 
 import json
 import os
+import re
 import sys
 import datetime
+import urllib.request
+import urllib.error
 from pathlib import Path
 
 BASE_DIR = Path(__file__).parent
@@ -16,6 +19,10 @@ AGENT_A_PROMPT = BASE_DIR / "agent_a_scripts" / "system_prompt_agent_a.txt"
 AGENT_B_PROMPT = BASE_DIR / "agent_b_scripts" / "system_prompt_agent_b.txt"
 PROFILE_FILE = BASE_DIR / "config" / "profile.json"
 OUTPUT_FILE = BASE_DIR / "shared_memory" / "final_script.txt"
+
+# --- Ollama Auto-Modus Konfiguration (per Umgebungsvariable überschreibbar) ---
+OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
+OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "llama3.1")
 
 
 def load_profile_block() -> str:
@@ -185,22 +192,128 @@ def print_agent_b_prompt():
     print("="*60 + "\n")
 
 
+# ============================================================
+#  AUTO-MODUS: Ollama-Anbindung (lokales LLM, kein Copy-Paste)
+# ============================================================
+
+def call_ollama(prompt: str, model: str = OLLAMA_MODEL) -> str:
+    """Schickt einen Prompt an die lokale Ollama-Instanz und gibt die Antwort zurück."""
+    url = f"{OLLAMA_URL}/api/generate"
+    payload = {
+        "model": model,
+        "prompt": prompt,
+        "stream": False,
+        # Niedrige Temperatur = verlässlicheres, sauberes JSON
+        "options": {"temperature": 0.4},
+    }
+    data = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(
+        url, data=data, headers={"Content-Type": "application/json"}
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=300) as resp:
+            body = json.loads(resp.read().decode("utf-8"))
+            return body.get("response", "")
+    except urllib.error.URLError as e:
+        raise RuntimeError(
+            f"Ollama nicht erreichbar unter {OLLAMA_URL}. "
+            f"Laeuft 'ollama serve'? Modell '{model}' installiert? Details: {e}"
+        )
+
+
+def extract_json(raw: str) -> str:
+    """Extrahiert das erste JSON-Objekt aus einer LLM-Antwort (entfernt Markdown-Fences)."""
+    text = raw.strip()
+    # ```json ... ``` Codeblöcke entfernen
+    fence = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
+    if fence:
+        return fence.group(1)
+    # Sonst: vom ersten { bis zum letzten }
+    start = text.find("{")
+    end = text.rfind("}")
+    if start != -1 and end != -1 and end > start:
+        return text[start:end + 1]
+    return text
+
+
+def run_agent_via_ollama(agent: str, prompt: str, model: str) -> bool:
+    """Ruft einen Agenten über Ollama auf, parst die Antwort und speist sie ein."""
+    label = agent.upper()
+    print(f"[Auto] Rufe Agent {label} über Ollama ({model}) auf...")
+    raw = call_ollama(prompt, model)
+    cleaned = extract_json(raw)
+    try:
+        json.loads(cleaned)  # Validierung
+    except json.JSONDecodeError:
+        print(f"[FEHLER] Agent {label} lieferte kein gültiges JSON:")
+        print(raw[:400])
+        return False
+    inject_agent_response(agent, cleaned)
+    return True
+
+
+def run_auto(task: str, model: str = OLLAMA_MODEL):
+    """Kompletter Workflow vollautomatisch: Thema rein, fertiges Skript raus."""
+    print(f"\n[Auto] Starte vollautomatischen Workflow mit Modell '{model}'.")
+    reset_workflow(task)
+
+    # --- Agent A ---
+    prompt_a = AGENT_A_PROMPT.read_text(encoding="utf-8")
+    prompt_a += load_profile_block()
+    prompt_a += f"\n--- AUFGABE ---\n{task}\n\nAntworte NUR mit dem JSON-Objekt."
+    if not run_agent_via_ollama("a", prompt_a, model):
+        print("[Auto] Abbruch bei Agent A.")
+        return
+
+    # --- Agent B (Draft kommt automatisch aus status.json) ---
+    status = load_status()
+    draft = status["agent_a"].get("draft", "")
+    if not draft:
+        print("[Auto] Kein Draft von Agent A erhalten. Abbruch.")
+        return
+    prompt_b = AGENT_B_PROMPT.read_text(encoding="utf-8")
+    prompt_b += load_profile_block()
+    prompt_b += f"\n--- DRAFT VON AGENT A ---\n{draft}\n\nAntworte NUR mit dem JSON-Objekt."
+    if not run_agent_via_ollama("b", prompt_b, model):
+        print("[Auto] Abbruch bei Agent B.")
+        return
+
+    print("\n[Auto] ✓ Fertig! Ergebnis:")
+    print("-" * 60)
+    print(OUTPUT_FILE.read_text(encoding="utf-8"))
+    print("-" * 60)
+    print(f"[Auto] Gespeichert in: {OUTPUT_FILE}")
+
+
 if __name__ == "__main__":
     args = sys.argv[1:]
 
     if not args:
         print("Verwendung:")
-        print("  python main_controller.py start '<aufgabe>'")
+        print("  python main_controller.py auto '<aufgabe>'      # Vollautomatisch via Ollama")
+        print("  python main_controller.py start '<aufgabe>'     # Manueller Modus (Copy-Paste)")
         print("  python main_controller.py status")
         print("  python main_controller.py prompt-a '<aufgabe>'")
         print("  python main_controller.py prompt-b")
         print("  python main_controller.py inject-a '<json-antwort>'")
         print("  python main_controller.py inject-b '<json-antwort>'")
+        print()
+        print("Auto-Modus Konfiguration (Umgebungsvariablen):")
+        print(f"  OLLAMA_URL   (aktuell: {OLLAMA_URL})")
+        print(f"  OLLAMA_MODEL (aktuell: {OLLAMA_MODEL})")
         sys.exit(0)
 
     cmd = args[0]
 
-    if cmd == "start":
+    if cmd == "auto":
+        task = args[1] if len(args) > 1 else "Erstelle ein Social-Media-Reel zum Thema Finanzen & KI."
+        try:
+            run_auto(task)
+        except RuntimeError as e:
+            print(f"[FEHLER] {e}")
+            sys.exit(1)
+
+    elif cmd == "start":
         task = args[1] if len(args) > 1 else "Standardaufgabe: Analysiere die Eingabe."
         reset_workflow(task)
         print_agent_a_prompt(task)
