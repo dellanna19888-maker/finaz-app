@@ -14,7 +14,28 @@ BASE_DIR = Path(__file__).parent
 SHARED_MEMORY = BASE_DIR / "shared_memory" / "status.json"
 AGENT_A_PROMPT = BASE_DIR / "agent_a_scripts" / "system_prompt_agent_a.txt"
 AGENT_B_PROMPT = BASE_DIR / "agent_b_scripts" / "system_prompt_agent_b.txt"
+PROFILE_FILE = BASE_DIR / "config" / "profile.json"
 OUTPUT_FILE = BASE_DIR / "shared_memory" / "final_script.txt"
+
+
+def load_profile_block() -> str:
+    """Lädt das Kanal-Profil und formatiert es als Prompt-Block."""
+    if not PROFILE_FILE.exists():
+        return ""
+    try:
+        with open(PROFILE_FILE, "r", encoding="utf-8") as f:
+            profile = json.load(f)
+    except (json.JSONDecodeError, OSError) as e:
+        print(f"[Warnung] Profil konnte nicht geladen werden: {e}")
+        return ""
+
+    profile.pop("_hinweis", None)
+    profile_text = json.dumps(profile, ensure_ascii=False, indent=2)
+    return (
+        "\n### KANAL-PROFIL (RICHTE DICH STRIKT DANACH):\n"
+        "Halte dich bei Stil, Tonalität, Zielgruppe und Hashtags an dieses Profil:\n"
+        f"{profile_text}\n"
+    )
 
 
 def load_status() -> dict:
@@ -145,6 +166,7 @@ def print_agent_a_prompt(task: str):
     print("PROMPT FÜR AGENT A (kopiere dies in Claude/dein LLM):")
     print("="*60)
     print(prompt)
+    print(load_profile_block())
     print(f"\n--- AUFGABE ---\n{task}")
     print("="*60 + "\n")
 
@@ -158,6 +180,7 @@ def print_agent_b_prompt():
     print("PROMPT FÜR AGENT B (kopiere dies in Claude/dein LLM):")
     print("="*60)
     print(prompt)
+    print(load_profile_block())
     print(f"\n--- DRAFT VON AGENT A ---\n{draft}")
     print("="*60 + "\n")
 

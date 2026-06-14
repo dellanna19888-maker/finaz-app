@@ -17,10 +17,18 @@ direkt zu „sehen“ – die Kommunikation läuft über eine `status.json`.
 MeinKIProjekt/
 ├── agent_a_scripts/system_prompt_agent_a.txt   # System-Prompt Agent A
 ├── agent_b_scripts/system_prompt_agent_b.txt   # System-Prompt Agent B
+├── config/profile.json                         # Dein Kanal-Profil (Stil, Stimme, Hashtags)
 ├── shared_memory/status.json                   # Kommunikations-Datei
 ├── shared_memory/final_script.txt              # Generiertes Endergebnis
 └── main_controller.py                          # Der "Postbote" (Python)
 ```
+
+## Kanal-Profil
+
+In `config/profile.json` legst du **einmal** deinen Stil fest – Markenstimme,
+Zielgruppe, Tonalität, No-Gos und Standard-Hashtags. Der Controller fügt dieses
+Profil **automatisch** in jeden Agenten-Prompt ein, damit jeder Post konsistent
+in deinem Stil klingt. Einfach die Felder anpassen – keine Code-Änderung nötig.
 
 ## Workflow
 

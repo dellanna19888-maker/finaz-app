@@ -1,0 +1,35 @@
+{
+  "_hinweis": "Passe alle Felder an deinen Kanal an. Beide Agenten lesen dieses Profil automatisch.",
+  "kanal_name": "DeinKanalName",
+  "nische": "Persönliche Finanzen & Geld sparen",
+  "zielgruppe": "18-30 Jahre, Berufseinsteiger & Studenten, deutschsprachig",
+  "haupt_plattform": "Instagram Reels",
+  "weitere_plattformen": ["TikTok", "YouTube Shorts"],
+  "markenstimme": {
+    "tonalitaet": "locker, motivierend, auf Augenhöhe - kein Experten-Geschwafel",
+    "ansprache": "Du (direkt, persönlich)",
+    "emojis": "sparsam und gezielt (kein Emoji-Spam)",
+    "no_gos": ["Finanzberatung im rechtlichen Sinne", "Garantie-Versprechen", "Fachjargon ohne Erklärung"]
+  },
+  "stil_regeln": [
+    "Hook in den ersten 3 Sekunden - immer eine konkrete Zahl oder Frage",
+    "Maximal 30 Sekunden Laufzeit",
+    "Ein klarer Mehrwert pro Video",
+    "Immer ein Call-to-Action am Ende (Speichern / Folgen / Kommentieren)"
+  ],
+  "standard_hashtags": [
+    "#geldsparen",
+    "#finanztipps",
+    "#finanzen",
+    "#sparen",
+    "#spartipps",
+    "#geldtipps",
+    "#finanzbildung",
+    "#moneytok"
+  ],
+  "cta_beispiele": [
+    "Speicher dir das fuer spaeter 📌",
+    "Folge fuer mehr Geld-Tipps 💸",
+    "Welchen Tipp kanntest du noch nicht? 👇"
+  ]
+}
