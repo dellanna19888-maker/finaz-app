@@ -3,6 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#6d28d9" />
+    <meta name="color-scheme" content="light" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
     <title>Social-Media-Content-Team 🤖</title>
 
     <!-- ====================================================
@@ -20,12 +24,17 @@
         --schatten: 0 4px 16px rgba(0, 0, 0, 0.08);
       }
       * { box-sizing: border-box; }
+      html, body {
+        max-width: 100%;
+        overflow-x: hidden; /* kein seitliches Scrollen auf dem Handy */
+      }
       body {
         margin: 0;
         font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
         color: var(--text);
         background: var(--grau);
         line-height: 1.6;
+        -webkit-text-size-adjust: 100%; /* Android: Text nicht automatisch vergrößern */
       }
       .kopf {
         background: linear-gradient(135deg, var(--lila), var(--pink));
@@ -58,8 +67,8 @@
         outline: none;
         border-color: var(--lila-hell);
       }
-      .zeile { display: flex; gap: 0.6rem; align-items: center; }
-      .zeile input { flex: 1; }
+      .zeile { display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; }
+      .zeile input { flex: 1 1 200px; } /* bricht auf schmalen Handys um */
       button {
         background: linear-gradient(135deg, var(--lila), var(--lila-hell));
         color: white;
@@ -114,6 +123,7 @@
       .ergebnis .inhalt {
         white-space: pre-wrap;
         word-wrap: break-word;
+        overflow-wrap: anywhere; /* lange Wörter/Hashtags umbrechen statt überlaufen */
         font-size: 0.97rem;
       }
       .final { border: 2px solid var(--lila-hell); background: #faf5ff; }
@@ -122,6 +132,7 @@
         justify-content: space-between;
         align-items: center;
         gap: 0.5rem;
+        flex-wrap: wrap; /* "Kopieren"-Knopf rutscht auf dem Handy unter die Überschrift */
       }
       .versteckt { display: none; }
       footer {
@@ -129,6 +140,18 @@
         padding: 1.5rem;
         color: #9ca3af;
         font-size: 0.85rem;
+      }
+
+      /* ===== Handy / kleine Bildschirme ===== */
+      @media (max-width: 600px) {
+        .kopf { padding: 2rem 1rem; }
+        .kopf h1 { font-size: 1.5rem; }
+        .kopf p { font-size: 0.95rem; }
+        main { padding: 1rem 0.75rem 2.5rem; }
+        .karte { padding: 1.1rem; border-radius: 12px; }
+        .eingabe.haupt { margin-top: -1.25rem; }
+        button { width: 100%; } /* volle Breite = leicht zu treffen */
+        button.zweit { width: auto; }
       }
     </style>
   </head>

@@ -56,6 +56,18 @@ Setze auf der Seite das Häkchen bei **„Demo-Modus"** und klick auf
 Ruhe ausprobieren. Für **echte** KI-Ergebnisse einfach das Häkchen entfernen und
 oben einen API-Schlüssel eintragen.
 
+## 📱 Auf dem Handy (Android)
+
+Die Seite ist für Handys optimiert: responsives Layout, große Tippflächen und
+kein seitliches Scrollen. So nutzt du sie auf Android:
+
+1. Den Link (z.B. von Netlify) im **Chrome**-Browser öffnen.
+2. Optional wie eine App speichern: Chrome-Menü (⋮) → **„Zum Startbildschirm
+   hinzufügen"** → es erscheint ein App-Symbol auf dem Homescreen.
+
+> Das Generieren klappt auf dem Handy genauso. Zum kostenlosen Ausprobieren
+> einfach den **Demo-Modus** nutzen (kein Schlüssel nötig).
+
 ## 🔧 Anpassen (im `<script>`-Teil der Datei)
 
 - **Modell/Geschwindigkeit:** `MODELL` auf `claude-haiku-4-5` ändern
