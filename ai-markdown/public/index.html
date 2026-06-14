@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI Markdown</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script defer src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script defer src="app.js"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">📝&nbsp;AI&nbsp;Markdown</div>
+      <div class="toolbar">
+        <input
+          id="instruction"
+          class="instruction"
+          type="text"
+          placeholder="Was soll die KI tun? (z. B. 'Schreibe ein README für ein CLI-Tool')"
+        />
+        <select id="language" title="Zielsprache für Übersetzung">
+          <option>Englisch</option>
+          <option>Deutsch</option>
+          <option>Französisch</option>
+          <option>Spanisch</option>
+          <option>Italienisch</option>
+        </select>
+        <button data-action="generate">Generieren</button>
+        <button data-action="improve">Verbessern</button>
+        <button data-action="continue">Fortsetzen</button>
+        <button data-action="summarize">Zusammenfassen</button>
+        <button data-action="translate">Übersetzen</button>
+      </div>
+    </header>
+
+    <main class="panes">
+      <section class="pane">
+        <div class="pane-head">Editor</div>
+        <textarea id="editor" spellcheck="false" placeholder="# Hier schreiben ..."></textarea>
+      </section>
+      <section class="pane">
+        <div class="pane-head">Vorschau</div>
+        <div id="preview" class="preview markdown-body"></div>
+      </section>
+    </main>
+
+    <section id="ai-panel" class="ai-panel hidden">
+      <div class="ai-head">
+        <strong id="ai-title">KI-Ausgabe</strong>
+        <span id="ai-status" class="status"></span>
+        <div class="spacer"></div>
+        <button id="ai-apply" class="ghost">Übernehmen</button>
+        <button id="ai-append" class="ghost">Anhängen</button>
+        <button id="ai-copy" class="ghost">Kopieren</button>
+        <button id="ai-close" class="ghost">Schließen</button>
+      </div>
+      <pre id="ai-output" class="ai-output"></pre>
+    </section>
+  </body>
+</html>
