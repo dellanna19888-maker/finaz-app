@@ -25,6 +25,7 @@ THUMBNAIL_FILE = BASE_DIR / "shared_memory" / "thumbnail_prompts.txt"
 HISTORY_FILE = BASE_DIR / "shared_memory" / "history.json"
 BATCH_TOPICS_FILE = BASE_DIR / "config" / "batch_topics.json"
 BATCH_OUTPUT_DIR = BASE_DIR / "outputs"
+LAWS_FILE = BASE_DIR / "config" / "laws_reference.json"
 MAX_COMPLIANCE_RETRIES = 2  # Wie oft B nach D-Feedback korrigieren darf
 HISTORY_CONTEXT_COUNT = 10  # Wie viele letzte Posts Agent A als Kontext bekommt
 
@@ -678,6 +679,51 @@ def show_history():
         print("=" * 60)
 
 
+def show_laws():
+    """Zeigt alle Gesetze und Prüfpunkte von Agent D übersichtlich an."""
+    if not LAWS_FILE.exists():
+        print("[Gesetze] laws_reference.json nicht gefunden.")
+        return
+    with open(LAWS_FILE, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    kategorien = {
+        "finanzrecht_deutschland": "Finanzrecht Deutschland",
+        "verbraucherschutz":       "Verbraucherschutz & UWG",
+        "eu_ai_act":               "EU AI Act",
+        "datenschutz":             "Datenschutz (DSGVO / TDDDG)",
+        "medienrecht":             "Medienrecht (MStV / TMG)",
+        "krypto_mica":             "Krypto (MiCA)",
+    }
+
+    print("\n" + "=" * 65)
+    print("  COMPLIANCE-DATENBANK – Agent D Rechtsgrundlagen")
+    meta = data.get("meta", {})
+    print(f"  Version {meta.get('version', '?')} | Stand: {meta.get('letzte_aktualisierung', '?')}")
+    print("=" * 65)
+
+    gesetze = data.get("gesetze", {})
+    for key, label in kategorien.items():
+        gesetzbuch = gesetze.get(key, [])
+        if not gesetzbuch:
+            continue
+        print(f"\n  ▶ {label} ({len(gesetzbuch)} Normen)")
+        print("  " + "-" * 60)
+        for g in gesetzbuch:
+            print(f"  {g['norm']}: {g['titel']}")
+            print(f"    → {g['kern']}")
+            if g.get("disclaimer"):
+                print(f"    Disclaimer: \"{g['disclaimer']}\"")
+
+    disclaimers = data.get("standard_disclaimer", {})
+    if disclaimers:
+        print("\n  ▶ Standard-Disclaimer")
+        print("  " + "-" * 60)
+        for key, text in disclaimers.items():
+            print(f"  [{key}] {text}")
+    print("\n" + "=" * 65 + "\n")
+
+
 def set_performance(post_id: str, views: int = None, likes: int = None,
                     saves: int = None, notiz: str = ""):
     """Trägt Performance-Werte für einen Post nach (für das Lernen des Systems)."""
@@ -713,6 +759,7 @@ if __name__ == "__main__":
         print("  python main_controller.py batch                 # Alle Themen aus batch_topics.json")
         print("  python main_controller.py batch '<t1>' '<t2>'   # Themen direkt als Argumente")
         print("  python main_controller.py history               # Kanal-Gedächtnis anzeigen")
+        print("  python main_controller.py laws                  # Alle geprüften Gesetze anzeigen")
         print("  python main_controller.py feedback <ID> <views> [likes] [saves]  # Performance nachtragen")
         print("  python main_controller.py start '<aufgabe>'     # Manueller Modus (Copy-Paste)")
         print("  python main_controller.py status")
@@ -750,6 +797,9 @@ if __name__ == "__main__":
 
     elif cmd == "history":
         show_history()
+
+    elif cmd == "laws":
+        show_laws()
 
     elif cmd == "feedback":
         if len(args) < 3:

@@ -41,15 +41,43 @@ AGENT B – SKRIPT: Mache aus dem Konzept ein post-fertiges Reel-Skript mit
 - CAPTION (mit Call-to-Action)
 - HASHTAGS (8-12 passende)
 
-AGENT D – COMPLIANCE (Recht): Prüfe das Skript streng auf:
-- §34f GewO / WpHG: KEINE konkreten Anlageempfehlungen, KEINE Renditegarantien,
-  Risikohinweis bei Wertpapieren/Krypto/ETF
-- EU AI Act: KEINE falschen Behauptungen über KI-Fähigkeiten
-- UWG: keine irreführenden Vergleiche, keine falschen Tatsachen
-- Plattform: kein "Get rich quick", Werbung kennzeichnen
+AGENT D – COMPLIANCE (Recht): Prüfe das Skript streng auf folgende Gesetze:
+
+FINANZRECHT:
+- §34f GewO: Keine Anlageberatung ohne Lizenz. Keine Kauf-/Verkaufsempfehlungen.
+- §63-64 WpHG / MiFID II: Keine Renditegarantien. Risikohinweis bei ETF/Aktien/Krypto Pflicht.
+- §69 WpHG: "Wertpapiere können im Wert fallen, bis hin zum Totalverlust."
+- §297 KAGB: ETF-Werbung muss auf Verkaufsprospekt/KID hinweisen.
+- §32 KWG: Keine nicht-lizenzierten Bankdienste empfehlen.
+- §20 InvStG: Bei Ertragsnennung Steuerhinweis Pflicht.
+
+KRYPTO (MiCA):
+- Art. 76 MiCA: Krypto-Inhalte immer mit Volatilitätswarnung: "Kryptowerte sind hochvolatil. Totalverlust möglich."
+- Art. 38 MiCA: Stablecoins sind NICHT risikolos.
+
+EU AI ACT:
+- Art. 5: Verbotene KI-Praktiken (Manipulation, Social Scoring) nicht bewerben.
+- Art. 6-7: Hochrisiko-KI (Kredit-Scoring) mit Regulierungshinweis erwähnen.
+- Art. 52: Chatbots als KI kennzeichnen. KI-generierte Inhalte labeln.
+- Art. 13: Keine Blackbox-KI ohne Transparenzhinweis empfehlen.
+
+DATENSCHUTZ:
+- Art. 22 DSGVO: Vollautomatische Finanzentscheidungen per KI kritisch kennzeichnen.
+- Art. 5 DSGVO: Bei KI-Tools Hinweis: "Datenschutzrichtlinie prüfen."
+
+MEDIENRECHT:
+- §22 MStV: Werbung/Affiliate-Links als #Werbung oder #Anzeige kennzeichnen.
+- §74 MStV: Hochriskante Produkte (CFDs, Hebel, Krypto) nur für 18+.
+
+WETTBEWERB:
+- §5 UWG: Keine falschen Angaben über Renditen oder KI-Fähigkeiten.
+- §5a UWG: Wesentliche Risiken nicht verschweigen.
+
 Wenn du einen Verstoß findest: korrigiere das Skript SELBST und hänge einen
-passenden Disclaimer an die Caption (z.B. "Keine Anlageberatung. Nur allgemeine
-Information. Investieren birgt Verlustrisiken.").
+passenden Disclaimer an die Caption. Mindest-Disclaimer:
+"Keine Anlageberatung. Nur allgemeine Information. Investieren birgt Verlustrisiken."
+Bei Krypto zusätzlich: "Kryptowerte sind hochvolatil. Totalverlust möglich."
+Bei KI-Tools: "Datenschutzrichtlinie des Tools vor Nutzung prüfen (DSGVO)."
 
 AGENT C – VISUAL: Erstelle 3 englische Bild-Prompts für Midjourney/DALL-E:
 - THUMBNAIL (Vorschaubild)

@@ -1,0 +1,284 @@
+{
+  "meta": {
+    "version": "2.0",
+    "letzte_aktualisierung": "2026-06",
+    "beschreibung": "Rechtliche Referenzdatenbank für Agent D – FinazBrain Compliance"
+  },
+  "gesetze": {
+    "finanzrecht_deutschland": [
+      {
+        "norm": "§34f GewO",
+        "titel": "Finanzanlagevermittlung",
+        "kern": "Anlageberatung zu Wertpapieren, ETFs, Fonds, Krypto ohne Erlaubnis verboten.",
+        "verboten": ["konkrete Kauf-/Verkaufsempfehlungen", "persönliche Anlageberatung"],
+        "erlaubt": ["allgemeine Finanzbildung", "Konzepterklärungen", "historische Fakten mit Disclaimer"],
+        "disclaimer": "Keine Anlageberatung gem. §34f GewO. Nur allgemeine Information."
+      },
+      {
+        "norm": "§34h GewO",
+        "titel": "Honorar-Anlageberatung",
+        "kern": "Auch entgeltliche Anlageberatung erfordert Zulassung.",
+        "verboten": ["Anlageberatung gegen Honorar ohne Lizenz"],
+        "erlaubt": ["Hinweis, einen zugelassenen Berater aufzusuchen"],
+        "disclaimer": ""
+      },
+      {
+        "norm": "§4 FinVermV",
+        "titel": "Finanzanlagenvermittlungsverordnung",
+        "kern": "Sachkundeprüfung und Berufshaftpflicht für Vermittler Pflicht.",
+        "verboten": ["Suggestion, ohne Qualifikation beraten zu können"],
+        "erlaubt": ["allgemeine Produktbeschreibungen"],
+        "disclaimer": ""
+      },
+      {
+        "norm": "§63 WpHG",
+        "titel": "Allgemeine Verhaltenspflichten (MiFID II)",
+        "kern": "Informationen müssen redlich, eindeutig und nicht irreführend sein.",
+        "verboten": ["reißerische Renditebehauptungen", "einseitige Produktdarstellungen"],
+        "erlaubt": ["ausgewogene, faktenbasierte Informationen"],
+        "disclaimer": "Wertpapierdienstleistungen unterliegen der BaFin-Aufsicht."
+      },
+      {
+        "norm": "§64 WpHG",
+        "titel": "Geeignetheitsprüfung (MiFID II)",
+        "kern": "Empfehlungen müssen zur Risikobereitschaft des Kunden passen. Social Media kann keine Eignung prüfen.",
+        "verboten": ["konkrete Produktempfehlungen ohne Kenntnis der Kundensituation"],
+        "erlaubt": ["allgemeine Risikoprofil-Erklärungen"],
+        "disclaimer": "Prüfe deine persönliche Risikobereitschaft vor jeder Anlage."
+      },
+      {
+        "norm": "§69 WpHG",
+        "titel": "Risikohinweispflicht",
+        "kern": "Bei Wertpapieren, ETFs und Krypto immer Verlustrisiko erwähnen.",
+        "verboten": ["Wertpapiernennung ohne Risikowarnung"],
+        "erlaubt": ["Inhalte mit vollständigem Risikohinweis"],
+        "disclaimer": "Wertpapiere können im Wert fallen, bis hin zum Totalverlust."
+      },
+      {
+        "norm": "§8 WpHG",
+        "titel": "Verbot von Marktmanipulation und Insiderhandel",
+        "kern": "Kursbeeinflussende Aussagen und Nutzung von Insiderwissen verboten.",
+        "verboten": ["gezielte Kurspflege-Aussagen", "Nutzung nicht-öffentlicher Informationen"],
+        "erlaubt": ["öffentlich verfügbare Analysen und Fakten"],
+        "disclaimer": ""
+      },
+      {
+        "norm": "§297 KAGB",
+        "titel": "Werbung für Investmentvermögen",
+        "kern": "Werbung für Fonds/ETFs muss auf Verkaufsprospekt und KID/KIID hinweisen.",
+        "verboten": ["ETF-Bewerbung ohne Hinweis auf Verkaufsprospekt"],
+        "erlaubt": ["allgemeine ETF-Erklärung mit Prospekt-Hinweis"],
+        "disclaimer": "Vor der Anlage Verkaufsprospekt und wesentliche Anlegerinformationen (KID) lesen."
+      },
+      {
+        "norm": "§12 VermAnlG",
+        "titel": "Prospektpflicht für Vermögensanlagen",
+        "kern": "Crowdinvesting und Direktinvestments erfordern Verkaufsprospekt.",
+        "verboten": ["Crowdfunding-Empfehlungen ohne Prospekt-Hinweis"],
+        "erlaubt": ["allgemeine Crowdinvesting-Erklärung mit Hinweis auf Prospektpflicht"],
+        "disclaimer": "Crowdinvesting ist eine unternehmerische Beteiligung mit Verlustrisiko."
+      },
+      {
+        "norm": "§32 KWG",
+        "titel": "Erlaubnispflicht für Bankgeschäfte",
+        "kern": "Bankdienstleistungen (Einlagen, Kredite, Zahlungen) nur mit BaFin-Erlaubnis.",
+        "verboten": ["Empfehlung nicht-lizenzierter Fintech-Apps ohne Hinweis"],
+        "erlaubt": ["Empfehlung mit Hinweis auf BaFin-Registrierung prüfen"],
+        "disclaimer": "Prüfe, ob angebotene Dienste BaFin-reguliert sind."
+      },
+      {
+        "norm": "§20 InvStG / §22 EStG",
+        "titel": "Steuerpflicht auf Kapitalerträge und Krypto",
+        "kern": "Kapitalerträge und Kryptogewinne sind in Deutschland steuerpflichtig.",
+        "verboten": ["Darstellung von Erträgen ohne Steuerhinweis"],
+        "erlaubt": ["Ertragsdarstellung mit Steuerhinweis"],
+        "disclaimer": "Kapitalerträge sind steuerpflichtig. Steuerliche Aspekte individuell prüfen."
+      }
+    ],
+    "verbraucherschutz": [
+      {
+        "norm": "§3 UWG",
+        "titel": "Verbot unlauterer Geschäftspraktiken",
+        "kern": "Generelles Verbot von unlauteren kommerziellen Handlungen.",
+        "verboten": ["aggressive Verkaufspraktiken", "Täuschung über Produkteigenschaften"],
+        "erlaubt": ["sachliche, ausgewogene Produktinformationen"],
+        "disclaimer": ""
+      },
+      {
+        "norm": "§5 UWG",
+        "titel": "Irreführende geschäftliche Handlungen",
+        "kern": "Falsche Angaben über Renditen, Risiken oder KI-Fähigkeiten verboten.",
+        "verboten": ["'KI macht 100% Gewinn'", "falsche Vergleichszahlen", "erfundene Bewertungen"],
+        "erlaubt": ["belegbare, verifizierbare Aussagen"],
+        "disclaimer": ""
+      },
+      {
+        "norm": "§5a UWG",
+        "titel": "Irreführendes Unterlassen",
+        "kern": "Wesentliche Informationen (Risiken, Kosten) dürfen nicht verschwiegen werden.",
+        "verboten": ["Produktwerbung ohne Risikonennung", "Kostenverheimlichung"],
+        "erlaubt": ["vollständige Produktinformation inkl. Nachteile"],
+        "disclaimer": ""
+      },
+      {
+        "norm": "§6 UWG",
+        "titel": "Vergleichende Werbung",
+        "kern": "Vergleiche mit Wettbewerbern nur wenn objektiv und verifizierbar.",
+        "verboten": ["abwertende Wettbewerbervergleiche", "nicht belegbare Behauptungen"],
+        "erlaubt": ["objektive, belegbare Vergleiche"],
+        "disclaimer": ""
+      },
+      {
+        "norm": "§312 BGB",
+        "titel": "Fernabsatzverträge",
+        "kern": "Online-Produktbewerbung mit Kaufmöglichkeit löst Fernabsatzrecht aus.",
+        "verboten": ["direktes Anbieten von Finanzdienstleistungen ohne Widerrufsbelehrung"],
+        "erlaubt": ["Information und Weiterleitung auf regulierte Anbieter"],
+        "disclaimer": ""
+      }
+    ],
+    "eu_ai_act": [
+      {
+        "norm": "Art. 5 Abs. 1 lit. a EU AI Act",
+        "titel": "Verbotene KI – Unterschwellige Manipulation",
+        "kern": "KI-Systeme, die Verhalten durch unterschwellige Techniken manipulieren, sind verboten.",
+        "verboten": ["'KI, die dich automatisch zum Kaufen bringt'", "Manipulations-KI-Empfehlungen"],
+        "erlaubt": ["KI-Tools zur Finanzanalyse mit klarem Mehrwert"],
+        "disclaimer": ""
+      },
+      {
+        "norm": "Art. 5 Abs. 1 lit. b EU AI Act",
+        "titel": "Verbotene KI – Ausnutzung von Schwächen",
+        "kern": "KI, die Schwächen schutzbedürftiger Gruppen ausnutzt, ist verboten.",
+        "verboten": ["'KI speziell für überschuldete Menschen'", "gezielte Ansprache vulnerabler Gruppen"],
+        "erlaubt": ["allgemeine Finanzbildungs-KI für breite Öffentlichkeit"],
+        "disclaimer": ""
+      },
+      {
+        "norm": "Art. 6-7 EU AI Act",
+        "titel": "Hochrisiko-KI-Systeme",
+        "kern": "KI für Kredit-Scoring, Versicherung, Kreditwürdigkeit = Hochrisiko.",
+        "verboten": ["Hochrisiko-KI ohne Regulierungshinweis empfehlen", "vollautomatische Kreditentscheidungen als normal darstellen"],
+        "erlaubt": ["Hochrisiko-KI mit klarem Hinweis auf EU AI Act-Anforderungen"],
+        "disclaimer": "Dieses KI-System kann unter die Hochrisiko-Kategorie des EU AI Acts fallen."
+      },
+      {
+        "norm": "Art. 13 EU AI Act",
+        "titel": "Transparenzpflicht für KI-Systeme",
+        "kern": "KI-Systeme müssen hinreichend transparent sein. Keine Blackbox ohne Erklärung.",
+        "verboten": ["Empfehlung von Blackbox-KI ohne Transparenzhinweis"],
+        "erlaubt": ["KI-Tools mit Erklärbarkeit und nachvollziehbaren Entscheidungen"],
+        "disclaimer": ""
+      },
+      {
+        "norm": "Art. 52 Abs. 1 EU AI Act",
+        "titel": "Chatbot-Kennzeichnungspflicht",
+        "kern": "KI-basierte Chatbots müssen sich als KI zu erkennen geben.",
+        "verboten": ["Empfehlung von KI-Chatbots ohne Offenlegungspflicht-Hinweis"],
+        "erlaubt": ["Chatbots die klar als KI gekennzeichnet sind"],
+        "disclaimer": "Dieser Assistent ist KI-basiert (EU AI Act Art. 52)."
+      },
+      {
+        "norm": "Art. 52 Abs. 3 EU AI Act",
+        "titel": "Deepfake-Kennzeichnungspflicht",
+        "kern": "KI-generierte Bilder, Audio, Video müssen als solche gekennzeichnet sein.",
+        "verboten": ["Deepfakes ohne Kennzeichnung verbreiten", "KI-Content als echt ausgeben"],
+        "erlaubt": ["KI-generierter Content mit '#KI-generiert' Kennzeichnung"],
+        "disclaimer": "Dieser Inhalt wurde mithilfe von KI erstellt."
+      }
+    ],
+    "datenschutz": [
+      {
+        "norm": "Art. 5 DSGVO",
+        "titel": "Grundsätze der Datenverarbeitung",
+        "kern": "Daten müssen zweckgebunden, minimiert und sicher verarbeitet werden.",
+        "verboten": ["Empfehlung von Tools ohne Hinweis auf Datenschutzverpflichtungen"],
+        "erlaubt": ["Tool-Empfehlung mit Hinweis: Datenschutzrichtlinie prüfen"],
+        "disclaimer": "Datenschutzrichtlinie des Tools vor Nutzung prüfen (DSGVO)."
+      },
+      {
+        "norm": "Art. 22 DSGVO",
+        "titel": "Automatisierte Einzelentscheidungen",
+        "kern": "Vollautomatische Entscheidungen mit erheblicher Wirkung (z.B. Kredit) ohne menschliche Prüfung verboten.",
+        "verboten": ["'KI entscheidet vollautomatisch über deinen Kredit' als unkritisch darstellen"],
+        "erlaubt": ["KI als Entscheidungsunterstützung mit menschlicher Kontrolle"],
+        "disclaimer": "KI-gestützte Finanzentscheidungen unterliegen Art. 22 DSGVO – menschliche Prüfung erforderlich."
+      },
+      {
+        "norm": "§25 TDDDG",
+        "titel": "Einwilligung für Cookies und Tracking",
+        "kern": "Tracking und Cookies erfordern ausdrückliche Einwilligung.",
+        "verboten": ["Tracking-Tools ohne Einwilligungshinweis empfehlen"],
+        "erlaubt": ["Tool-Empfehlung mit DSGVO-konformer Consent-Hinweis"],
+        "disclaimer": ""
+      }
+    ],
+    "medienrecht": [
+      {
+        "norm": "§22 MStV",
+        "titel": "Trennungsgrundsatz / Influencer-Kennzeichnung",
+        "kern": "Werbung muss klar von Inhalten getrennt sein. Produktnennungen mit kommerziellem Zweck kennzeichnen.",
+        "verboten": ["verdeckte Werbung", "Produktempfehlungen ohne Kennzeichnung bei kommerziellem Zweck"],
+        "erlaubt": ["Inhalte mit #Werbung oder #Anzeige Kennzeichnung"],
+        "disclaimer": "#Werbung / #Anzeige"
+      },
+      {
+        "norm": "§74 MStV",
+        "titel": "Jugendschutz in Medien",
+        "kern": "Hochriskante Finanzprodukte (CFDs, Hebelprodukte, Krypto) nicht an unter 18-Jährige richten.",
+        "verboten": ["CFD-/Hebel-/Krypto-Werbung für Minderjährige"],
+        "erlaubt": ["Altersbeschränkung auf 18+ mit Zielgruppenhinweis"],
+        "disclaimer": "Nur für Personen ab 18 Jahren. Kein Angebot an Minderjährige."
+      },
+      {
+        "norm": "§5 TMG / §5 DDG",
+        "titel": "Impressumspflicht",
+        "kern": "Kommerzielle Social-Media-Kanäle benötigen ein Impressum.",
+        "verboten": ["kommerzieller Kanal ohne Impressum"],
+        "erlaubt": ["Kanal mit vollständigem Impressum (Name, Adresse, Kontakt)"],
+        "disclaimer": ""
+      },
+      {
+        "norm": "§6 TMG",
+        "titel": "Kennzeichnung kommerzieller Kommunikation",
+        "kern": "Werbliche Inhalte müssen als solche erkennbar sein.",
+        "verboten": ["redaktionell wirkende Werbung"],
+        "erlaubt": ["eindeutig gekennzeichnete kommerzielle Kommunikation"],
+        "disclaimer": ""
+      }
+    ],
+    "krypto_mica": [
+      {
+        "norm": "Art. 76 MiCA",
+        "titel": "Werbung für Krypto-Assets",
+        "kern": "Werbung für Kryptowerte muss fair, klar und nicht irreführend sein.",
+        "verboten": ["Krypto-Werbung ohne Risikohinweis", "Darstellung von Krypto als risikolos"],
+        "erlaubt": ["Krypto-Inhalte mit vollständigem Risikohinweis"],
+        "disclaimer": "Kryptowerte sind hochvolatil und nicht reguliert wie klassische Wertpapiere. Totalverlust möglich."
+      },
+      {
+        "norm": "Art. 38 MiCA",
+        "titel": "Asset-Referenced Tokens (Stablecoins)",
+        "kern": "Stablecoins unterliegen strengen Anforderungen und sind nicht 'risikolos'.",
+        "verboten": ["Stablecoin als 'sicher' oder 'risikolos' darstellen"],
+        "erlaubt": ["Stablecoin mit Hinweis auf regulatorische Anforderungen"],
+        "disclaimer": "Auch Stablecoins unterliegen Risiken (Emittentenrisiko, Regulierung)."
+      },
+      {
+        "norm": "Art. 4-14 MiCA",
+        "titel": "Whitepaper-Pflicht für Krypto-Emittenten",
+        "kern": "Öffentliche Krypto-Angebote erfordern ein MiCA-konformes Whitepaper.",
+        "verboten": ["Investitionsaufruf ohne Whitepaper-Hinweis"],
+        "erlaubt": ["Verweis auf offizielles Whitepaper bei Projektbeschreibung"],
+        "disclaimer": "Vor Investition das Whitepaper des Projekts lesen."
+      }
+    ]
+  },
+  "standard_disclaimer": {
+    "basis": "Keine Anlageberatung. Alle Inhalte dienen nur der allgemeinen Information. Investieren birgt Verlustrisiken.",
+    "mit_krypto": "Keine Anlageberatung. Kryptowerte sind hochvolatil und nicht reguliert. Totalverlust möglich.",
+    "mit_steuer": "Steuerliche Aspekte individuell prüfen. Kein Steuerrechtsrat.",
+    "mit_ki": "KI-Empfehlungen ersetzen keine professionelle Beratung. Transparenz- und Datenschutzpflichten beachten.",
+    "vollstaendig": "Keine Anlageberatung gem. §34f GewO. Alle Inhalte dienen nur der allgemeinen Information. Investieren birgt Verlustrisiken bis hin zum Totalverlust. Kryptowerte sind hochvolatil (Art. 76 MiCA). Steuerliche Aspekte individuell prüfen. KI-Inhalte kennzeichnen (Art. 52 EU AI Act)."
+  }
+}
