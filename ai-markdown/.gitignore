@@ -5,3 +5,6 @@ npm-debug.log*
 yarn-error.log*
 .DS_Store
 dist/
+
+# Compliance-Audit-Logs (laufzeitgeneriert)
+compliance/logs/

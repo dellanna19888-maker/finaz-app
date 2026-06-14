@@ -11,6 +11,7 @@ KI-gestützter **Markdown-Editor** mit Live-Vorschau. Schreibe, verbessere,
 - 🔒 API-Key bleibt serverseitig, niemals im Browser
 - 🧩 Kein Build-Schritt: Vanilla-JS-Frontend + schlankes Express-Backend
 - 💾 Automatisches Speichern im Browser (`localStorage`)
+- 🛡️ **Compliance-Gateway (D-C-G):** jurisdiktionsabhängiger Filter + Audit-Log
 
 ## Voraussetzungen
 
@@ -30,11 +31,14 @@ Dann <http://localhost:3000> im Browser öffnen.
 
 ## Konfiguration (`.env`)
 
-| Variable            | Beschreibung                              | Standard          |
-| ------------------- | ----------------------------------------- | ----------------- |
-| `ANTHROPIC_API_KEY` | Dein Anthropic API-Key (**erforderlich**) | –                 |
-| `CLAUDE_MODEL`      | Zu verwendendes Claude-Modell             | `claude-opus-4-8` |
-| `PORT`              | Port des Servers                          | `3000`            |
+| Variable                        | Beschreibung                                   | Standard          |
+| ------------------------------- | ---------------------------------------------- | ----------------- |
+| `ANTHROPIC_API_KEY`             | Dein Anthropic API-Key (**erforderlich**)      | –                 |
+| `CLAUDE_MODEL`                  | Zu verwendendes Claude-Modell                  | `claude-opus-4-8` |
+| `PORT`                          | Port des Servers                               | `3000`            |
+| `COMPLIANCE_FORCE_JURISDICTION` | Profil erzwingen (`EU`/`UK`/`US`/`DEFAULT`)    | – (GEO-Erkennung) |
+| `COMPLIANCE_MAX_CHARS`          | Max. Zeichen pro Anfrage (Datenminimierung)    | `50000`           |
+| `COMPLIANCE_LOG_DIR`            | Verzeichnis für Audit-Logs                     | `compliance/logs` |
 
 ## Projektstruktur
 
@@ -45,6 +49,12 @@ ai-markdown/
 │   ├── index.html      # Benutzeroberfläche
 │   ├── styles.css      # Styling (Dark-Theme, responsiv)
 │   └── app.js          # Editor-Logik, Vorschau, Streaming-Client
+├── compliance/         # Dynamisches Compliance-Gateway (D-C-G)
+│   ├── gateway.js      # GEO → Norm-Mapping → Folgenabschätzung → Gatekeeping
+│   ├── rulesets.js     # Gerichtsbarkeits-Profile (EU/UK/US/DEFAULT)
+│   ├── logger.js       # Audit-Log (JSONL, Pflichtformat)
+│   ├── demo.js         # Demo ohne API-Key
+│   └── README.md       # Doku des Gateways
 ├── docs/
 │   └── ARCHITEKTUR.md  # Architektur-Dokumentation
 ├── .env.example
@@ -54,17 +64,38 @@ ai-markdown/
 
 ## API
 
-`POST /api/assist` – Body: `{ action, text, instruction, language }`
+`POST /api/assist` – Body: `{ action, text, instruction, language, consent }`
 → streamt das Ergebnis als Server-Sent Events.
 
 Aktionen: `generate`, `improve`, `continue`, `summarize`, `translate`.
+
+Gateway-Antworten: **403** (blockiert) und **428** (menschliche Autorisierung
+erforderlich – erneut mit `consent: true` senden).
+
+`GET /api/compliance/logs?limit=50` – liefert die letzten Audit-Entscheidungen.
+
+## Compliance-Gateway (D-C-G)
+
+Jede `/api/assist`-Anfrage durchläuft zuerst ein Compliance-Gateway, das die
+Operation je nach Gerichtsbarkeit (GEO) prüft und protokolliert:
+
+- **PASS** → Ausführung
+- **WARN** → menschliche Autorisierung (Frontend fragt nach, sendet dann `consent: true`)
+- **BLOCK** → Ablehnung mit begründetem Audit-Log
+
+Fail-closed: ohne schreibbares Audit-Log wird blockiert; ohne sichere GEO-Daten
+gilt das DSGVO-Profil. Demo ohne API-Key: `node compliance/demo.js`.
+Details: [`compliance/README.md`](./compliance/README.md).
+
+> ⚠ Technisches Governance-Gerüst, **keine Rechtsberatung** und keine
+> zertifizierte Compliance.
 
 ## In ein eigenes Repo übernehmen
 
 Dieses Projekt liegt aktuell im Unterordner `ai-markdown/` des Repos `finaz-app`.
 So machst du daraus dein eigenes, eigenständiges Repository:
 
-1. Lege auf GitHub ein **leeres** Repo an, z. B. `ai-markdown` (ohne README/.gitignore).
+1. Lege auf GitHub ein **leeres** Repo `ai-markdown` an (ohne README/.gitignore).
 2. Lokal:
 
    ```bash
@@ -87,7 +118,8 @@ Danach ist `ai-markdown` ein vollwertiges, separates Repository.
 ## Sicherheit
 
 Der API-Key wird ausschließlich serverseitig verwendet. Das Frontend
-kommuniziert nur mit dem eigenen Backend (`/api/assist`).
+kommuniziert nur mit dem eigenen Backend (`/api/assist`). Das Compliance-Gateway
+protokolliert jede Entscheidung nachvollziehbar (Audit-Log).
 
 ## Lizenz
 

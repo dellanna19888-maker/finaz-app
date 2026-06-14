@@ -55,6 +55,19 @@ nur serverseitig und verlässt den Server nie.
 4. Am Ende folgt `data: {"type":"done"}` (oder `{"type":"error"}`).
 5. Das Frontend hängt die Deltas im KI-Panel an.
 
+## Compliance-Gateway (D-C-G)
+
+Vor jedem Modell-Aufruf prüft das Gateway (`compliance/`) die Operation:
+`Browser → /api/assist → [D-C-G] → Claude API`.
+
+Schritte: GEO-Identifikation → Norm-Mapping → Folgenabschätzung → Gatekeeping,
+anschließend Audit-Log (JSONL, Pflichtformat).
+
+- **PASS** → weiterreichen · **WARN** → HTTP 428 (Autorisierung) · **BLOCK** → HTTP 403
+- Fail-closed (kein Log ⇒ Block), Standardprofil = DSGVO.
+
+Details: [`../compliance/README.md`](../compliance/README.md).
+
 ## Konfiguration
 
 | Variable            | Zweck                          | Standard          |

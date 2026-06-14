@@ -42,6 +42,21 @@ editor.addEventListener("input", () => {
 
 // --- KI-Aktion ausführen -----------------------------------------------------
 
+function postAssist(action, consent, signal) {
+  return fetch("/api/assist", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action,
+      text: editor.value,
+      instruction: instruction.value,
+      language: language.value,
+      consent,
+    }),
+    signal,
+  });
+}
+
 async function runAction(action) {
   if (currentController) currentController.abort();
   const controller = new AbortController();
@@ -50,26 +65,45 @@ async function runAction(action) {
   aiBuffer = "";
   aiOutput.textContent = "";
   aiTitle.textContent = TITLES[action] || "KI-Ausgabe";
-  aiStatus.textContent = "… generiert";
+  aiStatus.textContent = "… prüft Compliance";
   aiPanel.classList.remove("hidden");
 
   try {
-    const resp = await fetch("/api/assist", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action,
-        text: editor.value,
-        instruction: instruction.value,
-        language: language.value,
-      }),
-      signal: controller.signal,
-    });
+    let resp = await postAssist(action, false, controller.signal);
+
+    // WARN → menschliche Autorisierung erforderlich (Compliance-Gateway).
+    if (resp.status === 428) {
+      const data = await resp.json().catch(() => ({}));
+      const jur = data.compliance?.angewandte_gerichtsbarkeit || "";
+      const reasons = (data.reasons || []).join("\n");
+      const ok = confirm(
+        `Compliance-Hinweis (${jur}):\n${reasons}\n\nMenschliche Autorisierung erteilen und fortfahren?`,
+      );
+      if (!ok) {
+        aiStatus.textContent = "⛔ keine Autorisierung";
+        aiOutput.textContent = `${data.error || "Autorisierung erforderlich."}\n\n${reasons}`;
+        return;
+      }
+      aiStatus.textContent = "… generiert (autorisiert)";
+      resp = await postAssist(action, true, controller.signal);
+    }
+
+    // BLOCK → Operation abgelehnt.
+    if (resp.status === 403) {
+      const data = await resp.json().catch(() => ({}));
+      aiStatus.textContent = "⛔ blockiert";
+      aiOutput.textContent = `Blockiert: ${data.error || ""}\n\n${(data.reasons || []).join("\n")}`;
+      return;
+    }
 
     if (!resp.ok) {
       const data = await resp.json().catch(() => ({ error: resp.statusText }));
       throw new Error(data.error || "Anfrage fehlgeschlagen");
     }
+
+    const jurisdiction = resp.headers.get("X-Compliance-Jurisdiction") || "";
+    const cstatus = resp.headers.get("X-Compliance-Status") || "PASS";
+    aiStatus.textContent = "… generiert";
 
     await readSSE(resp, (event) => {
       if (event.type === "delta") {
@@ -81,7 +115,7 @@ async function runAction(action) {
       }
     });
 
-    aiStatus.textContent = "✓ fertig";
+    aiStatus.textContent = `✓ fertig · ${cstatus} · ${jurisdiction}`;
   } catch (err) {
     if (err.name === "AbortError") return;
     aiStatus.textContent = "⚠ Fehler";

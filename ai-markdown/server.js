@@ -3,6 +3,8 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import Anthropic from "@anthropic-ai/sdk";
 import "dotenv/config";
+import { runGateway } from "./compliance/gateway.js";
+import { readRecentDecisions } from "./compliance/logger.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -57,6 +59,27 @@ function buildPrompt({ action, text, instruction, language }) {
 app.post("/api/assist", async (req, res) => {
   const { action, text = "", instruction = "", language = "" } = req.body ?? {};
 
+  // Compliance-Gateway: jede Operation wird gefiltert und protokolliert,
+  // bevor überhaupt ein Modell-Aufruf erfolgt.
+  const gate = await runGateway(req, {
+    action,
+    text,
+    consent: req.body?.consent === true,
+  });
+  res.setHeader("X-Compliance-Status", gate.status);
+  res.setHeader("X-Compliance-Jurisdiction", gate.geo.jurisdiction);
+
+  if (!gate.allow) {
+    const code = gate.requiresAuthorization ? 428 : 403;
+    return res.status(code).json({
+      authorizationRequired: gate.requiresAuthorization,
+      blocked: !gate.requiresAuthorization,
+      error: gate.decision.decisionText,
+      reasons: gate.decision.reasons,
+      compliance: gate.logEntry,
+    });
+  }
+
   if (!client) {
     return res.status(500).json({
       error:
@@ -107,6 +130,16 @@ app.post("/api/assist", async (req, res) => {
     send({ type: "error", message });
   } finally {
     res.end();
+  }
+});
+
+// Audit-Log der Compliance-Entscheidungen abrufen.
+app.get("/api/compliance/logs", async (req, res) => {
+  try {
+    const limit = Math.min(Number(req.query.limit) || 50, 500);
+    res.json({ decisions: await readRecentDecisions(limit) });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
