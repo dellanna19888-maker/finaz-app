@@ -24,6 +24,7 @@ export function mapCountryToJurisdiction(country) {
 // Konformitätsstatus (mit gesetzlicher Referenz) sowie eine PASS-Referenz fest.
 const EU_FINDINGS = {
   PROHIBITED_PRACTICE: { status: "BLOCK", ref: "EU AI Act Art. 5 (verbotene Praktiken)" },
+  SPECIAL_CATEGORY: { status: "WARN", ref: "DSGVO Art. 9 (besondere Kategorien personenbezogener Daten)" },
   PII_PRESENT: { status: "WARN", ref: "DSGVO Art. 6 / Art. 28 (Auftragsverarbeitung, Rechtsgrundlage)" },
   EXCESSIVE_DATA: { status: "WARN", ref: "DSGVO Art. 5(1)(c) (Datenminimierung)" },
 };
@@ -38,6 +39,7 @@ export const RULESETS = {
     label: "UK (UK GDPR)",
     findings: {
       PROHIBITED_PRACTICE: { status: "BLOCK", ref: "UK-Richtlinie / verbotene Praktiken" },
+      SPECIAL_CATEGORY: { status: "WARN", ref: "UK GDPR Art. 9 (besondere Kategorien)" },
       PII_PRESENT: { status: "WARN", ref: "UK GDPR Art. 6 / Art. 28" },
       EXCESSIVE_DATA: { status: "WARN", ref: "UK GDPR Art. 5(1)(c) (Datenminimierung)" },
     },
@@ -47,6 +49,7 @@ export const RULESETS = {
     label: "USA (NIST AI RMF / CCPA)",
     findings: {
       PROHIBITED_PRACTICE: { status: "BLOCK", ref: "Interne Richtlinie / NIST AI RMF (GOVERN)" },
+      SPECIAL_CATEGORY: { status: "WARN", ref: "CCPA/CPRA (sensible personenbezogene Daten)" },
       PII_PRESENT: { status: "WARN", ref: "CCPA §1798.100 (Notice at Collection)" },
       EXCESSIVE_DATA: { status: "PASS", ref: "NIST AI RMF (MAP)" },
     },

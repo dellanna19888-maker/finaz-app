@@ -168,9 +168,10 @@ $("#ai-append").addEventListener("click", () => {
 });
 
 $("#ai-copy").addEventListener("click", async () => {
-  if (!aiBuffer) return;
+  const textToCopy = aiBuffer || aiOutput.textContent;
+  if (!textToCopy) return;
   try {
-    await navigator.clipboard.writeText(aiBuffer);
+    await navigator.clipboard.writeText(textToCopy);
     aiStatus.textContent = "✓ kopiert";
   } catch {
     aiStatus.textContent = "⚠ Kopieren nicht möglich";
@@ -181,6 +182,37 @@ $("#ai-close").addEventListener("click", () => {
   if (currentController) currentController.abort();
   aiPanel.classList.add("hidden");
 });
+
+// --- Audit-Log (Compliance) --------------------------------------------------
+
+$("#audit-btn").addEventListener("click", showAuditLog);
+
+async function showAuditLog() {
+  aiBuffer = "";
+  aiTitle.textContent = "Audit-Log (Compliance)";
+  aiStatus.textContent = "… lädt";
+  aiPanel.classList.remove("hidden");
+  try {
+    const resp = await fetch("/api/compliance/logs?limit=100");
+    if (!resp.ok) throw new Error("Konnte Audit-Log nicht laden");
+    const { decisions } = await resp.json();
+    aiOutput.textContent = decisions.length
+      ? decisions
+          .slice()
+          .reverse()
+          .map(
+            (d) =>
+              `[${d.konformitätsstatus}] ${d.timestamp} · ${d.angewandte_gerichtsbarkeit} · ${d.angeforderte_aktion}\n` +
+              `   → ${d.endgültige_entscheidung}  (${d.gesetzliche_referenz})`,
+          )
+          .join("\n\n")
+      : "Noch keine Einträge.";
+    aiStatus.textContent = `✓ ${decisions.length} Einträge`;
+  } catch (err) {
+    aiStatus.textContent = "⚠ Fehler";
+    aiOutput.textContent = `Fehler: ${err.message}`;
+  }
+}
 
 // --- Startinhalt --------------------------------------------------------------
 

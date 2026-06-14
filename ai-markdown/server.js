@@ -12,6 +12,7 @@ const PORT = process.env.PORT || 3000;
 const MODEL = process.env.CLAUDE_MODEL || "claude-opus-4-8";
 
 const app = express();
+app.set("trust proxy", true); // echte Client-IP hinter Proxys (für GeoIP)
 app.use(express.json({ limit: "2mb" }));
 app.use(express.static(join(__dirname, "public")));
 

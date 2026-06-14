@@ -84,8 +84,11 @@ Operation je nach Gerichtsbarkeit (GEO) prüft und protokolliert:
 - **BLOCK** → Ablehnung mit begründetem Audit-Log
 
 Fail-closed: ohne schreibbares Audit-Log wird blockiert; ohne sichere GEO-Daten
-gilt das DSGVO-Profil. Demo ohne API-Key: `node compliance/demo.js`.
-Details: [`compliance/README.md`](./compliance/README.md).
+gilt das DSGVO-Profil. Echte **GeoIP-Auflösung** der IP läuft über die optionale
+Abhängigkeit `geoip-lite` (offline); zusätzlich werden **besondere
+Datenkategorien** nach DSGVO Art. 9 erkannt. Audit-Log per Button **Audit-Log**
+in der Oberfläche oder `GET /api/compliance/logs`. Demo ohne API-Key:
+`node compliance/demo.js`. Details: [`compliance/README.md`](./compliance/README.md).
 
 > ⚠ Technisches Governance-Gerüst, **keine Rechtsberatung** und keine
 > zertifizierte Compliance.

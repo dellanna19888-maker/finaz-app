@@ -21,28 +21,77 @@ function tsNow() {
   );
 }
 
+// --- Echte GeoIP-Auflösung (optional, offline via geoip-lite) ----------------
+// Wird einmalig geladen. Ist das Paket nicht installiert, bleibt die
+// IP-Auflösung deaktiviert und es greifen Header/Fallback.
+let geoipLookup = null;
+let geoipLoaded = false;
+async function ensureGeoip() {
+  if (geoipLoaded) return;
+  geoipLoaded = true;
+  try {
+    const mod = await import("geoip-lite");
+    geoipLookup = (mod.default ?? mod).lookup ?? null;
+  } catch {
+    geoipLookup = null;
+  }
+}
+
+function clientIp(req) {
+  const xff = req?.headers?.["x-forwarded-for"];
+  if (xff) return String(xff).split(",")[0].trim();
+  return req?.socket?.remoteAddress || req?.connection?.remoteAddress || null;
+}
+
+function countryFromIp(req) {
+  if (!geoipLookup) return null;
+  const ip = clientIp(req);
+  if (!ip) return null;
+  try {
+    return geoipLookup(ip)?.country || null;
+  } catch {
+    return null;
+  }
+}
+
 // --- 1) GEO-IDENTIFIKATION ---------------------------------------------------
-// Ermittelt das Gerichtsbarkeitsprofil aus (Reihenfolge): erzwungenem Profil,
-// gängigen GeoIP-Headern, sonst Fallback auf das restriktivste Profil.
+// Reihenfolge: erzwungenes Profil → Länder-Header (CDN/explizit) →
+// echte GeoIP-Auflösung der IP → Fallback (restriktivstes Profil).
 export function identifyGeo(req) {
   const forced = process.env.COMPLIANCE_FORCE_JURISDICTION;
   if (forced) {
-    return { country: null, source: "env:FORCE", jurisdiction: forced.toUpperCase() };
+    return {
+      country: null,
+      source: "env:FORCE",
+      jurisdiction: forced.toUpperCase(),
+      geoipActive: !!geoipLookup,
+    };
   }
 
   const headers = req?.headers || {};
-  const country =
+  const headerCountry =
     headers["x-geo-country"] ||
     headers["cf-ipcountry"] ||
     headers["x-vercel-ip-country"] ||
     headers["x-appengine-country"] ||
     null;
 
-  const jurisdiction = mapCountryToJurisdiction(country);
+  let country = headerCountry;
+  let source = headerCountry ? "header" : null;
+
+  if (!country) {
+    const ipCountry = countryFromIp(req);
+    if (ipCountry) {
+      country = ipCountry;
+      source = "geoip";
+    }
+  }
+
   return {
     country: country || null,
-    source: country ? "header" : "fallback",
-    jurisdiction,
+    source: source || "fallback",
+    jurisdiction: mapCountryToJurisdiction(country),
+    geoipActive: !!geoipLookup,
   };
 }
 
@@ -51,7 +100,7 @@ export function loadRuleset(jurisdiction) {
   return RULESETS[jurisdiction] || RULESETS.DEFAULT;
 }
 
-// Illustrative Muster-Erkennung (PII / verbotene Praktiken).
+// Illustrative Muster-Erkennung (PII / verbotene Praktiken / Art. 9).
 const PATTERNS = {
   email: /[\w.+-]+@[\w-]+\.[\w.-]+/,
   iban: /\b[A-Z]{2}\d{2}[A-Z0-9]{10,30}\b/,
@@ -61,6 +110,10 @@ const PATTERNS = {
 const PROHIBITED =
   /\b(social[\s-]?scoring|sozial(es)?[\s-]?scoring|biometr\w*\s+(kategorisierung|identifizierung)|mass\s+surveillance|massen[üu]berwachung)\b/i;
 
+// Besondere Kategorien personenbezogener Daten (DSGVO Art. 9), illustrativ.
+const SPECIAL_CATEGORY =
+  /\b(gesundheit|krankheit|diagnose|patient\w*|medizinisch\w*|health|disease|medical|religion|religi(?:ö|oe)s|konfession|ethnisch\w*|rasse|race|ethnic\w*|politische\s+(?:meinung|überzeugung|einstellung)|political\s+opinion|gewerkschaft\w*|trade\s+union|sexuelle\s+(?:orientierung|identität)|sexual\s+orientation|biometr\w*|genetisch\w*|genetic|dna)\b/i;
+
 // --- 3) FOLGENABSCHÄTZUNG ----------------------------------------------------
 // Prüft die angeforderte Aktion gegen die Einschränkungen und liefert Befunde.
 export function assess({ action = "", text = "" }) {
@@ -68,6 +121,7 @@ export function assess({ action = "", text = "" }) {
   const haystack = `${action}\n${text}`;
 
   if (PROHIBITED.test(haystack)) findings.push("PROHIBITED_PRACTICE");
+  if (SPECIAL_CATEGORY.test(text)) findings.push("SPECIAL_CATEGORY");
 
   const pii = Object.entries(PATTERNS)
     .filter(([, re]) => re.test(text))
@@ -110,15 +164,10 @@ export function decide({ ruleset, assessment }) {
  * Orchestriert das gesamte Gateway für eine Operation und protokolliert die
  * Entscheidung. `consent === true` steht für eine erteilte menschliche
  * Autorisierung (hebt einen WARN-Befund für diese Operation auf).
- *
- * Rückgabe u. a.:
- *   allow                 – darf die Operation ausgeführt werden?
- *   requiresAuthorization – WARN ohne erteilte Autorisierung?
- *   status                – effektiver Status nach Autorisierung
- *   originalStatus        – ursprünglicher Befund (PASS/WARN/BLOCK)
- *   logEntry              – geschriebener Pflicht-Log-Eintrag
  */
 export async function runGateway(req, { action, text = "", consent = false }) {
+  await ensureGeoip();
+
   const geo = identifyGeo(req);
   const ruleset = loadRuleset(geo.jurisdiction);
   const assessment = assess({ action, text });

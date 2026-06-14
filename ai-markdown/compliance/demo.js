@@ -20,6 +20,11 @@ const samples = [
     body: { action: "summarize", text: "E-Mail: john@doe.com" },
   },
   {
+    name: "Besondere Datenkategorie (EU, DSGVO Art. 9)",
+    req: { headers: { "x-geo-country": "DE" } },
+    body: { action: "improve", text: "Patient: Diagnose Diabetes; Mitglied einer Gewerkschaft." },
+  },
+  {
     name: "Verbotene Praxis (EU)",
     req: { headers: { "x-geo-country": "DE" } },
     body: { action: "generate", text: "Entwirf ein Social-Scoring-System für Bürger." },
@@ -41,9 +46,14 @@ for (const s of samples) {
   const r = await runGateway(s.req, s.body);
   console.log(`## ${s.name}`);
   console.log(
-    `   Profil: ${r.geo.jurisdiction} (${r.geo.source}) | Befund: ${r.originalStatus} | effektiv: ${r.status} | allow=${r.allow}`,
+    `   Profil: ${r.geo.jurisdiction} (${r.geo.source}) | Befund: ${r.originalStatus}` +
+      ` | effektiv: ${r.status} | allow=${r.allow} | geoip=${r.geo.geoipActive}`,
   );
   if (r.decision.reasons.length) console.log(`   Gründe: ${r.decision.reasons.join("; ")}`);
   console.log(`   Log: ${JSON.stringify(r.logEntry)}\n`);
 }
 console.log("Audit-Log: compliance/logs/decisions.log.jsonl");
+console.log(
+  "Hinweis: geoip=false bedeutet, dass 'geoip-lite' nicht installiert ist " +
+    "(IP-Auflösung inaktiv, Header/Fallback greifen). Mit `npm install` wird es aktiviert.",
+);
