@@ -66,6 +66,10 @@ anschließend Audit-Log (JSONL, Pflichtformat).
 - **PASS** → weiterreichen · **WARN** → HTTP 428 (Autorisierung) · **BLOCK** → HTTP 403
 - Fail-closed (kein Log ⇒ Block), Standardprofil = DSGVO.
 
+Endpoints: `POST /api/assist` (mit Gateway), `POST /api/compliance/check`
+(Simulation, ohne Modell/Log), `GET /api/compliance/logs` (Audit). Web-Tool:
+`/compliance.html` (Compliance Console).
+
 Details: [`../compliance/README.md`](../compliance/README.md).
 
 ## Konfiguration

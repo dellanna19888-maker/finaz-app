@@ -161,21 +161,30 @@ export function decide({ ruleset, assessment }) {
 }
 
 /**
- * Orchestriert das gesamte Gateway für eine Operation und protokolliert die
- * Entscheidung. `consent === true` steht für eine erteilte menschliche
- * Autorisierung (hebt einen WARN-Befund für diese Operation auf).
+ * Bewertet eine Operation vollständig (Schritte 1–4) und baut den Pflicht-Log-
+ * Eintrag – schreibt ihn aber NICHT. Optionaler `jurisdiction`-Override
+ * erzwingt ein Profil (für das Web-Tool / Simulationen). `consent === true`
+ * hebt einen WARN-Befund für diese Operation auf (menschliche Autorisierung).
  */
-export async function runGateway(req, { action, text = "", consent = false }) {
+export async function evaluate(req, { action = "", text = "", consent = false, jurisdiction } = {}) {
   await ensureGeoip();
 
-  const geo = identifyGeo(req);
+  const override = jurisdiction && String(jurisdiction).trim();
+  const geo = override
+    ? {
+        country: null,
+        source: "override",
+        jurisdiction: String(jurisdiction).toUpperCase(),
+        geoipActive: !!geoipLookup,
+      }
+    : identifyGeo(req);
+
   const ruleset = loadRuleset(geo.jurisdiction);
   const assessment = assess({ action, text });
   const decision = decide({ ruleset, assessment });
 
   const humanAuthorized = decision.status === "WARN" && consent === true;
   const effectiveStatus = humanAuthorized ? "PASS" : decision.status;
-
   const finalDecisionText = humanAuthorized
     ? "Ausführung nach menschlicher Autorisierung freigegeben."
     : decision.decisionText;
@@ -190,40 +199,49 @@ export async function runGateway(req, { action, text = "", consent = false }) {
     endgültige_entscheidung: finalDecisionText,
   };
 
-  // Sicherheitsrichtlinie: Keine nicht nachverfolgbare Operation zulassen.
-  // Schlägt das Schreiben des Audit-Logs fehl, wird hart blockiert.
+  return { geo, rulesetLabel: ruleset.label, assessment, decision, humanAuthorized, effectiveStatus, logEntry };
+}
+
+/**
+ * Wie `evaluate`, aber protokolliert die Entscheidung (Pflicht) und liefert das
+ * Gatekeeping-Ergebnis für den echten Request-Pfad. Fail-closed: Schlägt das
+ * Schreiben des Audit-Logs fehl, wird hart blockiert.
+ */
+export async function runGateway(req, opts) {
+  const ev = await evaluate(req, opts);
+
   try {
-    await writeDecisionLog(logEntry);
+    await writeDecisionLog(ev.logEntry);
   } catch (err) {
     return {
       allow: false,
       requiresAuthorization: false,
       status: "BLOCK",
       originalStatus: "BLOCK",
-      geo,
-      ruleset: ruleset.label,
+      geo: ev.geo,
+      ruleset: ev.rulesetLabel,
       decision: {
         status: "BLOCK",
         ref: "Sicherheitsrichtlinie (Audit-Pflicht)",
         reasons: [`Audit-Log nicht schreibbar: ${err.message}`],
         decisionText: "Operation blockiert – Audit-Log nicht schreibbar.",
       },
-      assessment,
-      logEntry,
+      assessment: ev.assessment,
+      logEntry: ev.logEntry,
       logged: false,
     };
   }
 
   return {
-    allow: effectiveStatus === "PASS",
-    requiresAuthorization: decision.status === "WARN" && !humanAuthorized,
-    status: effectiveStatus,
-    originalStatus: decision.status,
-    geo,
-    ruleset: ruleset.label,
-    decision,
-    assessment,
-    logEntry,
+    allow: ev.effectiveStatus === "PASS",
+    requiresAuthorization: ev.decision.status === "WARN" && !ev.humanAuthorized,
+    status: ev.effectiveStatus,
+    originalStatus: ev.decision.status,
+    geo: ev.geo,
+    ruleset: ev.rulesetLabel,
+    decision: ev.decision,
+    assessment: ev.assessment,
+    logEntry: ev.logEntry,
     logged: true,
   };
 }

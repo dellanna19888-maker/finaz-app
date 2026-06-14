@@ -86,6 +86,19 @@ Das Gateway ist in `server.js` vor jeden `/api/assist`-Aufruf geschaltet:
 Audit-Log abrufen: `GET /api/compliance/logs?limit=50` oder Button **Audit-Log**
 in der Oberfläche.
 
+## Web-Tool (Console)
+
+`/compliance.html` ist eine eigenständige Oberfläche, um Operationen interaktiv
+zu prüfen und das Audit-Log einzusehen:
+
+- **Prüfung (Simulation):** Inhalt, Aktion, Gerichtsbarkeit (Override) und
+  Autorisierung wählen → `POST /api/compliance/check` liefert Status, Befunde,
+  gesetzliche Referenz und den (nicht geschriebenen) Log-Eintrag.
+- **Audit-Log:** Tabelle der letzten Entscheidungen mit **CSV-Export**.
+
+`POST /api/compliance/check` bewertet ohne Modell-Aufruf, ohne API-Key und ohne
+Schreiben ins Log – ideal zum Testen von Regeln und Profilen.
+
 ## Demo (ohne API-Key)
 
 ```bash

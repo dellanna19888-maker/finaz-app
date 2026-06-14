@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import Anthropic from "@anthropic-ai/sdk";
 import "dotenv/config";
-import { runGateway } from "./compliance/gateway.js";
+import { runGateway, evaluate } from "./compliance/gateway.js";
 import { readRecentDecisions } from "./compliance/logger.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -131,6 +131,31 @@ app.post("/api/assist", async (req, res) => {
     send({ type: "error", message });
   } finally {
     res.end();
+  }
+});
+
+// Compliance-Prüfung (Simulation): bewertet eine Operation OHNE Modell-Aufruf
+// und OHNE Schreiben ins Audit-Log. Grundlage für das Web-Tool (Console).
+app.post("/api/compliance/check", async (req, res) => {
+  try {
+    const { action = "", text = "", consent = false, jurisdiction = "" } = req.body ?? {};
+    const ev = await evaluate(req, { action, text, consent, jurisdiction });
+    res.json({
+      status: ev.effectiveStatus,
+      originalStatus: ev.decision.status,
+      requiresAuthorization: ev.decision.status === "WARN" && !ev.humanAuthorized,
+      jurisdiction: ev.geo.jurisdiction,
+      geo: ev.geo,
+      findings: ev.assessment.findings,
+      pii: ev.assessment.pii,
+      reasons: ev.decision.reasons,
+      reference: ev.decision.ref,
+      decision: ev.decision.decisionText,
+      logEntry: ev.logEntry,
+      simulated: true,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

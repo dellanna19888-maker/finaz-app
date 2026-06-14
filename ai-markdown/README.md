@@ -46,9 +46,11 @@ Dann <http://localhost:3000> im Browser öffnen.
 ai-markdown/
 ├── server.js           # Express-Backend, Proxy zur Claude-API (SSE-Streaming)
 ├── public/
-│   ├── index.html      # Benutzeroberfläche
+│   ├── index.html      # Editor-Oberfläche
+│   ├── compliance.html # Compliance Console (Web-Tool)
 │   ├── styles.css      # Styling (Dark-Theme, responsiv)
-│   └── app.js          # Editor-Logik, Vorschau, Streaming-Client
+│   ├── app.js          # Editor-Logik, Vorschau, Streaming-Client
+│   └── compliance.js   # Logik der Compliance Console
 ├── compliance/         # Dynamisches Compliance-Gateway (D-C-G)
 │   ├── gateway.js      # GEO → Norm-Mapping → Folgenabschätzung → Gatekeeping
 │   ├── rulesets.js     # Gerichtsbarkeits-Profile (EU/UK/US/DEFAULT)
@@ -89,6 +91,11 @@ Abhängigkeit `geoip-lite` (offline); zusätzlich werden **besondere
 Datenkategorien** nach DSGVO Art. 9 erkannt. Audit-Log per Button **Audit-Log**
 in der Oberfläche oder `GET /api/compliance/logs`. Demo ohne API-Key:
 `node compliance/demo.js`. Details: [`compliance/README.md`](./compliance/README.md).
+
+**Web-Tool – Compliance Console:** Unter `/compliance.html` (Link „🛡️ Compliance"
+im Editor) lassen sich Operationen interaktiv prüfen (Simulation via
+`POST /api/compliance/check`, ohne API-Key) und das Audit-Log durchsuchen sowie
+als **CSV** exportieren.
 
 > ⚠ Technisches Governance-Gerüst, **keine Rechtsberatung** und keine
 > zertifizierte Compliance.
