@@ -31,6 +31,34 @@ MOCK_AGENT_A = json.dumps({
     }
 })
 
+MOCK_AGENT_D_APPROVED = json.dumps({
+    "agent_d": {
+        "status": "done",
+        "decision": "APPROVED",
+        "issues": [],
+        "corrections": [],
+        "required_disclaimer": "Keine Anlageberatung. Nur allgemeine Information.",
+        "error": ""
+    }
+})
+
+MOCK_AGENT_D_REJECTED = json.dumps({
+    "agent_d": {
+        "status": "done",
+        "decision": "REJECTED",
+        "issues": [
+            "Satz enthält implizierte Renditegarantie.",
+            "Kein Risikohinweis bei ETF-Erwähnung."
+        ],
+        "corrections": [
+            "Ersetze garantierte Renditeaussage durch historische Durchschnittswerte.",
+            "Füge nach ETF-Erwähnung hinzu: 'Wertpapiere können im Wert fallen.'"
+        ],
+        "required_disclaimer": "Keine Anlageberatung. Wertpapiere unterliegen Kursrisiken.",
+        "error": ""
+    }
+})
+
 MOCK_AGENT_C = json.dumps({
     "agent_c": {
         "status": "done",
@@ -83,11 +111,17 @@ MOCK_AGENT_B = json.dumps({
     }
 })
 
+_d_call_count = 0
+
 def mock_call_ollama(prompt: str, model: str = "") -> str:
     """Gibt je nach Agenten-Kontext die passende Mock-Antwort zurück."""
+    global _d_call_count
     if "SKRIPT VON AGENT B" in prompt:
         return MOCK_AGENT_C
-    if "DRAFT VON AGENT A" in prompt:
+    if "SKRIPT ZUR PRÜFUNG" in prompt:
+        _d_call_count += 1
+        return MOCK_AGENT_D_APPROVED
+    if "DRAFT VON AGENT A" in prompt or "KORREKTUR-FEEDBACK" in prompt:
         return MOCK_AGENT_B
     return MOCK_AGENT_A
 
@@ -144,6 +178,8 @@ check("SKRIPT im Output",              "SKRIPT" in status["agent_b"]["final_outp
 check("HASHTAGS im Output",            "HASHTAGS" in status["agent_b"]["final_output"])
 check("FinazBrain im Output",          "FinazBrain" in status["agent_b"]["final_output"])
 check("final_script.txt erstellt",     mc.OUTPUT_FILE.exists())
+# Snapshot direkt nach Auto-Run sichern (Batch überschreibt status danach)
+status_after_auto = mc.load_status()
 
 # --- Test 4: Batch-Modus ---
 print("\n[4] Batch-Modus (3 Themen)")
@@ -181,9 +217,46 @@ if output_files:
 mc.BATCH_OUTPUT_DIR = original_dir
 shutil.rmtree(test_output_dir, ignore_errors=True)
 
-# --- Test 5: Agent C (Thumbnail-Prompts, Einzellauf) ---
-print("\n[5] Agent C – Thumbnail-Prompt-Generator")
+# --- Test 5: Agent D – Compliance-Check (APPROVED-Pfad) ---
+print("\n[5] Agent D – Compliance-Check")
+# status_after_auto wurde direkt nach Test 3 gespeichert
+check("Agent D in status.json",             "agent_d" in status_after_auto)
+check("Entscheidung = APPROVED",            status_after_auto.get("agent_d", {}).get("decision") == "APPROVED")
+check("Keine Issues bei APPROVED",          status_after_auto.get("agent_d", {}).get("issues") == [])
+check("Disclaimer vorhanden",               bool(status_after_auto.get("agent_d", {}).get("required_disclaimer")))
+check("Agent D wurde im Auto-Run aufgerufen", _d_call_count >= 1)
+
+# REJECTED→Retry-Flow testen
+print("\n[5b] Agent D – Feedback-Loop (REJECTED → B korrigiert → APPROVED)")
+_reject_count = 0
+_orig_mock = mc.call_ollama
+
+def mock_reject_once(prompt: str, model: str = "") -> str:
+    """D lehnt beim ersten Mal ab, beim zweiten Mal approved."""
+    global _reject_count
+    if "SKRIPT ZUR PRÜFUNG" in prompt:
+        _reject_count += 1
+        if _reject_count == 1:
+            return MOCK_AGENT_D_REJECTED
+        return MOCK_AGENT_D_APPROVED
+    if "SKRIPT VON AGENT B" in prompt:
+        return MOCK_AGENT_C
+    if "DRAFT VON AGENT A" in prompt or "KORREKTUR-FEEDBACK" in prompt:
+        return MOCK_AGENT_B
+    return MOCK_AGENT_A
+
+mc.call_ollama = mock_reject_once
+mc.reset_workflow("Retry-Test-Thema")
 status = mc.load_status()
+draft = "HOOK: Test\nIDEE: Test\nKERNPUNKTE: 1,2\nPLATTFORM: Instagram\nTONALITAET: seriös"
+approved_retry, _ = mc.run_compliance_loop(draft, "llama3.1")
+check("Retry-Loop: nach Korrektur APPROVED", approved_retry)
+check("D wurde 2x aufgerufen (1x rejected, 1x approved)", _reject_count == 2, f"D-Aufrufe: {_reject_count}")
+mc.call_ollama = _orig_mock  # Mock zurücksetzen
+
+# --- Test 6: Agent C (Thumbnail-Prompts, Einzellauf) ---
+print("\n[6] Agent C – Thumbnail-Prompt-Generator")
+status = status_after_auto  # Snapshot vom vollständigen Auto-Run verwenden
 check("Agent C in status.json",              "agent_c" in status)
 check("Thumbnail nicht leer",                bool(status.get("agent_c", {}).get("thumbnail")))
 check("'--ar 9:16' im Thumbnail-Prompt",     "--ar 9:16" in status.get("agent_c", {}).get("thumbnail", ""))
@@ -195,8 +268,8 @@ if mc.THUMBNAIL_FILE.exists():
     check("'THUMBNAIL' im Prompt-File",      "THUMBNAIL" in tp_content)
     check("'Midjourney' im Prompt-File",     "Midjourney" in tp_content)
 
-# --- Test 6: Dateiname-Generator ---
-print("\n[6] Dateiname-Generator (_safe_filename)")
+# --- Test 7: Dateiname-Generator ---
+print("\n[7] Dateiname-Generator (_safe_filename)")
 check("Umlaute & Sonderzeichen",
       mc._safe_filename("Über KI & Geld?!") != "",
       mc._safe_filename("Über KI & Geld?!"))

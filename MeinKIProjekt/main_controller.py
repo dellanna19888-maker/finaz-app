@@ -18,11 +18,13 @@ SHARED_MEMORY = BASE_DIR / "shared_memory" / "status.json"
 AGENT_A_PROMPT = BASE_DIR / "agent_a_scripts" / "system_prompt_agent_a.txt"
 AGENT_B_PROMPT = BASE_DIR / "agent_b_scripts" / "system_prompt_agent_b.txt"
 AGENT_C_PROMPT = BASE_DIR / "agent_c_scripts" / "system_prompt_agent_c.txt"
+AGENT_D_PROMPT = BASE_DIR / "agent_d_scripts" / "system_prompt_agent_d.txt"
 PROFILE_FILE = BASE_DIR / "config" / "profile.json"
 OUTPUT_FILE = BASE_DIR / "shared_memory" / "final_script.txt"
 THUMBNAIL_FILE = BASE_DIR / "shared_memory" / "thumbnail_prompts.txt"
 BATCH_TOPICS_FILE = BASE_DIR / "config" / "batch_topics.json"
 BATCH_OUTPUT_DIR = BASE_DIR / "outputs"
+MAX_COMPLIANCE_RETRIES = 2  # Wie oft B nach D-Feedback korrigieren darf
 
 # --- Ollama Auto-Modus Konfiguration (per Umgebungsvariable überschreibbar) ---
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
@@ -67,6 +69,7 @@ def reset_workflow(task: str = "", input_file: str = ""):
     status["agent_a"] = {"status": "pending", "task": task, "draft": "", "error": ""}
     status["agent_b"] = {"status": "idle", "task": "", "final_output": "", "error": ""}
     status["agent_c"] = {"status": "idle", "thumbnail": "", "background": "", "text_overlay_style": "", "error": ""}
+    status["agent_d"] = {"status": "idle", "decision": "", "issues": [], "corrections": [], "required_disclaimer": "", "retries": 0, "error": ""}
     status["metadata"]["input_file"] = input_file
     status["metadata"]["output_file"] = str(OUTPUT_FILE)
     status["metadata"]["started_at"] = datetime.datetime.now().isoformat()
@@ -115,6 +118,79 @@ def save_final_output(status: dict):
         status["metadata"]["completed_at"] = datetime.datetime.now().isoformat()
         save_status(status)
         print(f"[Controller] Finales Ergebnis gespeichert: {OUTPUT_FILE}")
+
+
+def run_compliance_loop(draft: str, model: str) -> tuple[bool, str]:
+    """
+    Führt den B→D→B-Feedback-Loop aus.
+    Gibt (True, final_output) zurück wenn approved/warning, sonst (False, "").
+    """
+    profile = load_profile_block()
+    retries = 0
+
+    while retries <= MAX_COMPLIANCE_RETRIES:
+        # --- Agent B: Skript erstellen (oder korrigieren) ---
+        status = load_status()
+        corrections = status.get("agent_d", {}).get("corrections", [])
+        disclaimer_hint = status.get("agent_d", {}).get("required_disclaimer", "")
+
+        if retries == 0:
+            feedback_block = ""
+        else:
+            feedback_block = (
+                f"\n--- KORREKTUR-FEEDBACK VON COMPLIANCE-AGENT ---\n"
+                f"Dein vorheriges Skript wurde abgelehnt. Korrigiere GENAU diese Punkte:\n"
+                + "\n".join(f"- {c}" for c in corrections)
+                + (f"\nFüge diesen Disclaimer ans Ende der Caption: '{disclaimer_hint}'" if disclaimer_hint else "")
+                + "\n--- ERSTELLE DAS KORRIGIERTE SKRIPT ---\n"
+            )
+
+        prompt_b = AGENT_B_PROMPT.read_text(encoding="utf-8")
+        prompt_b += profile
+        prompt_b += f"\n--- DRAFT VON AGENT A ---\n{draft}\n"
+        prompt_b += feedback_block
+        prompt_b += "\nAntworte NUR mit dem JSON-Objekt."
+
+        if retries > 0:
+            print(f"[Compliance] Agent B korrigiert Skript (Versuch {retries}/{MAX_COMPLIANCE_RETRIES})...")
+        if not run_agent_via_ollama("b", prompt_b, model):
+            return False, ""
+
+        # final_script.txt wurde von save_final_output() geschrieben
+        final_script = OUTPUT_FILE.read_text(encoding="utf-8") if OUTPUT_FILE.exists() else ""
+        if not final_script:
+            return False, ""
+
+        # --- Agent D: Compliance prüfen ---
+        print(f"[Compliance] Agent D prüft Skript...")
+        prompt_d = AGENT_D_PROMPT.read_text(encoding="utf-8")
+        prompt_d += profile
+        prompt_d += f"\n--- SKRIPT ZUR PRÜFUNG ---\n{final_script}\n\nAntworte NUR mit dem JSON-Objekt."
+        if not run_agent_via_ollama("d", prompt_d, model):
+            return False, ""
+
+        status = load_status()
+        decision = status.get("agent_d", {}).get("decision", "APPROVED")
+
+        if decision in ("APPROVED", "WARNING"):
+            # Bei WARNING: Disclaimer anhängen falls vorhanden
+            if decision == "WARNING":
+                disclaimer = status["agent_d"].get("required_disclaimer", "")
+                if disclaimer and disclaimer not in final_script:
+                    final_script += f"\n\n⚠️ {disclaimer}"
+                    OUTPUT_FILE.write_text(final_script, encoding="utf-8")
+                    print(f"[Compliance] WARNING – Disclaimer angehängt.")
+            return True, final_script
+
+        # REJECTED: Retry
+        retries += 1
+        status["agent_d"]["retries"] = retries
+        save_status(status)
+        if retries > MAX_COMPLIANCE_RETRIES:
+            print(f"[Compliance] Maximale Korrekturen ({MAX_COMPLIANCE_RETRIES}x) erreicht. Skript verworfen.")
+            return False, ""
+
+    return False, ""
 
 
 def save_thumbnail_prompts(status: dict):
@@ -185,6 +261,27 @@ def inject_agent_response(agent: str, response_json: str):
             if status["agent_c"]["status"] == "done":
                 status["workflow_stage"] = "agent_c_done"
             print(f"[Controller] Agent C Antwort verarbeitet.")
+
+        elif agent == "d":
+            agent_data = response.get("agent_d", {})
+            if "agent_d" not in status:
+                status["agent_d"] = {"retries": 0}
+            status["agent_d"]["status"] = agent_data.get("status", "done")
+            status["agent_d"]["decision"] = agent_data.get("decision", "APPROVED")
+            status["agent_d"]["issues"] = agent_data.get("issues", [])
+            status["agent_d"]["corrections"] = agent_data.get("corrections", [])
+            status["agent_d"]["required_disclaimer"] = agent_data.get("required_disclaimer", "")
+            status["agent_d"]["error"] = agent_data.get("error", "")
+            decision = status["agent_d"]["decision"]
+            print(f"[Controller] Agent D Entscheidung: {decision}")
+            if decision == "APPROVED":
+                status["workflow_stage"] = "agent_d_approved"
+            elif decision == "WARNING":
+                status["workflow_stage"] = "agent_d_warning"
+                print(f"[Controller] Warnung(en): {status['agent_d']['issues']}")
+            else:
+                status["workflow_stage"] = "agent_d_rejected"
+                print(f"[Controller] Abgelehnt. Probleme: {status['agent_d']['issues']}")
 
         save_status(status)
         check_and_trigger_agent_b()
@@ -311,21 +408,19 @@ def run_auto(task: str, model: str = OLLAMA_MODEL):
         print("[Auto] Abbruch bei Agent A.")
         return
 
-    # --- Agent B (Draft kommt automatisch aus status.json) ---
+    # --- Agent B + D: Skript erstellen + Compliance-Loop ---
     status = load_status()
     draft = status["agent_a"].get("draft", "")
     if not draft:
         print("[Auto] Kein Draft von Agent A erhalten. Abbruch.")
         return
-    prompt_b = AGENT_B_PROMPT.read_text(encoding="utf-8")
-    prompt_b += load_profile_block()
-    prompt_b += f"\n--- DRAFT VON AGENT A ---\n{draft}\n\nAntworte NUR mit dem JSON-Objekt."
-    if not run_agent_via_ollama("b", prompt_b, model):
-        print("[Auto] Abbruch bei Agent B.")
+
+    approved, final_script = run_compliance_loop(draft, model)
+    if not approved:
+        print("[Auto] Skript konnte Compliance nicht bestehen. Abbruch.")
         return
 
     # --- Agent C (Thumbnail-Prompts aus finalem Skript) ---
-    final_script = OUTPUT_FILE.read_text(encoding="utf-8") if OUTPUT_FILE.exists() else ""
     if final_script and AGENT_C_PROMPT.exists():
         prompt_c = AGENT_C_PROMPT.read_text(encoding="utf-8")
         prompt_c += load_profile_block()
@@ -385,21 +480,18 @@ def run_batch(topics: list[str], model: str = OLLAMA_MODEL):
                 ergebnisse.append({"thema": task, "status": "fehler_agent_a", "datei": ""})
                 continue
 
-            # Agent B
+            # Agent B + D (Compliance-Loop)
             status = load_status()
             draft = status["agent_a"].get("draft", "")
             if not draft:
                 ergebnisse.append({"thema": task, "status": "kein_draft", "datei": ""})
                 continue
-            prompt_b = AGENT_B_PROMPT.read_text(encoding="utf-8")
-            prompt_b += load_profile_block()
-            prompt_b += f"\n--- DRAFT VON AGENT A ---\n{draft}\n\nAntworte NUR mit dem JSON-Objekt."
-            if not run_agent_via_ollama("b", prompt_b, model):
-                ergebnisse.append({"thema": task, "status": "fehler_agent_b", "datei": ""})
+            approved, final_script = run_compliance_loop(draft, model)
+            if not approved:
+                ergebnisse.append({"thema": task, "status": "compliance_abgelehnt", "datei": ""})
                 continue
 
             # Agent C (Thumbnail-Prompts)
-            final_script = OUTPUT_FILE.read_text(encoding="utf-8") if OUTPUT_FILE.exists() else ""
             thumbnail_section = ""
             if final_script and AGENT_C_PROMPT.exists():
                 prompt_c = AGENT_C_PROMPT.read_text(encoding="utf-8")
