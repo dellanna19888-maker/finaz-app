@@ -128,6 +128,11 @@ def mock_call_ollama(prompt: str, model: str = "") -> str:
 # Ollama-Funktion ersetzen
 mc.call_ollama = mock_call_ollama
 
+# History auf eine Testdatei umleiten (echte history.json bleibt unberührt)
+TEST_HISTORY = BASE_DIR / "shared_memory" / "history_test.json"
+TEST_HISTORY.unlink(missing_ok=True)
+mc.HISTORY_FILE = TEST_HISTORY
+
 # ---------- Hilfsfunktionen ----------
 PASS = "\033[92m✓\033[0m"
 FAIL = "\033[91m✗\033[0m"
@@ -268,8 +273,44 @@ if mc.THUMBNAIL_FILE.exists():
     check("'THUMBNAIL' im Prompt-File",      "THUMBNAIL" in tp_content)
     check("'Midjourney' im Prompt-File",     "Midjourney" in tp_content)
 
-# --- Test 7: Dateiname-Generator ---
-print("\n[7] Dateiname-Generator (_safe_filename)")
+# --- Test 7: Kanal-Gedächtnis (history.json) ---
+print("\n[7] Kanal-Gedächtnis (history.json)")
+hist = mc.load_history()
+# Test 3 (1 Auto-Run) + Test 4 (3 Batch-Runs) = 4 Posts
+check("4 Posts im Gedächtnis",            len(hist) == 4, f"gefunden: {len(hist)}")
+if hist:
+    check("Post hat ID (P0001-Format)",  hist[0]["id"].startswith("P"))
+    check("Hook wurde extrahiert",       bool(hist[0].get("hook")))
+    check("Compliance-Status gespeichert", hist[0].get("compliance") == "APPROVED")
+    check("Performance-Feld vorhanden",  "performance" in hist[0])
+
+# History-Block für Agent A (Wiederholungs-Vermeidung)
+hist_block = mc.load_history_block()
+check("History-Block nicht leer",        bool(hist_block))
+check("'KANAL-GEDÄCHTNIS' im Block",     "KANAL-GEDÄCHTNIS" in hist_block)
+check("Vermeidungs-Hinweis im Block",    "Vermeide Wiederholungen" in hist_block)
+
+# Performance nachtragen → Lern-Feedback
+mc.set_performance("P0001", views=1500, likes=200, saves=80)
+hist2 = mc.load_history()
+p1 = next((p for p in hist2 if p["id"] == "P0001"), {})
+check("Views gespeichert (1500)",        p1.get("performance", {}).get("views") == 1500)
+check("Saves gespeichert (80)",          p1.get("performance", {}).get("saves") == 80)
+
+# Top-Performer taucht jetzt im History-Block auf
+hist_block2 = mc.load_history_block()
+check("Bester Post im Block markiert",   "BESTER POST" in hist_block2)
+check("1500 Views im Block",             "1500" in hist_block2)
+
+# Unbekannte ID wird sauber abgefangen
+mc.set_performance("P9999", views=10)  # darf nicht crashen
+check("Unbekannte ID crasht nicht",      True)
+
+# Testdatei aufräumen
+TEST_HISTORY.unlink(missing_ok=True)
+
+# --- Test 8: Dateiname-Generator ---
+print("\n[8] Dateiname-Generator (_safe_filename)")
 check("Umlaute & Sonderzeichen",
       mc._safe_filename("Über KI & Geld?!") != "",
       mc._safe_filename("Über KI & Geld?!"))

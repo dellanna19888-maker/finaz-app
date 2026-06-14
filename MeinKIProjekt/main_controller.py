@@ -22,9 +22,11 @@ AGENT_D_PROMPT = BASE_DIR / "agent_d_scripts" / "system_prompt_agent_d.txt"
 PROFILE_FILE = BASE_DIR / "config" / "profile.json"
 OUTPUT_FILE = BASE_DIR / "shared_memory" / "final_script.txt"
 THUMBNAIL_FILE = BASE_DIR / "shared_memory" / "thumbnail_prompts.txt"
+HISTORY_FILE = BASE_DIR / "shared_memory" / "history.json"
 BATCH_TOPICS_FILE = BASE_DIR / "config" / "batch_topics.json"
 BATCH_OUTPUT_DIR = BASE_DIR / "outputs"
 MAX_COMPLIANCE_RETRIES = 2  # Wie oft B nach D-Feedback korrigieren darf
+HISTORY_CONTEXT_COUNT = 10  # Wie viele letzte Posts Agent A als Kontext bekommt
 
 # --- Ollama Auto-Modus Konfiguration (per Umgebungsvariable überschreibbar) ---
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
@@ -48,6 +50,86 @@ def load_profile_block() -> str:
         "\n### KANAL-PROFIL (RICHTE DICH STRIKT DANACH):\n"
         "Halte dich bei Stil, Tonalität, Zielgruppe und Hashtags an dieses Profil:\n"
         f"{profile_text}\n"
+    )
+
+
+# ============================================================
+#  KANAL-GEDÄCHTNIS: history.json (was wurde schon gepostet?)
+# ============================================================
+
+def load_history() -> list:
+    """Lädt die komplette Post-Historie."""
+    if not HISTORY_FILE.exists():
+        return []
+    try:
+        with open(HISTORY_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data.get("posts", []) if isinstance(data, dict) else data
+    except (json.JSONDecodeError, OSError) as e:
+        print(f"[Warnung] Historie konnte nicht geladen werden: {e}")
+        return []
+
+
+def save_history(posts: list):
+    """Speichert die komplette Post-Historie."""
+    payload = {
+        "_hinweis": "Automatisch gepflegtes Kanal-Gedächtnis. Nicht manuell bearbeiten (außer Performance-Werte).",
+        "updated": datetime.datetime.now().isoformat(),
+        "post_count": len(posts),
+        "posts": posts,
+    }
+    with open(HISTORY_FILE, "w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False, indent=2)
+
+
+def append_to_history(task: str, draft: str, final_output: str, compliance: str = "") -> str:
+    """Fügt einen fertigen Post zur Historie hinzu. Gibt die neue Post-ID zurück."""
+    posts = load_history()
+    post_id = f"P{len(posts) + 1:04d}"
+    # Hook aus dem Draft extrahieren (erste HOOK-Zeile)
+    hook = ""
+    for line in draft.splitlines():
+        if line.strip().upper().startswith("HOOK"):
+            hook = line.split(":", 1)[-1].strip()
+            break
+    posts.append({
+        "id": post_id,
+        "datum": datetime.datetime.now().strftime("%Y-%m-%d"),
+        "thema": task,
+        "hook": hook,
+        "compliance": compliance,
+        "performance": {"views": None, "likes": None, "saves": None, "notiz": ""},
+    })
+    save_history(posts)
+    return post_id
+
+
+def load_history_block() -> str:
+    """Formatiert die letzten Posts als Kontext-Block für Agent A (Wiederholungen vermeiden)."""
+    posts = load_history()
+    if not posts:
+        return ""
+    recent = posts[-HISTORY_CONTEXT_COUNT:]
+    lines = []
+    for p in recent:
+        perf = p.get("performance", {})
+        views = perf.get("views")
+        perf_hint = f" [Views: {views}]" if views else ""
+        lines.append(f"- ({p['datum']}) {p['thema']} | Hook: {p.get('hook', '')[:60]}{perf_hint}")
+    # Top-Performer als positives Vorbild markieren
+    scored = [p for p in posts if (p.get("performance") or {}).get("views")]
+    top_hint = ""
+    if scored:
+        best = max(scored, key=lambda p: p["performance"]["views"])
+        top_hint = (
+            f"\nBESTER POST BISHER (orientiere dich am Stil dieses Hooks): "
+            f"'{best.get('hook', '')}' ({best['performance']['views']} Views)\n"
+        )
+    return (
+        "\n### KANAL-GEDÄCHTNIS (bereits veröffentlichte Posts):\n"
+        "Vermeide Wiederholungen. Wenn ein Thema ähnlich ist, wähle einen NEUEN Blickwinkel.\n"
+        + "\n".join(lines)
+        + "\n" + top_hint
     )
 
 
@@ -400,9 +482,10 @@ def run_auto(task: str, model: str = OLLAMA_MODEL):
     print(f"\n[Auto] Starte vollautomatischen Workflow mit Modell '{model}'.")
     reset_workflow(task)
 
-    # --- Agent A ---
+    # --- Agent A (mit Kanal-Gedächtnis gegen Wiederholungen) ---
     prompt_a = AGENT_A_PROMPT.read_text(encoding="utf-8")
     prompt_a += load_profile_block()
+    prompt_a += load_history_block()
     prompt_a += f"\n--- AUFGABE ---\n{task}\n\nAntworte NUR mit dem JSON-Objekt."
     if not run_agent_via_ollama("a", prompt_a, model):
         print("[Auto] Abbruch bei Agent A.")
@@ -428,10 +511,15 @@ def run_auto(task: str, model: str = OLLAMA_MODEL):
         if run_agent_via_ollama("c", prompt_c, model):
             save_thumbnail_prompts(load_status())
 
+    # --- Gedächtnis aktualisieren ---
+    decision = load_status().get("agent_d", {}).get("decision", "")
+    post_id = append_to_history(task, draft, final_script, decision)
+
     print("\n[Auto] ✓ Fertig! Ergebnis:")
     print("-" * 60)
     print(OUTPUT_FILE.read_text(encoding="utf-8"))
     print("-" * 60)
+    print(f"[Auto] Post-ID:                {post_id} (im Gedächtnis gespeichert)")
     print(f"[Auto] Skript gespeichert:     {OUTPUT_FILE}")
     if THUMBNAIL_FILE.exists():
         print(f"[Auto] Thumbnails gespeichert: {THUMBNAIL_FILE}")
@@ -472,9 +560,10 @@ def run_batch(topics: list[str], model: str = OLLAMA_MODEL):
         try:
             reset_workflow(task)
 
-            # Agent A
+            # Agent A (mit Kanal-Gedächtnis)
             prompt_a = AGENT_A_PROMPT.read_text(encoding="utf-8")
             prompt_a += load_profile_block()
+            prompt_a += load_history_block()
             prompt_a += f"\n--- AUFGABE ---\n{task}\n\nAntworte NUR mit dem JSON-Objekt."
             if not run_agent_via_ollama("a", prompt_a, model):
                 ergebnisse.append({"thema": task, "status": "fehler_agent_a", "datei": ""})
@@ -506,11 +595,18 @@ def run_batch(topics: list[str], model: str = OLLAMA_MODEL):
                         f"TEXT-OVERLAY-STIL:\n{c_status.get('text_overlay_style', '')}\n"
                     )
 
+            # Gedächtnis aktualisieren
+            decision = load_status().get("agent_d", {}).get("decision", "")
+            post_id = append_to_history(task, draft, final_script, decision)
+
             # Alles in eine Datei
-            header = f"THEMA: {task}\nERSTELLT: {datetime.datetime.now().isoformat()}\n{'='*60}\n\n"
+            header = (
+                f"POST-ID: {post_id}\nTHEMA: {task}\n"
+                f"ERSTELLT: {datetime.datetime.now().isoformat()}\n{'='*60}\n\n"
+            )
             out_file.write_text(header + final_script + thumbnail_section, encoding="utf-8")
-            ergebnisse.append({"thema": task, "status": "ok", "datei": str(out_file)})
-            print(f"[Batch] ✓ Gespeichert: {out_file.name}")
+            ergebnisse.append({"thema": task, "status": "ok", "datei": str(out_file), "post_id": post_id})
+            print(f"[Batch] ✓ Gespeichert: {out_file.name} (ID: {post_id})")
 
         except RuntimeError as e:
             print(f"[Batch] FEHLER bei Thema {i}: {e}")
@@ -549,6 +645,65 @@ def load_and_run_batch(model: str = OLLAMA_MODEL):
     run_batch(topics, model)
 
 
+# ============================================================
+#  GEDÄCHTNIS-VERWALTUNG: Anzeige & Performance-Feedback
+# ============================================================
+
+def show_history():
+    """Zeigt das Kanal-Gedächtnis (alle bisherigen Posts) übersichtlich an."""
+    posts = load_history()
+    if not posts:
+        print("\n[Gedächtnis] Noch keine Posts gespeichert.")
+        return
+    print("\n" + "=" * 60)
+    print(f"  KANAL-GEDÄCHTNIS – {len(posts)} Post(s)")
+    print("=" * 60)
+    for p in posts:
+        perf = p.get("performance", {})
+        v = perf.get("views")
+        perf_str = f"  📊 {v} Views" if v else "  (noch keine Performance-Daten)"
+        print(f"\n  [{p['id']}] {p['datum']}  |  {p.get('compliance', '')}")
+        print(f"    Thema: {p['thema']}")
+        if p.get("hook"):
+            print(f"    Hook:  {p['hook'][:70]}")
+        print(f"   {perf_str}")
+    print("\n" + "=" * 60)
+    # Mini-Statistik
+    scored = [p for p in posts if (p.get("performance") or {}).get("views")]
+    if scored:
+        best = max(scored, key=lambda p: p["performance"]["views"])
+        avg = sum(p["performance"]["views"] for p in scored) / len(scored)
+        print(f"  Bester Post:    {best['id']} ({best['performance']['views']} Views)")
+        print(f"  Ø Views:        {avg:.0f}")
+        print("=" * 60)
+
+
+def set_performance(post_id: str, views: int = None, likes: int = None,
+                    saves: int = None, notiz: str = ""):
+    """Trägt Performance-Werte für einen Post nach (für das Lernen des Systems)."""
+    posts = load_history()
+    found = False
+    for p in posts:
+        if p["id"].upper() == post_id.upper():
+            perf = p.setdefault("performance", {})
+            if views is not None:
+                perf["views"] = views
+            if likes is not None:
+                perf["likes"] = likes
+            if saves is not None:
+                perf["saves"] = saves
+            if notiz:
+                perf["notiz"] = notiz
+            found = True
+            print(f"[Gedächtnis] Performance für {p['id']} aktualisiert: {perf}")
+            break
+    if not found:
+        print(f"[Gedächtnis] Post-ID '{post_id}' nicht gefunden. Verfügbar: "
+              f"{', '.join(p['id'] for p in posts) or 'keine'}")
+        return
+    save_history(posts)
+
+
 if __name__ == "__main__":
     args = sys.argv[1:]
 
@@ -557,6 +712,8 @@ if __name__ == "__main__":
         print("  python main_controller.py auto '<aufgabe>'      # Vollautomatisch via Ollama")
         print("  python main_controller.py batch                 # Alle Themen aus batch_topics.json")
         print("  python main_controller.py batch '<t1>' '<t2>'   # Themen direkt als Argumente")
+        print("  python main_controller.py history               # Kanal-Gedächtnis anzeigen")
+        print("  python main_controller.py feedback <ID> <views> [likes] [saves]  # Performance nachtragen")
         print("  python main_controller.py start '<aufgabe>'     # Manueller Modus (Copy-Paste)")
         print("  python main_controller.py status")
         print("  python main_controller.py prompt-a '<aufgabe>'")
@@ -590,6 +747,24 @@ if __name__ == "__main__":
         except RuntimeError as e:
             print(f"[FEHLER] {e}")
             sys.exit(1)
+
+    elif cmd == "history":
+        show_history()
+
+    elif cmd == "feedback":
+        if len(args) < 3:
+            print("Verwendung: feedback <Post-ID> <views> [likes] [saves]")
+            print("Beispiel:   python main_controller.py feedback P0001 1500 200 80")
+            sys.exit(1)
+        pid = args[1]
+        try:
+            views = int(args[2])
+            likes = int(args[3]) if len(args) > 3 else None
+            saves = int(args[4]) if len(args) > 4 else None
+        except ValueError:
+            print("[FEHLER] Views/Likes/Saves müssen Zahlen sein.")
+            sys.exit(1)
+        set_performance(pid, views=views, likes=likes, saves=saves)
 
     elif cmd == "start":
         task = args[1] if len(args) > 1 else "Standardaufgabe: Analysiere die Eingabe."

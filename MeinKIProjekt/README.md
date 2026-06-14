@@ -8,8 +8,32 @@ direkt zu „sehen“ – die Kommunikation läuft über eine `status.json`.
 
 | Agent | Rolle | Aufgabe |
 |-------|-------|---------|
-| **Agent A** | Kreativ-Agent | Analysiert Thema/Trend/Konkurrenz-Reel → Content-Konzept (Hook, Idee, Kernpunkte) |
+| **Agent A** | Kreativ-Agent | Analysiert Thema/Trend → Content-Konzept (Hook, Idee, Kernpunkte). Kennt das Kanal-Gedächtnis und vermeidet Wiederholungen. |
 | **Agent B** | Skript-Agent | Macht aus dem Konzept ein post-fertiges Skript (Voiceover, Caption, Hashtags) |
+| **Agent C** | Visual-Agent | Erstellt Thumbnail- & Bild-Prompts (Midjourney/DALL·E/SD) |
+| **Agent D** | Compliance-Agent | Prüft auf Finanzrecht & EU AI Act, gibt Korrektur-Feedback an B |
+
+## Kanal-Gedächtnis (history.json)
+
+Jeder fertige Post wird automatisch in `shared_memory/history.json` gespeichert
+(Thema, Hook, Datum, Compliance-Status, Performance). **Agent A bekommt die letzten
+Posts als Kontext** und vermeidet so Wiederholungen — bei ähnlichen Themen wählt er
+automatisch einen neuen Blickwinkel.
+
+```bash
+# Gedächtnis ansehen
+python3 main_controller.py history
+
+# Performance nachtragen (System lernt, welche Hooks funktionieren)
+python3 main_controller.py feedback P0001 1500 200 80
+#                                   │     │    │   └─ Saves
+#                                   │     │    └───── Likes
+#                                   │     └────────── Views
+#                                   └──────────────── Post-ID
+```
+
+Der Post mit den meisten Views wird Agent A als **positives Vorbild** markiert —
+das System orientiert sich mit der Zeit an deinen besten Hooks.
 
 ## Struktur
 
