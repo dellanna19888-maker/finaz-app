@@ -1,6 +1,16 @@
 {
   "_hinweis": "Passe alle Felder an deinen Kanal an. Beide Agenten lesen dieses Profil automatisch.",
-  "kanal_name": "DeinKanalName",
+  "_kanal_name_ideen": [
+    "FinazKI",
+    "KI & Kapital",
+    "SmartGeld.AI",
+    "FinanzIntelligenz",
+    "GeldMitKI",
+    "InvestAI",
+    "KIundCash",
+    "FinazBrain"
+  ],
+  "kanal_name": "NOCH_NICHT_FESTGELEGT",
   "nische": "Finanzen & Künstliche Intelligenz (KI) - smart investieren, sparen und KI-Tools im Alltag nutzen",
   "zielgruppe": "Ab 18 Jahren, deutschsprachig, technik- und geldinteressiert",
   "haupt_plattform": "Instagram Reels",
