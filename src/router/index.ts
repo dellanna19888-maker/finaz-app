@@ -6,6 +6,7 @@ import Reports from '../views/Reports.vue'
 import Assistant from '../views/Assistant.vue'
 import Notes from '../views/Notes.vue'
 import Compliance from '../views/Compliance.vue'
+import Settings from '../views/Settings.vue'
 
 export default createRouter({
   history: createWebHashHistory(),
@@ -17,5 +18,6 @@ export default createRouter({
     { path: '/assistant', component: Assistant },
     { path: '/notes', component: Notes },
     { path: '/compliance', component: Compliance },
+    { path: '/settings', component: Settings },
   ],
 })

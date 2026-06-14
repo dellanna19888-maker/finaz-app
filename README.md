@@ -36,8 +36,21 @@ npm run dev:all           # startet Vite (Frontend) UND das API-Backend
 - Frontend: http://localhost:5173  ·  API: http://localhost:3001 (per Vite-Proxy unter `/api`)
 - Alternativ getrennt: `npm run dev` (nur Frontend) und `npm run api` (nur Backend)
 
-Ohne API-Key laufen Finanz-App und die **Compliance-Seite** (lokale Prüfung +
-Audit-Log) vollständig; nur KI-Assistent/Notizen brauchen den Key.
+### Als Demo mit eigenem Key (ein Befehl)
+
+```bash
+npm install
+npm run demo     # baut das Frontend und startet ALLES auf http://localhost:3001
+```
+
+Dann **http://localhost:3001** öffnen und unter **⚙️ Einstellungen** deinen
+**eigenen** Anthropic-API-Key eintragen (Bring Your Own Key). Der Key wird nur im
+Browser gespeichert und pro Anfrage an dein lokales Backend gesendet – er landet
+**nie** im Repository. Alternativ kann der Server einen Key aus `.env`
+(`ANTHROPIC_API_KEY`) nutzen.
+
+Ohne Key laufen Finanz-App und die **Compliance-Seite** (lokale Prüfung +
+Audit-Log) vollständig; nur KI-Assistent/Notizen brauchen einen Key.
 
 ## Skripte
 
@@ -46,13 +59,14 @@ Audit-Log) vollständig; nur KI-Assistent/Notizen brauchen den Key.
 | `npm run dev`     | Vite-Frontend                                    |
 | `npm run api`     | API-Backend (Claude + Compliance-Gateway)        |
 | `npm run dev:all` | Frontend + Backend parallel                      |
+| `npm run demo`    | Build + Backend auf **einem** Port (eine URL)    |
 | `npm run build`   | Typecheck + Produktions-Build (`dist/`)          |
 
 ## Konfiguration (`.env`)
 
 | Variable                        | Zweck                                       | Standard          |
 | ------------------------------- | ------------------------------------------- | ----------------- |
-| `ANTHROPIC_API_KEY`             | Claude-Key (nur KI-Funktionen)              | –                 |
+| `ANTHROPIC_API_KEY`             | Claude-Key (optional – sonst Key im Browser via ⚙️) | –           |
 | `CLAUDE_MODEL`                  | Modell                                      | `claude-opus-4-8` |
 | `API_PORT`                      | Port des Backends (= Vite-Proxy-Ziel)       | `3001`            |
 | `COMPLIANCE_FORCE_JURISDICTION` | Profil erzwingen (`EU`/`UK`/`US`/`DEFAULT`) | – (GEO-Erkennung) |

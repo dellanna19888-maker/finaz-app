@@ -5,6 +5,8 @@
       <p class="sub">Markdown-Editor mit KI – jede KI-Aktion läuft durch das Compliance-Gateway.</p>
     </div>
 
+    <RouterLink v-if="!hasKey" to="/settings" class="keyhint">🔑 Kein API-Key gesetzt – hier eintragen (⚙️ Einstellungen)</RouterLink>
+
     <div class="toolbar">
       <input
         v-model="instruction"
@@ -56,6 +58,9 @@
 import { ref, computed, watch } from 'vue'
 import { marked } from 'marked'
 import { runAssist } from '../lib/assist'
+import { hasApiKey } from '../lib/apiKey'
+
+const hasKey = hasApiKey()
 
 const actions = [
   { id: 'generate', label: 'Generieren' },

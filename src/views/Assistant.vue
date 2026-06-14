@@ -8,6 +8,8 @@
       </p>
     </div>
 
+    <RouterLink v-if="!hasKey" to="/settings" class="keyhint">🔑 Kein API-Key gesetzt – hier eintragen (⚙️ Einstellungen)</RouterLink>
+
     <div class="presets">
       <button
         v-for="p in presets"
@@ -57,9 +59,11 @@ import { marked } from 'marked'
 import { useTransactionStore } from '../stores/transactions'
 import { useBudgetStore } from '../stores/budgets'
 import { runAssist } from '../lib/assist'
+import { hasApiKey } from '../lib/apiKey'
 
 const tx = useTransactionStore()
 const bud = useBudgetStore()
+const hasKey = hasApiKey()
 const fmt = (n: number) => new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(n)
 
 const presets = [

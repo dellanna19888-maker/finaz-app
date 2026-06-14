@@ -8,6 +8,7 @@
     <div class="nav-links">
       <RouterLink v-for="l in links" :key="l.to" :to="l.to" class="nav-link">{{ l.label }}</RouterLink>
     </div>
+    <RouterLink to="/settings" class="nav-gear" title="Einstellungen">⚙️</RouterLink>
   </nav>
 
   <!-- Bottom tab bar (mobile) -->
@@ -65,6 +66,10 @@ const links = [
 }
 .nav-link:hover { color: #e2e8f0; background: rgba(255,255,255,0.05); }
 .nav-link.router-link-active { color: #60a5fa; background: rgba(96,165,250,0.1); }
+
+.nav-gear { font-size: 1.2rem; text-decoration: none; padding: 0.3rem 0.5rem; border-radius: 6px; line-height: 1; }
+.nav-gear:hover { background: rgba(255,255,255,0.05); }
+.nav-gear.router-link-active { background: rgba(96,165,250,0.1); }
 
 /* Bottom tab bar — hidden on desktop */
 .tab-bar {

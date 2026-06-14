@@ -1,5 +1,5 @@
 // API-Backend für finaz-app: KI-Assistent (Claude) + Compliance-Gateway.
-// Mit tsx ausführen:  npm run api   (Dev: npm run api:dev)
+// Mit tsx ausführen:  npm run api   (Dev: npm run api:dev, Demo: npm run demo)
 import express from 'express'
 import type { Request, Response } from 'express'
 import { fileURLToPath } from 'node:url'
@@ -19,7 +19,16 @@ const app = express()
 app.set('trust proxy', true)
 app.use(express.json({ limit: '2mb' }))
 
-const client = process.env.ANTHROPIC_API_KEY ? new Anthropic() : null
+const envClient = process.env.ANTHROPIC_API_KEY ? new Anthropic() : null
+
+// "Bring your own key": pro Anfrage darf der Client einen eigenen Key senden
+// (Header x-anthropic-key). Sonst greift der Server-Key aus .env (falls gesetzt).
+function getClient(userKey: string): Anthropic | null {
+  const apiKey = userKey || process.env.ANTHROPIC_API_KEY
+  if (!apiKey) return null
+  if (!userKey && envClient) return envClient
+  return new Anthropic({ apiKey })
+}
 
 function resolveJurisdiction(req: Request): string {
   const forced = process.env.COMPLIANCE_FORCE_JURISDICTION
@@ -65,6 +74,10 @@ function buildPrompt(action: string, text: string, instruction: string, language
   }
 }
 
+app.get('/api/health', (_req: Request, res: Response) => {
+  res.json({ ok: true, envKey: !!process.env.ANTHROPIC_API_KEY })
+})
+
 app.post('/api/assist', async (req: Request, res: Response) => {
   const { action = '', text = '', instruction = '', language = '', consent = false } = req.body ?? {}
   const jurisdiction = resolveJurisdiction(req)
@@ -91,8 +104,12 @@ app.post('/api/assist', async (req: Request, res: Response) => {
     return res.status(428).json({ authorizationRequired: true, error: ev.decisionText, reasons: ev.reasons, compliance: ev.logEntry })
   }
 
-  if (!client) {
-    return res.status(500).json({ error: 'ANTHROPIC_API_KEY ist nicht gesetzt (siehe .env.example).' })
+  const userKey = (req.headers['x-anthropic-key'] as string) || ''
+  const ai = getClient(userKey)
+  if (!ai) {
+    return res.status(400).json({
+      error: 'Kein API-Key. Hinterlege ihn in den Einstellungen (⚙️) oder als ANTHROPIC_API_KEY in .env.',
+    })
   }
 
   const prompt = buildPrompt(action, text, instruction, language)
@@ -103,9 +120,9 @@ app.post('/api/assist', async (req: Request, res: Response) => {
   res.setHeader('Connection', 'keep-alive')
   const send = (payload: unknown) => res.write(`data: ${JSON.stringify(payload)}\n\n`)
 
-  let stream: ReturnType<typeof client.messages.stream> | undefined
+  let stream: ReturnType<typeof ai.messages.stream> | undefined
   try {
-    stream = client.messages.stream({
+    stream = ai.messages.stream({
       model: MODEL,
       max_tokens: 16000,
       system: SYSTEM_PROMPT,
@@ -165,13 +182,14 @@ app.get('/api/compliance/logs', async (req: Request, res: Response) => {
   }
 })
 
-// Optional: gebautes Frontend ausliefern (Einzel-Prozess-Deployment).
+// Optional: gebautes Frontend ausliefern (Einzel-Prozess-Demo: npm run demo).
 const dist = join(__dirname, '..', 'dist')
 if (existsSync(dist)) app.use(express.static(dist))
 
 app.listen(PORT, () => {
   console.log(`finaz API + Compliance-Gateway: http://localhost:${PORT}`)
-  if (!client) {
-    console.warn('⚠  Kein ANTHROPIC_API_KEY – /api/assist liefert 500. Compliance-Check & Audit-Log funktionieren trotzdem.')
+  if (existsSync(dist)) console.log(`Demo-UI (gebaut) ebenfalls unter http://localhost:${PORT}`)
+  if (!process.env.ANTHROPIC_API_KEY) {
+    console.warn('ℹ  Kein Server-Key (.env). KI-Funktionen nutzen den im Browser hinterlegten Key (⚙️ Einstellungen).')
   }
 })

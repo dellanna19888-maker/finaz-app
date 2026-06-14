@@ -1,5 +1,8 @@
 // Client-Helfer: ruft /api/assist auf, verarbeitet den SSE-Stream und meldet
 // die Compliance-Antworten (428 = Autorisierung nötig, 403 = blockiert) zurück.
+// Sendet den im Browser hinterlegten API-Key (BYOK) als Header mit.
+
+import { getApiKey } from './apiKey'
 
 export interface AssistRequest {
   action: string
@@ -26,18 +29,22 @@ export async function runAssist(
   onDelta: (text: string) => void,
   signal?: AbortSignal,
 ): Promise<AssistOutcome> {
+  const key = getApiKey()
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (key) headers['x-anthropic-key'] = key
+
   let resp: Response
   try {
     resp = await fetch('/api/assist', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify(req),
       signal,
     })
   } catch (err) {
     return {
       kind: 'error',
-      error: (err as Error).message || 'Netzwerkfehler – läuft der API-Server (npm run api)?',
+      error: (err as Error).message || 'Netzwerkfehler – läuft das Backend (npm run api)?',
     }
   }
 
