@@ -192,4 +192,13 @@ function handleAdd() {
   white-space: nowrap;
 }
 .btn-add:hover { background: #2563eb; }
+
+@media (max-width: 700px) {
+  .page { padding: 1.25rem; }
+  .page-header h1 { font-size: 1.5rem; }
+  .budget-grid { grid-template-columns: 1fr; gap: 1rem; }
+  .add-row { flex-direction: column; }
+  .filter-select, .budget-input { width: 100%; }
+  .filter-select, .budget-input, .btn-add { font-size: 16px; }
+}
 </style>

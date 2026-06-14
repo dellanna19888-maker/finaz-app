@@ -170,4 +170,15 @@ const budgetOverview = computed(() => {
 .ok { background: #10b981; }
 .warning { background: #f59e0b; }
 .danger { background: #ef4444; }
+
+@media (max-width: 700px) {
+  .page { padding: 1.25rem; }
+  .page-header h1 { font-size: 1.5rem; }
+  .cards { gap: 0.5rem; margin-bottom: 1.25rem; }
+  .card { padding: 0.85rem; }
+  .card-value { font-size: 1.1rem; }
+  .card-label { font-size: 0.65rem; }
+  .section-grid { grid-template-columns: 1fr; gap: 1rem; }
+  .section-card { padding: 1.1rem; }
+}
 </style>

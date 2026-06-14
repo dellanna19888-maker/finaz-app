@@ -179,4 +179,43 @@ function confirmDelete(id: string) {
 .icon-btn:hover { opacity: 1; }
 
 .empty { color: #475569; text-align: center; padding: 3rem; }
+
+@media (max-width: 700px) {
+  .page { padding: 1.25rem; }
+  .page-header { align-items: center; }
+  .page-header h1 { font-size: 1.5rem; }
+  .btn-add { padding: 0.5rem 0.9rem; font-size: 0.85rem; }
+
+  .filters { flex-direction: column; gap: 0.6rem; }
+  .search-input, .filter-select { width: 100%; font-size: 16px; }
+
+  /* Table becomes a list of cards */
+  .tx-table { background: transparent; display: flex; flex-direction: column; gap: 0.6rem; overflow: visible; }
+  .tx-head { display: none; }
+
+  .tx-row {
+    background: #1e293b;
+    border-radius: 12px;
+    border-bottom: none;
+    padding: 0.85rem 1rem;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "desc   amount"
+      "cat    badge"
+      "date   actions";
+    gap: 0.3rem 0.5rem;
+  }
+  .tx-row:hover { background: #1e293b; }
+
+  .desc { grid-area: desc; font-size: 0.95rem; }
+  .amount { grid-area: amount; justify-self: end; font-size: 1rem; }
+  .cat { grid-area: cat; }
+  .badge { grid-area: badge; justify-self: end; }
+  .date { grid-area: date; }
+  .actions { grid-area: actions; justify-self: end; }
+  .icon-btn { font-size: 1.15rem; padding: 0.2rem; }
+  .right { text-align: left; }
+
+  .empty { padding: 2rem; }
+}
 </style>

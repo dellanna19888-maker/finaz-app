@@ -196,4 +196,15 @@ const topExpenses = computed(() =>
 .stat-value { font-size: 1.5rem; font-weight: 700; }
 .positive { color: #10b981; }
 .negative { color: #ef4444; }
+
+@media (max-width: 700px) {
+  .page { padding: 1.25rem; }
+  .page-header h1 { font-size: 1.5rem; }
+  .charts-grid { grid-template-columns: 1fr; gap: 1rem; }
+  .chart-card.wide { grid-column: auto; }
+  .chart-box { height: 220px; }
+  .top-row { grid-template-columns: 20px 80px 1fr 70px; gap: 0.5rem; }
+  .summary-grid { grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+  .stat-value { font-size: 1.3rem; }
+}
 </style>

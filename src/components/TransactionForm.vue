@@ -157,4 +157,21 @@ h2 { color: #e2e8f0; margin: 0 0 1.5rem; font-size: 1.2rem; }
 .btn-cancel { background: #334155; color: #94a3b8; }
 .btn-save { background: #3b82f6; color: white; font-weight: 600; }
 .btn-cancel:hover, .btn-save:hover { opacity: 0.85; }
+
+@media (max-width: 700px) {
+  /* Bottom sheet on mobile */
+  .modal-overlay { align-items: flex-end; }
+  .modal {
+    max-width: 100%;
+    border-radius: 20px 20px 0 0;
+    padding: 1.5rem 1.5rem calc(1.5rem + env(safe-area-inset-bottom));
+    max-height: 92vh;
+    overflow-y: auto;
+  }
+  /* 16px inputs prevent iOS auto-zoom */
+  .form-group input,
+  .form-group select { font-size: 16px; padding: 0.7rem 0.85rem; }
+  .toggle-btn { padding: 0.7rem; }
+  .btn-cancel, .btn-save { padding: 0.8rem; font-size: 1rem; }
+}
 </style>
