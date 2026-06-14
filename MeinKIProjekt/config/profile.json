@@ -1,35 +1,38 @@
 {
   "_hinweis": "Passe alle Felder an deinen Kanal an. Beide Agenten lesen dieses Profil automatisch.",
   "kanal_name": "DeinKanalName",
-  "nische": "Persönliche Finanzen & Geld sparen",
-  "zielgruppe": "18-30 Jahre, Berufseinsteiger & Studenten, deutschsprachig",
+  "nische": "Finanzen & Künstliche Intelligenz (KI) - smart investieren, sparen und KI-Tools im Alltag nutzen",
+  "zielgruppe": "Ab 18 Jahren, deutschsprachig, technik- und geldinteressiert",
   "haupt_plattform": "Instagram Reels",
   "weitere_plattformen": ["TikTok", "YouTube Shorts"],
   "markenstimme": {
-    "tonalitaet": "locker, motivierend, auf Augenhöhe - kein Experten-Geschwafel",
-    "ansprache": "Du (direkt, persönlich)",
-    "emojis": "sparsam und gezielt (kein Emoji-Spam)",
-    "no_gos": ["Finanzberatung im rechtlichen Sinne", "Garantie-Versprechen", "Fachjargon ohne Erklärung"]
+    "tonalitaet": "seriös und direkt - klare Fakten, kein Hype, kein leeres Versprechen",
+    "ansprache": "Du (direkt, auf den Punkt)",
+    "emojis": "sehr sparsam, nur wenn es den Inhalt unterstützt",
+    "no_gos": ["Finanzberatung im rechtlichen Sinne", "Garantie- oder Gewinn-Versprechen", "Clickbait ohne Substanz", "unbelegte KI-Behauptungen"]
   },
   "stil_regeln": [
-    "Hook in den ersten 3 Sekunden - immer eine konkrete Zahl oder Frage",
+    "Hook in den ersten 3 Sekunden - eine konkrete Zahl, Fakt oder klare Frage",
     "Maximal 30 Sekunden Laufzeit",
-    "Ein klarer Mehrwert pro Video",
+    "Ein klarer Mehrwert pro Video, faktenbasiert",
+    "Quellen oder Logik nachvollziehbar machen - keine reinen Behauptungen",
     "Immer ein Call-to-Action am Ende (Speichern / Folgen / Kommentieren)"
   ],
   "standard_hashtags": [
-    "#geldsparen",
-    "#finanztipps",
     "#finanzen",
-    "#sparen",
-    "#spartipps",
-    "#geldtipps",
+    "#finanztipps",
+    "#ki",
+    "#kuenstlicheintelligenz",
+    "#investieren",
+    "#geldanlegen",
     "#finanzbildung",
-    "#moneytok"
+    "#aitools",
+    "#passiveseinkommen",
+    "#finanzwissen"
   ],
   "cta_beispiele": [
-    "Speicher dir das fuer spaeter 📌",
-    "Folge fuer mehr Geld-Tipps 💸",
-    "Welchen Tipp kanntest du noch nicht? 👇"
+    "Speicher dir das fuer deine naechste Entscheidung 📌",
+    "Folge fuer fundierte Finanz- und KI-Insights",
+    "Wie nutzt du KI fuer deine Finanzen? 👇"
   ]
 }
