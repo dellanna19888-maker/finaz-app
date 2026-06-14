@@ -19,6 +19,8 @@ AGENT_A_PROMPT = BASE_DIR / "agent_a_scripts" / "system_prompt_agent_a.txt"
 AGENT_B_PROMPT = BASE_DIR / "agent_b_scripts" / "system_prompt_agent_b.txt"
 PROFILE_FILE = BASE_DIR / "config" / "profile.json"
 OUTPUT_FILE = BASE_DIR / "shared_memory" / "final_script.txt"
+BATCH_TOPICS_FILE = BASE_DIR / "config" / "batch_topics.json"
+BATCH_OUTPUT_DIR = BASE_DIR / "outputs"
 
 # --- Ollama Auto-Modus Konfiguration (per Umgebungsvariable überschreibbar) ---
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
@@ -285,12 +287,114 @@ def run_auto(task: str, model: str = OLLAMA_MODEL):
     print(f"[Auto] Gespeichert in: {OUTPUT_FILE}")
 
 
+# ============================================================
+#  BATCH-MODUS: Mehrere Themen auf einmal verarbeiten
+# ============================================================
+
+def _safe_filename(text: str, max_len: int = 50) -> str:
+    """Wandelt ein Thema in einen sicheren Dateinamen um."""
+    cleaned = re.sub(r"[^\w\s-]", "", text, flags=re.UNICODE)
+    cleaned = re.sub(r"\s+", "_", cleaned.strip())
+    return cleaned[:max_len]
+
+
+def run_batch(topics: list[str], model: str = OLLAMA_MODEL):
+    """Verarbeitet eine Liste von Themen nacheinander; jedes Ergebnis in eigene Datei."""
+    BATCH_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    total = len(topics)
+    ergebnisse = []
+
+    print(f"\n[Batch] {total} Themen gefunden. Starte mit Modell '{model}'.")
+    print("=" * 60)
+
+    for i, task in enumerate(topics, 1):
+        task = task.strip()
+        if not task:
+            continue
+
+        print(f"\n[Batch] Thema {i}/{total}: {task}")
+        print("-" * 60)
+
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        slug = _safe_filename(task)
+        out_file = BATCH_OUTPUT_DIR / f"{timestamp}_{i:02d}_{slug}.txt"
+
+        try:
+            reset_workflow(task)
+
+            # Agent A
+            prompt_a = AGENT_A_PROMPT.read_text(encoding="utf-8")
+            prompt_a += load_profile_block()
+            prompt_a += f"\n--- AUFGABE ---\n{task}\n\nAntworte NUR mit dem JSON-Objekt."
+            if not run_agent_via_ollama("a", prompt_a, model):
+                ergebnisse.append({"thema": task, "status": "fehler_agent_a", "datei": ""})
+                continue
+
+            # Agent B
+            status = load_status()
+            draft = status["agent_a"].get("draft", "")
+            if not draft:
+                ergebnisse.append({"thema": task, "status": "kein_draft", "datei": ""})
+                continue
+            prompt_b = AGENT_B_PROMPT.read_text(encoding="utf-8")
+            prompt_b += load_profile_block()
+            prompt_b += f"\n--- DRAFT VON AGENT A ---\n{draft}\n\nAntworte NUR mit dem JSON-Objekt."
+            if not run_agent_via_ollama("b", prompt_b, model):
+                ergebnisse.append({"thema": task, "status": "fehler_agent_b", "datei": ""})
+                continue
+
+            # Ergebnis in eigene Datei schreiben
+            inhalt = OUTPUT_FILE.read_text(encoding="utf-8")
+            header = f"THEMA: {task}\nERSTELLT: {datetime.datetime.now().isoformat()}\n{'='*60}\n\n"
+            out_file.write_text(header + inhalt, encoding="utf-8")
+            ergebnisse.append({"thema": task, "status": "ok", "datei": str(out_file)})
+            print(f"[Batch] ✓ Gespeichert: {out_file.name}")
+
+        except RuntimeError as e:
+            print(f"[Batch] FEHLER bei Thema {i}: {e}")
+            ergebnisse.append({"thema": task, "status": "fehler", "datei": ""})
+
+    # Zusammenfassung
+    print("\n" + "=" * 60)
+    print(f"[Batch] FERTIG — {total} Themen verarbeitet")
+    print("=" * 60)
+    ok = sum(1 for e in ergebnisse if e["status"] == "ok")
+    fehler = total - ok
+    print(f"  Erfolgreich: {ok}  |  Fehler: {fehler}")
+    for e in ergebnisse:
+        symbol = "✓" if e["status"] == "ok" else "✗"
+        print(f"  {symbol} {e['thema'][:55]}")
+    print(f"\n  Alle Skripte in: {BATCH_OUTPUT_DIR}/")
+
+    # Protokoll speichern
+    log_file = BATCH_OUTPUT_DIR / f"batch_log_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+    log_file.write_text(json.dumps(ergebnisse, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(f"  Log: {log_file.name}")
+
+
+def load_and_run_batch(model: str = OLLAMA_MODEL):
+    """Lädt Themen aus config/batch_topics.json und startet den Batch."""
+    if not BATCH_TOPICS_FILE.exists():
+        print(f"[Batch] Keine Themen-Datei gefunden: {BATCH_TOPICS_FILE}")
+        print("[Batch] Erstelle config/batch_topics.json mit einer Liste von Themen.")
+        return
+    with open(BATCH_TOPICS_FILE, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    topics = data if isinstance(data, list) else data.get("themen", [])
+    if not topics:
+        print("[Batch] Keine Themen in batch_topics.json gefunden.")
+        return
+    run_batch(topics, model)
+
+
 if __name__ == "__main__":
     args = sys.argv[1:]
 
     if not args:
         print("Verwendung:")
         print("  python main_controller.py auto '<aufgabe>'      # Vollautomatisch via Ollama")
+        print("  python main_controller.py batch                 # Alle Themen aus batch_topics.json")
+        print("  python main_controller.py batch '<t1>' '<t2>'   # Themen direkt als Argumente")
         print("  python main_controller.py start '<aufgabe>'     # Manueller Modus (Copy-Paste)")
         print("  python main_controller.py status")
         print("  python main_controller.py prompt-a '<aufgabe>'")
@@ -309,6 +413,18 @@ if __name__ == "__main__":
         task = args[1] if len(args) > 1 else "Erstelle ein Social-Media-Reel zum Thema Finanzen & KI."
         try:
             run_auto(task)
+        except RuntimeError as e:
+            print(f"[FEHLER] {e}")
+            sys.exit(1)
+
+    elif cmd == "batch":
+        try:
+            if len(args) > 1:
+                # Themen direkt als Argumente: python main_controller.py batch "Thema 1" "Thema 2"
+                run_batch(list(args[1:]))
+            else:
+                # Themen aus batch_topics.json
+                load_and_run_batch()
         except RuntimeError as e:
             print(f"[FEHLER] {e}")
             sys.exit(1)

@@ -56,7 +56,29 @@ OLLAMA_MODEL=mistral python3 main_controller.py auto "Mein Thema"
 OLLAMA_URL=http://192.168.1.50:11434 python3 main_controller.py auto "Mein Thema"
 ```
 
-### Variante B – Manueller Modus (Copy-Paste, z. B. mit Claude-App)
+### Variante B – Batch-Modus (mehrere Themen auf einmal)
+
+Alle Themen aus `config/batch_topics.json` werden nacheinander verarbeitet.
+Jedes Ergebnis landet als eigene Datei in `outputs/`.
+
+```bash
+# Themen in config/batch_topics.json eintragen, dann:
+python3 main_controller.py batch
+
+# Oder Themen direkt als Argumente übergeben:
+python3 main_controller.py batch "ETF vs. KI-Portfolio" "3 KI-Tools für Finanzen"
+```
+
+Ausgabe-Struktur:
+
+```
+outputs/
+├── 20260614_091500_01_3_KI-Tools_die_deine_Finanzen....txt
+├── 20260614_091532_02_ETF_vs_KI-Portfolio_2026.txt
+└── batch_log_20260614_091600.json    ← Protokoll (ok / fehler pro Thema)
+```
+
+### Variante C – Manueller Modus (Copy-Paste, z. B. mit Claude-App)
 
 ```bash
 # 1. Workflow starten – zeigt den Prompt für Agent A
