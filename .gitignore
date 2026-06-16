@@ -30,3 +30,4 @@ make-icons.cjs
 !.env.example
 server/logs/
 .claude/
+__pycache__/
