@@ -70,7 +70,6 @@ import { parseActions, stripActions, actionLabel, executeAction, type ChatAction
 interface Msg {
   role: 'user' | 'assistant'
   content: string
-  local?: boolean // lokale Notiz (z. B. Aktionsergebnis) – wird nicht an die KI gesendet
 }
 
 const tx = useTransactionStore()
@@ -148,10 +147,11 @@ async function send(text: string, consent = false) {
   persist()
   scrollDown()
 
-  // Dialog für die KI: reale Nachrichten, ohne lokale Notizen und ohne die
-  // gleich folgende leere Assistenten-Bubble.
+  // Dialog für die KI: alle bisherigen Nachrichten (inkl. der an die
+  // Assistenten-Antworten angehängten Aktionsergebnisse), ohne die gleich
+  // folgende leere Assistenten-Bubble.
   const payload: ChatMessage[] = messages.value
-    .filter((m) => !m.local && m.content.trim())
+    .filter((m) => m.content.trim())
     .map((m) => ({ role: m.role, content: m.content }))
 
   messages.value.push({ role: 'assistant', content: '' })
@@ -196,13 +196,17 @@ function authorize() {
 async function doAction(i: number, j: number, act: ChatAction) {
   const key = `${i}:${j}`
   if (done.value.has(key) || busy.value) return
+  const m = messages.value[i]
+  if (!m) return
   try {
     const result = await executeAction(act, { tx, bud, router })
     done.value.add(key)
-    messages.value.push({ role: 'assistant', content: `✅ ${result}`, local: true })
+    // Ergebnis an die Assistenten-Nachricht anhängen → es bleibt Teil des
+    // Dialogs, die KI kennt in der nächsten Runde den neuen Stand.
+    m.content += `\n\n_✅ Ausgeführt: ${result}_`
     status.value = '✓ Aktion ausgeführt'
   } catch (err) {
-    messages.value.push({ role: 'assistant', content: `⚠ Aktion fehlgeschlagen: ${(err as Error).message}`, local: true })
+    m.content += `\n\n_⚠ Aktion fehlgeschlagen: ${(err as Error).message}_`
     status.value = '⚠ Fehler'
   }
   persist()

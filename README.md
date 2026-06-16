@@ -6,7 +6,7 @@ das jede KI-Operation prüft und protokolliert.
 
 ## Funktionen
 
-- 🧠 **Zentrale:** KI-Schaltzentrale (Startseite) – im Chat die ganze App steuern; die KI schlägt Aktionen vor (Transaktion erfassen, Budget setzen, Notiz ergänzen, navigieren, Compliance-Prüfung), die du per Klick **bestätigst** und ausführst
+- 🧠 **Zentrale:** KI-Schaltzentrale (Startseite) – im Chat die ganze App steuern; die KI schlägt Aktionen vor (Transaktion erfassen/löschen, Budget setzen/entfernen, Notiz ergänzen, navigieren, Compliance-Prüfung), die du per Klick **bestätigst** und ausführst. Ergebnisse fließen in den Dialog zurück, sodass die KI den neuen Stand kennt
 - 💰 **Finanzen:** Dashboard, Transaktionen, Budgets, Berichte (Charts)
 - 🤖 **KI-Assistent:** erzeugt aus deinen Daten Monatsberichte, Budget-Insights und Spar-Tipps (Claude)
 - 📝 **Notizen:** Markdown-Editor mit KI (Generieren, Verbessern, Fortsetzen, Zusammenfassen, Übersetzen)

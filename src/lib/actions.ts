@@ -59,6 +59,10 @@ export function actionLabel(a: ChatAction): string {
       return `Wechseln zu ${ar.to ?? '?'}`
     case 'compliance_check':
       return `Compliance-Prüfung ausführen${ar.jurisdiction ? ` (${ar.jurisdiction})` : ''}`
+    case 'delete_transaction':
+      return `Transaktion löschen (ID ${ar.id ?? '?'})`
+    case 'remove_budget':
+      return `Budget entfernen: ${ar.category ?? '?'}`
     default:
       return `Unbekannte Aktion: ${a.tool}`
   }
@@ -108,6 +112,20 @@ export async function executeAction(a: ChatAction, ctx: ActionContext): Promise<
       })
       const reasons = ev.reasons.length ? ev.reasons.join('; ') : 'keine Befunde'
       return `Compliance: ${ev.status} (${ev.rulesetLabel}) – ${reasons}.`
+    }
+    case 'delete_transaction': {
+      const id = String(ar.id || '').trim()
+      if (!id) throw new Error('Transaktions-ID fehlt.')
+      const t = ctx.tx.transactions.find((x) => x.id === id)
+      if (!t) throw new Error(`Keine Transaktion mit ID ${id} gefunden.`)
+      ctx.tx.deleteTransaction(id)
+      return `Transaktion gelöscht: ${t.type === 'income' ? 'Einnahme' : 'Ausgabe'} ${fmtEur(t.amount)} (${t.category}).`
+    }
+    case 'remove_budget': {
+      const category = String(ar.category || '').trim()
+      if (!category) throw new Error('Kategorie fehlt.')
+      ctx.bud.removeBudget(category)
+      return `Budget für ${category} entfernt.`
     }
     default:
       throw new Error(`Unbekannte Aktion: ${a.tool}`)

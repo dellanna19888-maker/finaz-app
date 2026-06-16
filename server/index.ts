@@ -106,7 +106,10 @@ const CHAT_SYSTEM_PROMPT = [
   '- append_note: {"content":"Markdown, wird an die Notiz angehängt"}',
   '- navigate: {"to":"/dashboard"|"/transactions"|"/budget"|"/reports"|"/notes"|"/compliance"|"/settings"}',
   '- compliance_check: {"text":"zu prüfender Inhalt","action":"optional","jurisdiction":"EU"|"UK"|"US"|"DEFAULT" optional}',
-  'Regeln: Nur Kategorien aus dem Snapshot verwenden. Höchstens EIN Aktionsblock pro Antwort. Aktionen NICHT selbst ausführen –',
+  '- delete_transaction: {"id":"<id aus dem Snapshot>"}',
+  '- remove_budget: {"category":"<Kategorie>"}',
+  'Berichte und Analysen (z. B. Monatsbericht) lieferst du direkt als Markdown-Antwort, ganz ohne Aktionsblock.',
+  'Regeln: Nur Kategorien und IDs aus dem Snapshot verwenden. Höchstens EIN Aktionsblock pro Antwort. Aktionen NICHT selbst ausführen –',
   'der Block wird dem Nutzer zur Bestätigung angezeigt. Ist keine Aktion nötig, gib keinen Block aus.',
 ].join('\n')
 

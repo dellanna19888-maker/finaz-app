@@ -34,6 +34,16 @@ export function buildContext(tx: TxStore, bud: BudStore): string {
   lines.push('', `Einnahmen-Kategorien: ${INCOME_CATEGORIES.join(', ')}`)
   lines.push(`Ausgaben-Kategorien: ${EXPENSE_CATEGORIES.join(', ')}`)
 
+  const recent = tx.transactions.slice(0, 15)
+  if (recent.length) {
+    lines.push('', 'Letzte Transaktionen (id · datum · typ · betrag · kategorie · beschreibung):')
+    for (const t of recent) {
+      lines.push(
+        `- ${t.id} · ${t.date} · ${t.type === 'income' ? 'Einnahme' : 'Ausgabe'} · ${fmt(t.amount)} · ${t.category}${t.description ? ` · ${t.description}` : ''}`,
+      )
+    }
+  }
+
   try {
     const note = localStorage.getItem('finaz_notes') || ''
     if (note.trim()) lines.push('', `Notiz (Auszug): ${note.slice(0, 200)}${note.length > 200 ? ' …' : ''}`)
