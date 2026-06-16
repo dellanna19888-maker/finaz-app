@@ -236,42 +236,41 @@ def _send(cid: int, header: str, text: str) -> None:
 def _run_analyse(cid: int, d: dict) -> None:
     ergebnisse = {}
     try:
-        bot.send_message(cid, "▓░░░░░░ 1/7 – Profil-Analyse...")
-        profil = analyse(d["nische"], d["tiktok"], d["instagram"], d["posting"], d["problem"], MODEL)
-        _send(cid, "📊 PROFIL-ANALYSE", profil)
-        ergebnisse["profil"] = profil
-
-        bot.send_message(cid, "▓▓░░░░░ 2/7 – Growth-Strategie...")
-        growth = growth_plan(d["nische"], profil, MODEL)
-        _send(cid, "📈 GROWTH-STRATEGIE", growth)
-        ergebnisse["growth"] = growth
-
-        bot.send_message(cid, "▓▓▓░░░░ 3/7 – Monetisierungs-Plan...")
+        bot.send_message(cid, "⚡ Alle 7 Analysen starten gleichzeitig...")
         follower = f"TikTok:{d['tiktok']} IG:{d['instagram']}"
-        mono = mono_plan(d["nische"], follower, profil, MODEL)
-        _send(cid, "💰 MONETISIERUNG", mono)
-        ergebnisse["mono"] = mono
 
-        bot.send_message(cid, "▓▓▓▓░░░ 4/7 – Content-Ideen...")
-        content = generiere(d["nische"], growth, MODEL)
-        _send(cid, "🎬 CONTENT-IDEEN", content)
-        ergebnisse["content"] = content
+        # Alle 7 Agents PARALLEL starten
+        results = {}
 
-        time.sleep(2)
-        bot.send_message(cid, "▓▓▓▓▓░░ 5/7 – DM-Vorlagen...")
-        dm = erstelle_dm(d["nische"], "Creator Coaching", "auf Anfrage", MODEL)
-        _send(cid, "✉️ DM-VORLAGEN", dm)
-        ergebnisse["dm"] = dm
+        def run(key, fn, *args):
+            results[key] = fn(*args)
 
-        bot.send_message(cid, "▓▓▓▓▓▓░ 6/7 – Hashtag-Strategie...")
-        hashtags = generiere_hashtags(d["nische"], MODEL)
-        _send(cid, "#️⃣ HASHTAGS", hashtags)
-        ergebnisse["hashtags"] = hashtags
+        threads = [
+            threading.Thread(target=run, args=("profil", analyse, d["nische"], d["tiktok"], d["instagram"], d["posting"], d["problem"])),
+            threading.Thread(target=run, args=("growth", growth_plan, d["nische"], "")),
+            threading.Thread(target=run, args=("mono", mono_plan, d["nische"], follower, "")),
+            threading.Thread(target=run, args=("content", generiere, d["nische"], "")),
+            threading.Thread(target=run, args=("dm", erstelle_dm, d["nische"], "Creator Coaching", "auf Anfrage")),
+            threading.Thread(target=run, args=("hashtags", generiere_hashtags, d["nische"])),
+            threading.Thread(target=run, args=("konkurrenz", analysiere_konkurrenz, d["nische"], d.get("konkurrenz", "kein"))),
+        ]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
 
-        bot.send_message(cid, "▓▓▓▓▓▓▓ 7/7 – Konkurrenz-Analyse...")
-        konkurrenz_text = analysiere_konkurrenz(d["nische"], d.get("konkurrenz", "kein"), MODEL)
-        _send(cid, "🔍 KONKURRENZ-ANALYSE", konkurrenz_text)
-        ergebnisse["konkurrenz"] = konkurrenz_text
+        # Ergebnisse in Reihenfolge senden
+        profil = results.get("profil", "")
+        growth = results.get("growth", "")
+        ergebnisse = results
+
+        _send(cid, "📊 PROFIL-ANALYSE", profil)
+        _send(cid, "📈 GROWTH-STRATEGIE", growth)
+        _send(cid, "💰 MONETISIERUNG", results.get("mono", ""))
+        _send(cid, "🎬 CONTENT-IDEEN", results.get("content", ""))
+        _send(cid, "✉️ DM-VORLAGEN", results.get("dm", ""))
+        _send(cid, "#️⃣ HASHTAGS", results.get("hashtags", ""))
+        _send(cid, "🔍 KONKURRENZ-ANALYSE", results.get("konkurrenz", ""))
 
         # CRM speichern
         lead_id = None

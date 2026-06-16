@@ -1,20 +1,13 @@
-"""
-Agent 7: Konkurrenz-Analyse
-"""
-import sys
-from pathlib import Path
-sys.path.insert(0, str(Path(__file__).parent.parent))
-import requests
-
-OLLAMA_URL = "http://127.0.0.1:11434/api/generate"
+"""Agent 7: Konkurrenz-Analyse"""
+from .groq_client import chat
 
 SYSTEM = """Du bist ein Social-Media-Stratege. Analysiere wie ein Creator seine Konkurrenz schlagen kann.
 Antworte auf Deutsch, konkret und umsetzbar."""
 
 
-def analysiere_konkurrenz(nische, konkurrenz, model, temp=0.65):
+def analysiere_konkurrenz(nische, konkurrenz, model=None, temp=0.65):
     if not konkurrenz or konkurrenz.lower() in ("kein", "keine", "-", "nein"):
-        return "Keine Konkurrenz angegeben — fokussiere dich auf deine eigene Nische!"
+        return "Keine Konkurrenz angegeben — fokussiere dich auf deine eigene Nische und authentischen Content!"
 
     prompt = (
         f"Ein {nische}-Creator analysiert seinen Konkurrenten: {konkurrenz}\n\n"
@@ -25,12 +18,4 @@ def analysiere_konkurrenz(nische, konkurrenz, model, temp=0.65):
         f"UNTERSCHEIDUNG: <wie du dich als {nische}-Creator klar abhebst>\n"
         f"AKTION: <eine konkrete Maßnahme diese Woche>"
     )
-    try:
-        r = requests.post(OLLAMA_URL, json={
-            "model": model, "system": SYSTEM, "prompt": prompt,
-            "stream": False, "options": {"temperature": temp, "num_predict": 200},
-        }, timeout=300)
-        r.raise_for_status()
-        return r.json().get("response", "").strip()
-    except Exception as e:
-        return f"[Timeout/Fehler Konkurrenz: {e}]"
+    return chat(SYSTEM, prompt, max_tokens=280, temp=temp)
