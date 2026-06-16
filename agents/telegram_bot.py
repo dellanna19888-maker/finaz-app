@@ -1,7 +1,7 @@
 """
 telegram_bot.py – Creator Growth Bot per Telegram.
 Features: Inline-Buttons, 7-Schritt-Analyse, Hashtags, Konkurrenz,
-          Bewertung, Zusammenfassung als Datei, Admin /leads
+          Bewertung, Zusammenfassung als Datei, Admin /leads, /demo
 """
 import sys
 import io
@@ -59,7 +59,7 @@ QUESTIONS = {
 
 def _menu():
     kb = ReplyKeyboardMarkup(resize_keyboard=True)
-    kb.add(KeyboardButton("🚀 Analyse starten"))
+    kb.add(KeyboardButton("🎯 Demo"), KeyboardButton("🚀 Analyse starten"))
     kb.add(KeyboardButton("❓ Hilfe"))
     return kb
 
@@ -90,15 +90,17 @@ def cmd_start(msg):
     bot.send_message(
         msg.chat.id,
         "🚀 Willkommen beim *Creator Growth System*!\n\n"
-        "Ich analysiere dein Creator-Profil und erstelle:\n"
+        "👉 Kostenlose Demo: /demo\n"
+        "👉 Vollständige Analyse: /analyse\n\n"
+        "Die vollständige Analyse liefert:\n"
         "📊 Profil-Analyse\n"
         "📈 30-Tage-Wachstumsplan\n"
         "💰 Monetisierungs-Strategie\n"
         "🎬 Content-Ideen\n"
         "✉️ DM-Vorlagen\n"
         "#️⃣ Hashtag-Strategie\n"
-        "🔍 Konkurrenz-Analyse\n\n"
-        "Tippe *🚀 Analyse starten* oder /analyse",
+        "🔍 Konkurrenz-Analyse\n"
+        "📄 Alles als Download-Datei",
         parse_mode="Markdown",
         reply_markup=_menu()
     )
@@ -149,17 +151,119 @@ def cb_rating(call):
     )
 
 
+DEMO_NISCHEN_BUTTONS = [
+    ["🏋️ Fitness", "💰 Finanzen", "💄 Beauty"],
+    ["🎮 Gaming", "🍳 Kochen", "💻 Tech"],
+]
+
+def _demo_nischen_keyboard():
+    kb = InlineKeyboardMarkup()
+    for row in DEMO_NISCHEN_BUTTONS:
+        kb.add(*[InlineKeyboardButton(n, callback_data=f"demo:{n}") for n in row])
+    kb.add(InlineKeyboardButton("✍️ Andere eingeben", callback_data="demo:__manuell__"))
+    return kb
+
+def _vollversion_keyboard():
+    kb = InlineKeyboardMarkup()
+    kb.add(InlineKeyboardButton("🚀 Vollständige Analyse starten", callback_data="start_vollversion"))
+    return kb
+
+@bot.message_handler(commands=["demo"])
+@bot.message_handler(func=lambda m: m.text and m.text in ("demo", "🎯 Demo", "Demo"))
+def cmd_demo(msg):
+    user_state.pop(msg.chat.id, None)
+    bot.send_message(
+        msg.chat.id,
+        "🎯 *GRATIS DEMO – Creator Analyse*\n\n"
+        "In 10 Sekunden bekommst du:\n"
+        "📊 Deine Profil-Analyse\n"
+        "🎬 3 virale Content-Ideen\n"
+        "#️⃣ 15 Hashtags für deine Nische\n\n"
+        "Wähle deine Nische:",
+        parse_mode="Markdown",
+        reply_markup=_demo_nischen_keyboard()
+    )
+
+@bot.callback_query_handler(func=lambda c: c.data.startswith("demo:"))
+def cb_demo_nische(call):
+    cid = call.message.chat.id
+    val = call.data.split(":", 1)[1]
+
+    if val == "__manuell__":
+        bot.answer_callback_query(call.id)
+        bot.send_message(cid, "✏️ Gib deine Nische ein (z.B. 'Fitness', 'Kochen', 'Krypto'):")
+        user_state[cid] = {"demo": True, "warte_nische": True}
+        return
+
+    nische = val.split(" ", 1)[-1] if " " in val else val
+    bot.answer_callback_query(call.id, f"✅ {nische}")
+    bot.send_message(cid, f"⚡ Starte Demo-Analyse für *{nische}*...", parse_mode="Markdown")
+    threading.Thread(target=_run_demo, args=(cid, nische), daemon=True).start()
+
+@bot.callback_query_handler(func=lambda c: c.data == "start_vollversion")
+def cb_start_vollversion(call):
+    cid = call.message.chat.id
+    bot.answer_callback_query(call.id)
+    user_state[cid] = {"step": 0, "daten": {}}
+    bot.send_message(
+        cid,
+        "🚀 *Vollständige 7-Schritt-Analyse gestartet!*\n\nWähle deine Nische:",
+        parse_mode="Markdown",
+        reply_markup=_nischen_keyboard()
+    )
+
+def _run_demo(cid: int, nische: str) -> None:
+    try:
+        results = {}
+        def run(key, fn, *args):
+            results[key] = fn(*args)
+
+        threads = [
+            threading.Thread(target=run, args=("profil", analyse, nische, "0", "0", "3", "Mehr Reichweite")),
+            threading.Thread(target=run, args=("content", generiere, nische, "")),
+            threading.Thread(target=run, args=("hashtags", generiere_hashtags, nische)),
+        ]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        bot.send_message(cid, f"✅ *Demo-Analyse für {nische}*", parse_mode="Markdown")
+        _send(cid, "📊 PROFIL-ANALYSE", results.get("profil", ""))
+        _send(cid, "🎬 CONTENT-IDEEN", results.get("content", ""))
+        _send(cid, "#️⃣ HASHTAGS", results.get("hashtags", ""))
+
+        bot.send_message(
+            cid,
+            "━━━━━━━━━━━━━━━━━━\n"
+            "🔒 *Das war die GRATIS Demo!*\n\n"
+            "Die vollständige Analyse enthält zusätzlich:\n"
+            "📈 30-Tage-Wachstumsplan\n"
+            "💰 Monetisierungs-Strategie\n"
+            "✉️ DM-Vorlagen für Kooperationen\n"
+            "🔍 Konkurrenz-Analyse\n"
+            "📄 Alles als Download-Datei\n\n"
+            "👇 Starte jetzt die vollständige Analyse:",
+            parse_mode="Markdown",
+            reply_markup=_vollversion_keyboard()
+        )
+    except Exception as e:
+        bot.send_message(cid, f"❌ Fehler: {e}\nVersuche /demo erneut.")
+
+
 @bot.message_handler(commands=["hilfe"])
 @bot.message_handler(func=lambda m: m.text == "❓ Hilfe")
 def cmd_hilfe(msg):
     bot.send_message(
         msg.chat.id,
         "*Creator Growth Bot – Hilfe*\n\n"
-        "/analyse – Neue Analyse starten\n"
+        "/demo – Kostenlose Demo (10 Sekunden)\n"
+        "/analyse – Vollständige 7-Schritt-Analyse\n"
         "/leads – Alle Leads anzeigen (Admin)\n"
         "/start – Startmenü\n\n"
-        "💡 *Tipp:* Je konkreter deine Nische, desto besser die Analyse.\n"
-        "Beispiele: 'Fitness für Frauen', 'Krypto für Anfänger', 'Vegan Kochen'",
+        "💡 *Tipp:* Starte mit /demo und teile den Link in Creator-Gruppen!\n"
+        "Je konkreter die Nische, desto besser die Analyse.\n"
+        "Beispiele: 'Fitness für Frauen', 'Krypto für Anfänger'",
         parse_mode="Markdown"
     )
 
@@ -194,7 +298,15 @@ def handle_input(msg):
     cid = msg.chat.id
     state = user_state[cid]
 
-    # Warte auf manuelle Nischen-Eingabe
+    # Demo: warte auf manuelle Nischen-Eingabe
+    if state.get("demo") and state.get("warte_nische"):
+        nische = msg.text.strip()
+        user_state.pop(cid)
+        bot.send_message(cid, f"⚡ Starte Demo-Analyse für *{nische}*...", parse_mode="Markdown")
+        threading.Thread(target=_run_demo, args=(cid, nische), daemon=True).start()
+        return
+
+    # Vollanalyse: warte auf manuelle Nischen-Eingabe
     if state.get("warte_nische"):
         state["daten"]["nische"] = msg.text.strip()
         state["step"] = 1
