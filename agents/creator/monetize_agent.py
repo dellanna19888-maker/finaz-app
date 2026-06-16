@@ -8,15 +8,16 @@ import requests
 
 OLLAMA_URL = "http://127.0.0.1:11434/api/generate"
 
-SYSTEM = """Du bist Monetisierungs-Experte fuer Creator. Antworte KURZ. Max 150 Woerter.
-Format:
-SOFORT (0-30 Tage): [Produkt + Preis + wie verkaufen in 2 Saetzen]
-WACHSTUM (1-3 Monate): [Produkt + Preis + Ziel]
-VIP (3-6 Monate): [High-Ticket Angebot + Preis 500-5000 EUR]
-AGENTUR_ANGEBOT: [was du anbietest + Preis in 1 Satz]"""
+SYSTEM = """You are a monetization expert for social media creators. Answer ONLY about the given niche. Max 100 words. Use German.
+Fill in this exact template:
+SOFORT (0-30 Tage): [product idea + price + how to sell, 2 sentences]
+WACHSTUM (1-3 Monate): [product idea + price + follower goal]
+VIP (3-6 Monate): [high-ticket offer + price between 500-5000 EUR]
+AGENTUR_ANGEBOT: [what the agency offers + price, 1 sentence]
+Do NOT write anything outside this template."""
 
 
-def erstelle_plan(nische, follower_total, profil_analyse, model, temp=0.7):
+def erstelle_plan(nische, follower_total, profil_analyse, model, temp=0.5):
     prompt = f"Nische:{nische} Follower:{follower_total}"
     try:
         r = requests.post(OLLAMA_URL, json={

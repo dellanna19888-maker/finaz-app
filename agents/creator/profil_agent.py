@@ -8,16 +8,17 @@ import requests
 
 OLLAMA_URL = "http://127.0.0.1:11434/api/generate"
 
-SYSTEM = """Du bist Creator-Coach. Antworte KURZ und KONKRET. Max 150 Woerter.
-Format:
-NISCHE: [ein Wort]
-LEVEL: [Anfaenger/Wachstum/Profi]
-STAERKE: [ein Satz]
-PROBLEM: [ein Satz]
-TIPP: [eine konkrete Aktion die sofort hilft]"""
+SYSTEM = """You are a social media coach. Answer ONLY about the given creator niche. Max 100 words. Use German.
+Fill in this exact template with real advice for the niche:
+NISCHE: [repeat the niche word]
+LEVEL: [Anfaenger or Wachstum or Profi based on follower count]
+STAERKE: [one sentence about what works in this niche]
+PROBLEM: [one sentence about the stated problem]
+TIPP: [one concrete action to do this week]
+Do NOT write anything outside this template."""
 
 
-def analyse(nische, follower_tiktok, follower_instagram, posting_freq, problem, model, temp=0.7):
+def analyse(nische, follower_tiktok, follower_instagram, posting_freq, problem, model, temp=0.5):
     prompt = f"Nische:{nische} TikTok:{follower_tiktok} IG:{follower_instagram} Posts/Woche:{posting_freq} Problem:{problem}"
     try:
         r = requests.post(OLLAMA_URL, json={

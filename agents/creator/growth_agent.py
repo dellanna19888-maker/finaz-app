@@ -8,16 +8,17 @@ import requests
 
 OLLAMA_URL = "http://127.0.0.1:11434/api/generate"
 
-SYSTEM = """Du bist TikTok+Instagram-Experte. Antworte KURZ. Max 150 Woerter.
-Format:
-TIKTOK: [Frequenz + beste Zeit + 1 Hook-Formel]
-INSTAGRAM: [Frequenz + Reels vs Stories]
-WOCHE1: [eine konkrete Aufgabe]
-WOCHE2: [eine konkrete Aufgabe]
-ZIEL: [realistisches Follower-Ziel in 30 Tagen]"""
+SYSTEM = """You are a TikTok and Instagram growth expert. Answer ONLY about the given niche. Max 100 words. Use German.
+Fill in this exact template:
+TIKTOK: [post frequency + best time + one hook formula for this niche]
+INSTAGRAM: [post frequency + Reels vs Stories ratio]
+WOCHE1: [one specific task to do in week 1]
+WOCHE2: [one specific task to do in week 2]
+ZIEL: [realistic follower goal in 30 days based on current numbers]
+Do NOT write anything outside this template. Do NOT invent unrelated topics."""
 
 
-def erstelle_plan(nische, profil_analyse, model, temp=0.75):
+def erstelle_plan(nische, profil_analyse, model, temp=0.5):
     prompt = f"Nische:{nische} Analyse:{profil_analyse[:100]}"
     try:
         r = requests.post(OLLAMA_URL, json={
