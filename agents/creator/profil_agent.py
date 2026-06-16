@@ -13,20 +13,16 @@ SYSTEM = """Du bist Creator-Coach. Antworte immer auf Deutsch."""
 
 def analyse(nische, follower_tiktok, follower_instagram, posting_freq, problem, model, temp=0.5):
     prompt = (
-        f"Analysiere diesen Creator auf Deutsch:\n"
-        f"Nische: {nische}, TikTok: {follower_tiktok} Follower, Instagram: {follower_instagram} Follower, "
-        f"{posting_freq} Posts/Woche, Problem: {problem}\n"
-        f"Antworte NUR mit:\n"
+        f"Nische:{nische} TikTok:{follower_tiktok} IG:{follower_instagram} Posts:{posting_freq}/Woche Problem:{problem}\n"
+        f"Antworte KURZ auf Deutsch, NUR diese 5 Zeilen:\n"
         f"NISCHE: {nische}\n"
-        f"LEVEL: [Anfaenger/Wachstum/Profi]\n"
-        f"STAERKE: [ein Satz]\n"
-        f"PROBLEM: [ein Satz]\n"
-        f"TIPP: [eine konkrete Aktion]"
+        f"LEVEL: Anfaenger\n"
+        f"STAERKE: "
     )
     try:
         r = requests.post(OLLAMA_URL, json={
             "model": model, "system": SYSTEM, "prompt": prompt,
-            "stream": False, "options": {"temperature": temp, "num_predict": 200},
+            "stream": False, "options": {"temperature": temp, "num_predict": 80},
         }, timeout=300)
         r.raise_for_status()
         return r.json().get("response", "").strip()

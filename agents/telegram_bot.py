@@ -116,28 +116,35 @@ def handle_input(msg):
         threading.Thread(target=_run_analyse, args=(cid, daten), daemon=True).start()
 
 
+def _send(cid: int, text: str) -> None:
+    """Sendet Nachricht, kuerzt auf 4000 Zeichen wenn noetig."""
+    if len(text) > 4000:
+        text = text[:3990] + "\n...[gekuerzt]"
+    bot.send_message(cid, text, parse_mode="Markdown")
+
+
 def _run_analyse(cid: int, d: dict) -> None:
     try:
         bot.send_message(cid, "1/5 – Profil-Analyse...")
         profil = analyse(d["nische"], d["tiktok"], d["instagram"], d["posting"], d["problem"], MODEL)
-        bot.send_message(cid, f"*PROFIL-ANALYSE*\n\n{profil}", parse_mode="Markdown")
+        _send(cid, f"*PROFIL-ANALYSE*\n\n{profil}")
 
         bot.send_message(cid, "2/5 – Growth-Strategie...")
         growth = growth_plan(d["nische"], profil, MODEL)
-        bot.send_message(cid, f"*GROWTH-STRATEGIE*\n\n{growth}", parse_mode="Markdown")
+        _send(cid, f"*GROWTH-STRATEGIE*\n\n{growth}")
 
         bot.send_message(cid, "3/5 – Monetisierungs-Plan...")
         follower = f"TikTok:{d['tiktok']} IG:{d['instagram']}"
         mono = mono_plan(d["nische"], follower, profil, MODEL)
-        bot.send_message(cid, f"*MONETISIERUNG*\n\n{mono}", parse_mode="Markdown")
+        _send(cid, f"*MONETISIERUNG*\n\n{mono}")
 
         bot.send_message(cid, "4/5 – Content-Ideen...")
         content = generiere(d["nische"], growth, MODEL)
-        bot.send_message(cid, f"*CONTENT-IDEEN*\n\n{content}", parse_mode="Markdown")
+        _send(cid, f"*CONTENT-IDEEN*\n\n{content}")
 
         bot.send_message(cid, "5/5 – DM-Vorlagen...")
         dm = erstelle_dm(d["nische"], "Creator Coaching", "auf Anfrage", MODEL)
-        bot.send_message(cid, f"*DM-VORLAGEN*\n\n{dm}", parse_mode="Markdown")
+        _send(cid, f"*DM-VORLAGEN*\n\n{dm}")
 
         # CRM speichern
         if HAS_CRM:
