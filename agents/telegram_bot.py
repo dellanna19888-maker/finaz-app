@@ -76,7 +76,10 @@ def cmd_start(msg):
 @bot.message_handler(func=lambda m: m.text == "Analyse starten")
 def cmd_analyse(msg):
     user_state[msg.chat.id] = {"step": 0, "daten": {}}
-    bot.send_message(msg.chat.id, QUESTIONS["nische"])
+    bot.send_message(
+        msg.chat.id,
+        "Neue Analyse gestartet!\n\n" + QUESTIONS["nische"]
+    )
 
 
 @bot.message_handler(commands=["hilfe"])

@@ -8,15 +8,17 @@ import requests
 
 OLLAMA_URL = "http://127.0.0.1:11434/api/generate"
 
-SYSTEM = """Antworte NUR auf Deutsch. Du bist viraler Content-Stratege fuer den deutschen Markt.
-Erstelle genau 6 Content-Ideen fuer die gegebene Nische (3 TikTok, 3 Instagram).
-Format pro Zeile: HOOK | FORMAT | CTA
-Hooks muessen nischen-spezifisch und auf Deutsch sein.
-Schreibe NICHTS ausserhalb dieser Liste. Kein Englisch."""
+SYSTEM = """Du bist Content-Stratege. Antworte immer auf Deutsch."""
 
 
 def generiere(nische, growth_plan, model, temp=0.7):
-    prompt = f"Nische:{nische}"
+    prompt = (
+        f"Erstelle 6 Content-Ideen auf Deutsch fuer die Nische: {nische}\n"
+        f"3x TikTok, 3x Instagram. Format pro Zeile:\n"
+        f"HOOK | FORMAT | CTA\n"
+        f"Beispiel: So verdienst du 500 EUR mit {nische} | Tutorial | Link in Bio\n"
+        f"Schreibe NUR die 6 Ideen:"
+    )
     try:
         r = requests.post(OLLAMA_URL, json={
             "model": model, "system": SYSTEM, "prompt": prompt,

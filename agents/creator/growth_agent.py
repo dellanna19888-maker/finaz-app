@@ -8,18 +8,19 @@ import requests
 
 OLLAMA_URL = "http://127.0.0.1:11434/api/generate"
 
-SYSTEM = """Antworte NUR auf Deutsch. Du bist TikTok+Instagram Wachstums-Experte fuer den deutschen Markt.
-Fuelle diese Vorlage aus (max 80 Woerter):
-TIKTOK: [Posting-Haeufigkeit + beste Uhrzeit + eine Hook-Formel fuer die Nische]
-INSTAGRAM: [Posting-Haeufigkeit + Reels vs Stories Verhaeltnis]
-WOCHE1: [eine konkrete Aufgabe in Woche 1]
-WOCHE2: [eine konkrete Aufgabe in Woche 2]
-ZIEL: [realistisches Follower-Ziel in 30 Tagen]
-Schreibe NICHTS ausserhalb dieser Vorlage. Kein Englisch."""
+SYSTEM = """Du bist Social-Media-Experte. Antworte immer auf Deutsch."""
 
 
 def erstelle_plan(nische, profil_analyse, model, temp=0.5):
-    prompt = f"Nische:{nische} Analyse:{profil_analyse[:100]}"
+    prompt = (
+        f"Erstelle einen Wachstumsplan auf Deutsch fuer die Nische: {nische}\n"
+        f"Antworte NUR mit:\n"
+        f"TIKTOK: [Frequenz + Uhrzeit + Hook-Formel]\n"
+        f"INSTAGRAM: [Frequenz + Reels vs Stories]\n"
+        f"WOCHE1: [eine Aufgabe]\n"
+        f"WOCHE2: [eine Aufgabe]\n"
+        f"ZIEL: [Follower-Ziel in 30 Tagen]"
+    )
     try:
         r = requests.post(OLLAMA_URL, json={
             "model": model, "system": SYSTEM, "prompt": prompt,
