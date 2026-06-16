@@ -3,7 +3,16 @@ Zentraler Groq-API-Client für alle Agents.
 Modell: llama-3.3-70b-versatile (kostenlos, sehr schnell)
 """
 import os
+from pathlib import Path
 from groq import Groq
+
+# .env laden falls vorhanden
+_env = Path(__file__).parent.parent.parent / ".env"
+if _env.exists():
+    for line in _env.read_text().splitlines():
+        if "=" in line and not line.startswith("#"):
+            k, v = line.split("=", 1)
+            os.environ.setdefault(k.strip(), v.strip())
 
 GROQ_MODEL = "llama-3.3-70b-versatile"
 
