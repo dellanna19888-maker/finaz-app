@@ -3,10 +3,10 @@
     <div class="page-header hub-header">
       <div>
         <h1>🧠 Zentrale</h1>
-        <p class="sub">Deine KI-Schaltzentrale – chatten und die ganze App per Chat steuern (Finanzen, Notizen, Compliance). Jede Anfrage läuft durch das Compliance-Gateway.</p>
+        <p class="sub">Deine KI-Schaltzentrale – chatten und die ganze App per Chat steuern (Aufgaben, Wissen, Support). Jede Anfrage läuft durch das Compliance-Gateway.</p>
       </div>
       <div class="head-actions">
-        <button v-if="lastAction" class="btn-ghost" :disabled="busy" @click="undo" :title="lastAction.label">↩ Rückgängig</button>
+        <button v-if="lastAction" class="btn-ghost" :disabled="busy" :title="lastAction.label" @click="undo">↩ Rückgängig</button>
         <button class="btn-ghost" :disabled="busy" @click="reset">Neuer Chat</button>
       </div>
     </div>
@@ -63,10 +63,8 @@
 import { ref, computed, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { marked } from 'marked'
-import { useTransactionStore } from '../stores/transactions'
-import type { Transaction } from '../stores/transactions'
-import { useBudgetStore } from '../stores/budgets'
-import type { Budget } from '../stores/budgets'
+import { useTaskStore } from '../stores/tasks'
+import type { Task } from '../stores/tasks'
 import { hasApiKey } from '../lib/apiKey'
 import { runChat, type ChatMessage } from '../lib/chat'
 import { buildContext } from '../lib/appState'
@@ -78,13 +76,11 @@ interface Msg {
 }
 
 interface Snapshot {
-  transactions: Transaction[]
-  budgets: Budget[]
+  tasks: Task[]
   notes: string
 }
 
-const tx = useTransactionStore()
-const bud = useBudgetStore()
+const tasks = useTaskStore()
 const router = useRouter()
 const hasKey = hasApiKey()
 
@@ -99,13 +95,13 @@ const lastAction = ref<{ key: string; msgIndex: number; label: string; snapshot:
 const scroller = ref<HTMLElement | null>(null)
 
 // Aktionen, die den App-Zustand verändern (Snapshot für Rückgängig).
-const MUTATING = new Set(['add_transaction', 'update_transaction', 'delete_transaction', 'set_budget', 'remove_budget', 'append_note'])
+const MUTATING = new Set(['add_task', 'complete_task', 'reopen_task', 'update_task', 'delete_task', 'append_note'])
 
 const suggestions = [
-  'Wie steht es um meine Finanzen diesen Monat?',
-  'Wo liege ich über Budget?',
-  'Erfasse eine Ausgabe von 12,50 € für Lebensmittel',
-  'Gib mir 3 konkrete Spar-Tipps',
+  'Lege eine Aufgabe an: Angebot für Kunde Schmidt bis Freitag',
+  'Was steht offen an und was ist überfällig?',
+  'Schreibe einen kurzen Wissensartikel über unser Onboarding',
+  'Fasse meine offenen Aufgaben nach Projekt zusammen',
 ]
 
 const statusClass = computed(() => {
@@ -162,9 +158,8 @@ async function send(text: string, consent = false) {
   persist()
   scrollDown()
 
-  // Dialog für die KI: alle bisherigen Nachrichten (inkl. der an die
-  // Assistenten-Antworten angehängten Aktionsergebnisse), ohne die gleich
-  // folgende leere Assistenten-Bubble.
+  // Dialog für die KI: alle bisherigen Nachrichten (inkl. angehängter
+  // Aktionsergebnisse), ohne die gleich folgende leere Assistenten-Bubble.
   const payload: ChatMessage[] = messages.value
     .filter((m) => m.content.trim())
     .map((m) => ({ role: m.role, content: m.content }))
@@ -174,7 +169,7 @@ async function send(text: string, consent = false) {
   busy.value = true
   status.value = '… prüft / antwortet'
 
-  const outcome = await runChat({ messages: payload, context: buildContext(tx, bud), consent }, (delta) => {
+  const outcome = await runChat({ messages: payload, context: buildContext(tasks), consent }, (delta) => {
     const m = messages.value[aiIndex]
     if (m) {
       m.content += delta
@@ -215,7 +210,7 @@ async function doAction(i: number, j: number, act: ChatAction) {
   if (!m) return
   const snap = MUTATING.has(act.tool) ? captureState() : null
   try {
-    const result = await executeAction(act, { tx, bud, router })
+    const result = await executeAction(act, { tasks, router })
     done.value.add(key)
     // Ergebnis an die Assistenten-Nachricht anhängen → es bleibt Teil des
     // Dialogs, die KI kennt in der nächsten Runde den neuen Stand.
@@ -232,8 +227,7 @@ async function doAction(i: number, j: number, act: ChatAction) {
 
 function captureState(): Snapshot {
   return {
-    transactions: JSON.parse(JSON.stringify(tx.transactions)) as Transaction[],
-    budgets: JSON.parse(JSON.stringify(bud.budgets)) as Budget[],
+    tasks: JSON.parse(JSON.stringify(tasks.tasks)) as Task[],
     notes: localStorage.getItem('finaz_notes') || '',
   }
 }
@@ -241,8 +235,7 @@ function captureState(): Snapshot {
 function undo() {
   const la = lastAction.value
   if (!la || busy.value) return
-  tx.setAll(la.snapshot.transactions)
-  bud.setAll(la.snapshot.budgets)
+  tasks.setAll(la.snapshot.tasks)
   localStorage.setItem('finaz_notes', la.snapshot.notes)
   done.value.delete(la.key)
   const m = messages.value[la.msgIndex]

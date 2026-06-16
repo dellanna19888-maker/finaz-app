@@ -1,14 +1,13 @@
 // Aktionen der "Zentrale": Die KI gibt Handlungswünsche als ```action-Block
 // (JSON) aus. Hier werden sie aus dem Text geparst, beschriftet und – nach
-// Bestätigung durch den Nutzer – real gegen die Stores / den Router ausgeführt.
+// Bestätigung durch den Nutzer – real gegen den Aufgaben-Store / die
+// Wissensbasis (Notizen) / den Router ausgeführt.
 
 import type { Router } from 'vue-router'
-import type { useTransactionStore, TransactionType } from '../stores/transactions'
-import type { useBudgetStore } from '../stores/budgets'
+import type { useTaskStore, Priority } from '../stores/tasks'
 import { evaluate } from '../compliance/gateway'
 
-type TxStore = ReturnType<typeof useTransactionStore>
-type BudStore = ReturnType<typeof useBudgetStore>
+type TaskStore = ReturnType<typeof useTaskStore>
 
 export interface ChatAction {
   tool: string
@@ -16,8 +15,7 @@ export interface ChatAction {
 }
 
 export interface ActionContext {
-  tx: TxStore
-  bud: BudStore
+  tasks: TaskStore
   router: Router
 }
 
@@ -44,61 +42,97 @@ export function stripActions(text: string): string {
   return text.replace(FENCE, '').replace(/\n{3,}/g, '\n\n').trim()
 }
 
-const fmtEur = (n: number) => new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(n)
+const PRIOS = new Set(['low', 'normal', 'high'])
+function normPriority(v: unknown): Priority {
+  const s = String(v ?? '').toLowerCase()
+  return (PRIOS.has(s) ? s : 'normal') as Priority
+}
+
+const isDate = (v: unknown) => /^\d{4}-\d{2}-\d{2}$/.test(String(v ?? ''))
 
 export function actionLabel(a: ChatAction): string {
-  const ar = a.args as Record<string, string | number | undefined>
+  const ar = a.args as Record<string, string | number | boolean | undefined>
   switch (a.tool) {
-    case 'add_transaction':
-      return `${ar.type === 'income' ? 'Einnahme' : 'Ausgabe'} erfassen: ${fmtEur(Number(ar.amount) || 0)} · ${ar.category ?? '?'}${ar.description ? ` (${ar.description})` : ''}`
-    case 'set_budget':
-      return `Budget setzen: ${ar.category ?? '?'} → ${fmtEur(Number(ar.limit) || 0)}`
+    case 'add_task':
+      return `Aufgabe anlegen: „${ar.title ?? '?'}"${ar.project ? ` · ${ar.project}` : ''}${ar.due ? ` · fällig ${ar.due}` : ''}`
+    case 'complete_task':
+      return `Aufgabe abhaken (ID ${ar.id ?? '?'})`
+    case 'reopen_task':
+      return `Aufgabe wieder öffnen (ID ${ar.id ?? '?'})`
+    case 'update_task':
+      return `Aufgabe bearbeiten (ID ${ar.id ?? '?'})`
+    case 'delete_task':
+      return `Aufgabe löschen (ID ${ar.id ?? '?'})`
     case 'append_note':
-      return `Notiz ergänzen (${String(ar.content ?? '').length} Zeichen)`
+      return `Wissen/Notiz ergänzen (${String(ar.content ?? '').length} Zeichen)`
     case 'navigate':
       return `Wechseln zu ${ar.to ?? '?'}`
     case 'compliance_check':
       return `Compliance-Prüfung ausführen${ar.jurisdiction ? ` (${ar.jurisdiction})` : ''}`
-    case 'update_transaction':
-      return `Transaktion bearbeiten (ID ${ar.id ?? '?'})`
-    case 'delete_transaction':
-      return `Transaktion löschen (ID ${ar.id ?? '?'})`
-    case 'remove_budget':
-      return `Budget entfernen: ${ar.category ?? '?'}`
     default:
       return `Unbekannte Aktion: ${a.tool}`
   }
 }
 
-const ROUTES = new Set(['/', '/dashboard', '/transactions', '/budget', '/reports', '/notes', '/compliance', '/settings'])
+const ROUTES = new Set(['/', '/tasks', '/notes', '/compliance', '/settings'])
 const NOTES_KEY = 'finaz_notes'
 
 export async function executeAction(a: ChatAction, ctx: ActionContext): Promise<string> {
-  const ar = a.args as Record<string, string | number | undefined>
+  const ar = a.args as Record<string, string | number | boolean | undefined>
   switch (a.tool) {
-    case 'add_transaction': {
-      const type: TransactionType = ar.type === 'income' ? 'income' : 'expense'
-      const amount = Number(ar.amount)
-      if (!Number.isFinite(amount) || amount <= 0) throw new Error('Ungültiger Betrag.')
-      const category = String(ar.category || 'Sonstiges')
-      const date = /^\d{4}-\d{2}-\d{2}$/.test(String(ar.date || '')) ? String(ar.date) : new Date().toISOString().slice(0, 10)
-      ctx.tx.addTransaction({ type, amount, category, description: String(ar.description || ''), date })
-      return `${type === 'income' ? 'Einnahme' : 'Ausgabe'} ${fmtEur(amount)} (${category}) erfasst.`
+    case 'add_task': {
+      const title = String(ar.title || '').trim()
+      if (!title) throw new Error('Titel fehlt.')
+      ctx.tasks.addTask({
+        title,
+        priority: normPriority(ar.priority),
+        project: String(ar.project || ''),
+        due: isDate(ar.due) ? String(ar.due) : '',
+        notes: String(ar.notes || ''),
+      })
+      return `Aufgabe „${title}" angelegt.`
     }
-    case 'set_budget': {
-      const limit = Number(ar.limit)
-      if (!Number.isFinite(limit) || limit < 0) throw new Error('Ungültiges Budget.')
-      const category = String(ar.category || '').trim()
-      if (!category) throw new Error('Kategorie fehlt.')
-      ctx.bud.setBudget(category, limit)
-      return `Budget für ${category} auf ${fmtEur(limit)} gesetzt.`
+    case 'complete_task': {
+      const id = String(ar.id || '').trim()
+      const t = ctx.tasks.tasks.find((x) => x.id === id)
+      if (!t) throw new Error(`Keine Aufgabe mit ID ${id} gefunden.`)
+      ctx.tasks.setDone(id, true)
+      return `Aufgabe „${t.title}" abgehakt.`
+    }
+    case 'reopen_task': {
+      const id = String(ar.id || '').trim()
+      const t = ctx.tasks.tasks.find((x) => x.id === id)
+      if (!t) throw new Error(`Keine Aufgabe mit ID ${id} gefunden.`)
+      ctx.tasks.setDone(id, false)
+      return `Aufgabe „${t.title}" wieder geöffnet.`
+    }
+    case 'update_task': {
+      const id = String(ar.id || '').trim()
+      const cur = ctx.tasks.tasks.find((x) => x.id === id)
+      if (!cur) throw new Error(`Keine Aufgabe mit ID ${id} gefunden.`)
+      const updated = { ...cur }
+      if (ar.title !== undefined && String(ar.title).trim()) updated.title = String(ar.title)
+      if (ar.priority !== undefined) updated.priority = normPriority(ar.priority)
+      if (ar.project !== undefined) updated.project = String(ar.project)
+      if (ar.due !== undefined && (String(ar.due) === '' || isDate(ar.due))) updated.due = String(ar.due)
+      if (ar.notes !== undefined) updated.notes = String(ar.notes)
+      if (ar.done !== undefined) updated.done = ar.done === true || ar.done === 'true'
+      ctx.tasks.updateTask(updated)
+      return `Aufgabe „${updated.title}" aktualisiert.`
+    }
+    case 'delete_task': {
+      const id = String(ar.id || '').trim()
+      const t = ctx.tasks.tasks.find((x) => x.id === id)
+      if (!t) throw new Error(`Keine Aufgabe mit ID ${id} gefunden.`)
+      ctx.tasks.deleteTask(id)
+      return `Aufgabe „${t.title}" gelöscht.`
     }
     case 'append_note': {
       const content = String(ar.content || '')
-      if (!content.trim()) throw new Error('Kein Notizinhalt.')
+      if (!content.trim()) throw new Error('Kein Inhalt.')
       const cur = localStorage.getItem(NOTES_KEY) || ''
       localStorage.setItem(NOTES_KEY, cur ? `${cur}\n\n${content}` : content)
-      return 'Notiz ergänzt (unter 📝 Notizen sichtbar).'
+      return 'Wissen/Notiz ergänzt (unter 📚 Wissen sichtbar).'
     }
     case 'navigate': {
       const to = String(ar.to || '')
@@ -114,38 +148,6 @@ export async function executeAction(a: ChatAction, ctx: ActionContext): Promise<
       })
       const reasons = ev.reasons.length ? ev.reasons.join('; ') : 'keine Befunde'
       return `Compliance: ${ev.status} (${ev.rulesetLabel}) – ${reasons}.`
-    }
-    case 'update_transaction': {
-      const id = String(ar.id || '').trim()
-      if (!id) throw new Error('Transaktions-ID fehlt.')
-      const cur = ctx.tx.transactions.find((x) => x.id === id)
-      if (!cur) throw new Error(`Keine Transaktion mit ID ${id} gefunden.`)
-      const updated = { ...cur }
-      if (ar.type === 'income' || ar.type === 'expense') updated.type = ar.type
-      if (ar.amount !== undefined) {
-        const amount = Number(ar.amount)
-        if (!Number.isFinite(amount) || amount <= 0) throw new Error('Ungültiger Betrag.')
-        updated.amount = amount
-      }
-      if (ar.category !== undefined && String(ar.category).trim()) updated.category = String(ar.category)
-      if (ar.description !== undefined) updated.description = String(ar.description)
-      if (ar.date !== undefined && /^\d{4}-\d{2}-\d{2}$/.test(String(ar.date))) updated.date = String(ar.date)
-      ctx.tx.updateTransaction(updated)
-      return `Transaktion aktualisiert: ${updated.type === 'income' ? 'Einnahme' : 'Ausgabe'} ${fmtEur(updated.amount)} (${updated.category}).`
-    }
-    case 'delete_transaction': {
-      const id = String(ar.id || '').trim()
-      if (!id) throw new Error('Transaktions-ID fehlt.')
-      const t = ctx.tx.transactions.find((x) => x.id === id)
-      if (!t) throw new Error(`Keine Transaktion mit ID ${id} gefunden.`)
-      ctx.tx.deleteTransaction(id)
-      return `Transaktion gelöscht: ${t.type === 'income' ? 'Einnahme' : 'Ausgabe'} ${fmtEur(t.amount)} (${t.category}).`
-    }
-    case 'remove_budget': {
-      const category = String(ar.category || '').trim()
-      if (!category) throw new Error('Kategorie fehlt.')
-      ctx.bud.removeBudget(category)
-      return `Budget für ${category} entfernt.`
     }
     default:
       throw new Error(`Unbekannte Aktion: ${a.tool}`)
