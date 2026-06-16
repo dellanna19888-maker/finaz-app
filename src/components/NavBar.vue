@@ -22,7 +22,8 @@
 
 <script setup lang="ts">
 const links = [
-  { to: '/', label: 'Dashboard', short: 'Dashboard', icon: '🏠' },
+  { to: '/', label: 'Zentrale', short: 'Zentrale', icon: '🧠' },
+  { to: '/dashboard', label: 'Dashboard', short: 'Dashboard', icon: '🏠' },
   { to: '/transactions', label: 'Transaktionen', short: 'Buchungen', icon: '💸' },
   { to: '/budget', label: 'Budget', short: 'Budget', icon: '🎯' },
   { to: '/reports', label: 'Berichte', short: 'Berichte', icon: '📊' },

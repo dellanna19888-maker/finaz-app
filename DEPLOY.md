@@ -57,10 +57,17 @@ Der Server bindet automatisch an `PORT` (Fallback 3001).
 
 ---
 
+## Option D – Chromebook (selbst hosten)
+
+Den Server direkt auf einem **Chromebook** über die Linux-Entwicklungsumgebung
+(Crostini) betreiben – Schritt für Schritt in [`CHROMEBOOK.md`](./CHROMEBOOK.md).
+Ideal für lokale/private Nutzung auf dem Gerät selbst (`npm run demo` →
+`http://localhost:3001`).
+
+---
+
 ## Hinweise
 
-- **Nur das Wurzelprojekt** (finaz-app) wird deployed. Das eigenständige Projekt
-  unter `ai-markdown/` ist davon unabhängig.
 - BYOK im Browser ist für lokale/private Nutzung gedacht. Öffentlich gehostet:
   lieber Server-Key (Secret) nutzen.
 - Audit-Logs werden in `server/logs/` geschrieben (flüchtig auf vielen Hosts –

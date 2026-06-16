@@ -6,6 +6,7 @@ das jede KI-Operation prüft und protokolliert.
 
 ## Funktionen
 
+- 🧠 **Zentrale:** KI-Schaltzentrale (Startseite) – im Chat die ganze App steuern; die KI schlägt Aktionen vor (Transaktion erfassen/bearbeiten/löschen, Budget setzen/entfernen, Notiz ergänzen, navigieren, Compliance-Prüfung), die du per Klick **bestätigst** und ausführst – inkl. **Rückgängig** für die letzte Aktion. Ergebnisse fließen in den Dialog zurück, sodass die KI den neuen Stand kennt
 - 💰 **Finanzen:** Dashboard, Transaktionen, Budgets, Berichte (Charts)
 - 🤖 **KI-Assistent:** erzeugt aus deinen Daten Monatsberichte, Budget-Insights und Spar-Tipps (Claude)
 - 📝 **Notizen:** Markdown-Editor mit KI (Generieren, Verbessern, Fortsetzen, Zusammenfassen, Übersetzen)
@@ -15,8 +16,9 @@ das jede KI-Operation prüft und protokolliert.
 
 ```
 Vue-SPA (src/)  ──/api──►  Express-Backend (server/)  ──►  Claude API
-   Views: Assistant,          Compliance-Gateway (evaluate)
-   Notes, Compliance          + Audit-Log (JSONL)
+   Views: Zentrale,           Compliance-Gateway (evaluate)
+   Assistant, Notes,          + Audit-Log (JSONL)
+   Compliance
         │
    src/compliance/gateway.ts  ← gemeinsamer, isomorpher Kern (Client + Server)
 ```
@@ -77,15 +79,19 @@ Audit-Log) vollständig; nur KI-Assistent/Notizen brauchen einen Key.
 Vor jedem Modell-Aufruf: GEO-Identifikation → Norm-Mapping (EU/UK/US/DEFAULT) →
 Folgenabschätzung (PII, besondere Kategorien nach DSGVO Art. 9, Datenmenge,
 verbotene Praktiken) → Gatekeeping. **Fail-closed** (kein Audit-Log ⇒ Block),
-Standardprofil ist **DSGVO**. Endpoints: `POST /api/assist`,
-`POST /api/compliance/check` (Simulation), `GET /api/compliance/logs`.
+Standardprofil ist **DSGVO**. Die **GEO-Identifikation** wertet CDN-Header aus und
+löst – falls das optionale Paket `geoip-lite` installiert ist – zusätzlich die
+Client-IP offline zu einem Land auf. Endpoints: `POST /api/assist`,
+`POST /api/chat` (Zentrale/Dialog), `POST /api/compliance/check` (Simulation),
+`GET /api/compliance/logs`.
 
 > ⚠ Technisches Governance-Gerüst, **keine Rechtsberatung** und keine
 > zertifizierte Compliance. Regeln/GEO sind illustrativ.
 
 ## Deployment
 
-Vollständige Anleitung: [`DEPLOY.md`](./DEPLOY.md).
+Vollständige Anleitung: [`DEPLOY.md`](./DEPLOY.md). Auf einem **Chromebook**
+selbst hosten (Linux-Umgebung): [`CHROMEBOOK.md`](./CHROMEBOOK.md).
 
 **Volle Version inkl. KI (mit eigenem Key):**
 
@@ -100,7 +106,13 @@ In Render den richtigen Branch wählen (oder vorher nach `main` mergen) und
 Finanz-App + Compliance; die **KI braucht ein Backend** (siehe oben). Voraussetzung:
 GitHub Pages aktiviert (Settings → Pages → Source: „GitHub Actions").
 
----
+**Offline-Variante (ohne Build, ohne Server):** Die Datei
+[`finazapp.html`](./finazapp.html) ist eine eigenständige Single-Page-Version der
+Finanz-App. Sie nutzt die lokal im Ordner [`vendor/`](./vendor/) mitgelieferten
+Bibliotheken (Vue + Chart.js) und läuft daher **komplett ohne Internet** – einfach
+`finazapp.html` (mit dem `vendor/`-Ordner daneben) im Browser öffnen. KI-Funktionen
+sind hier bewusst nicht enthalten (rein lokal, keine API).
 
-Hinweis: Das eigenständige KI-Markdown-Projekt liegt zusätzlich unter
-[`ai-markdown/`](./ai-markdown/) (separater Express-Server + Compliance Console).
+> Hinweis: Der KI-Markdown-Editor und die Compliance Console sind vollständig in
+> diese App integriert (Views **Notizen** und **Compliance**) – es gibt nur noch
+> **ein** Projekt, eine Codebasis und einen Server.

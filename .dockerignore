@@ -4,7 +4,6 @@ dist
 .env.*
 .git
 .github
-ai-markdown
 server/logs
 *.log
 .DS_Store
