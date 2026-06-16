@@ -1,6 +1,5 @@
 """
-Agent 1: Profil-Analyse
-Analysiert den Creator (Nische, Level, Probleme) und gibt eine Basis-Diagnose.
+Agent 1: Profil-Analyse (kompakt fuer Handy/tinyllama)
 """
 import sys
 from pathlib import Path
@@ -9,38 +8,26 @@ import requests
 
 OLLAMA_URL = "http://127.0.0.1:11434/api/generate"
 
-SYSTEM = """Du bist ein erfahrener Creator-Coach mit Fokus auf TikTok und Instagram.
-Du analysierst Creator-Profile und erkennst sofort die echten Probleme.
-Strukturiere deine Analyse so:
-
-NISCHE: [Thema des Creators]
-LEVEL: [Anfaenger | Wachstum | Fortgeschritten | Profi]
-STAERKEN: [2-3 konkrete Staerken]
-SCHWAECHEN: [2-3 konkrete Probleme die Wachstum blockieren]
-GROESSTE_CHANCE: [die eine Sache die sofort mehr Reichweite bringt]
-PRIORITAET: [was der Creator ALS ERSTES tun soll - konkret und umsetzbar]
-
-Sei direkt, ehrlich und konkret. Kein Bullshit. Kein "das kommt drauf an"."""
+SYSTEM = """Du bist Creator-Coach. Antworte KURZ und KONKRET. Max 150 Woerter.
+Format:
+NISCHE: [ein Wort]
+LEVEL: [Anfaenger/Wachstum/Profi]
+STAERKE: [ein Satz]
+PROBLEM: [ein Satz]
+TIPP: [eine konkrete Aktion die sofort hilft]"""
 
 
-def analyse(nische: str, follower_tiktok: str, follower_instagram: str,
-            posting_freq: str, problem: str, model: str, temp: float = 0.7) -> str:
-    prompt = f"""Creator-Profil:
-- Nische: {nische}
-- TikTok Follower: {follower_tiktok}
-- Instagram Follower: {follower_instagram}
-- Posting-Frequenz: {posting_freq} pro Woche
-- Groesstes Problem: {problem}
-
-Erstelle eine ehrliche Profil-Analyse."""
-
+def analyse(nische, follower_tiktok, follower_instagram, posting_freq, problem, model, temp=0.7):
+    prompt = f"Nische:{nische} TikTok:{follower_tiktok} IG:{follower_instagram} Posts/Woche:{posting_freq} Problem:{problem}"
     try:
         r = requests.post(OLLAMA_URL, json={
             "model": model, "system": SYSTEM, "prompt": prompt,
-            "stream": False, "options": {"temperature": temp},
-        }, timeout=180)
+            "stream": False, "options": {"temperature": temp, "num_predict": 200},
+        }, timeout=300)
         r.raise_for_status()
         return r.json().get("response", "").strip()
     except requests.exceptions.ConnectionError:
         print("[FEHLER] Kein Ollama.")
         sys.exit(1)
+    except Exception as e:
+        return f"[Timeout/Fehler Agent 1: {e}]"
