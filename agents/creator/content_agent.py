@@ -8,11 +8,11 @@ import requests
 
 OLLAMA_URL = "http://127.0.0.1:11434/api/generate"
 
-SYSTEM = """You are a viral content strategist. Answer ONLY about the given niche. Max 150 words. Use German.
-Create exactly 6 content ideas (3 TikTok, 3 Instagram) for the niche.
-Format each idea on one line: HOOK | FORMAT | CTA
-Make hooks niche-specific and attention-grabbing.
-Do NOT write anything outside this list."""
+SYSTEM = """Antworte NUR auf Deutsch. Du bist viraler Content-Stratege fuer den deutschen Markt.
+Erstelle genau 6 Content-Ideen fuer die gegebene Nische (3 TikTok, 3 Instagram).
+Format pro Zeile: HOOK | FORMAT | CTA
+Hooks muessen nischen-spezifisch und auf Deutsch sein.
+Schreibe NICHTS ausserhalb dieser Liste. Kein Englisch."""
 
 
 def generiere(nische, growth_plan, model, temp=0.7):

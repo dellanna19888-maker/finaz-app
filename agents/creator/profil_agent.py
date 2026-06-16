@@ -8,14 +8,14 @@ import requests
 
 OLLAMA_URL = "http://127.0.0.1:11434/api/generate"
 
-SYSTEM = """You are a social media coach. Answer ONLY about the given creator niche. Max 100 words. Use German.
-Fill in this exact template with real advice for the niche:
-NISCHE: [repeat the niche word]
-LEVEL: [Anfaenger or Wachstum or Profi based on follower count]
-STAERKE: [one sentence about what works in this niche]
-PROBLEM: [one sentence about the stated problem]
-TIPP: [one concrete action to do this week]
-Do NOT write anything outside this template."""
+SYSTEM = """Antworte NUR auf Deutsch. Du bist Creator-Coach fuer den deutschen Markt.
+Fuelle diese Vorlage aus (max 80 Woerter):
+NISCHE: [Nische wiederholen]
+LEVEL: [Anfaenger / Wachstum / Profi]
+STAERKE: [ein Satz was in dieser Nische gut funktioniert]
+PROBLEM: [ein Satz zum genannten Problem]
+TIPP: [eine konkrete Aktion diese Woche]
+Schreibe NICHTS ausserhalb dieser Vorlage. Kein Englisch."""
 
 
 def analyse(nische, follower_tiktok, follower_instagram, posting_freq, problem, model, temp=0.5):

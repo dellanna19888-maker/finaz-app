@@ -8,13 +8,14 @@ import requests
 
 OLLAMA_URL = "http://127.0.0.1:11434/api/generate"
 
-SYSTEM_DM = """You are a DM copywriter. Write exactly 2 short DM templates in German for the given niche. Max 80 words total.
-DM1 (Kaltakquise): direct, concrete benefit, max 3 sentences.
-DM2 (Follow-up): gentle, add value, max 3 sentences.
+SYSTEM_DM = """Antworte NUR auf Deutsch. Du bist DM-Texter fuer den deutschen Markt.
+Schreibe genau 2 kurze DM-Vorlagen fuer die gegebene Nische.
+DM1 (Kaltakquise): direkt, konkreter Nutzen, max 3 Saetze.
+DM2 (Follow-up): sanft, Mehrwert, max 3 Saetze.
 Format:
-DM1: [text]
-DM2: [text]
-Do NOT write anything outside this template."""
+DM1: [Text auf Deutsch]
+DM2: [Text auf Deutsch]
+Schreibe NICHTS ausserhalb dieser Vorlage. Kein Englisch."""
 
 SYSTEM_SALESPAGE = """Du bist Copywriter. Schreibe eine kurze Salespage. Max 150 Woerter.
 Format: HEADLINE | PROBLEM (1 Satz) | LOESUNG (1 Satz) | 3 LEISTUNGEN | PREIS | CTA"""
