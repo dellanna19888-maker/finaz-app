@@ -16,16 +16,14 @@ Format: HEADLINE | PROBLEM (1 Satz) | LOESUNG (1 Satz) | 3 LEISTUNGEN | PREIS | 
 
 def erstelle_dm(nische, angebot, preis, model, temp=0.7):
     prompt = (
-        f"Schreibe 2 DM-Vorlagen auf Deutsch für eine Agentur, die einen {nische}-Creator anschreibt.\n"
-        f"Die DMs sollen persönlich klingen und den {nische}-Creator direkt ansprechen.\n\n"
-        f"Antworte genau so:\n"
-        f"DM1 (Erstkontakt): <3 Sätze: persönliche Ansprache + konkreter Nutzen für {nische}-Creator + klare Frage>\n"
-        f"DM2 (Follow-up): <3 Sätze: Bezug auf erstes DM + zusätzlicher Mehrwert für {nische} + nächster Schritt>"
+        f"2 kurze DM-Vorlagen für {nische}-Creator auf Deutsch:\n"
+        f"DM1: <persönliche Ansprache + Nutzen in 2 Sätzen>\n"
+        f"DM2: <Nachfass in 2 Sätzen>"
     )
     try:
         r = requests.post(OLLAMA_URL, json={
             "model": model, "system": SYSTEM_DM, "prompt": prompt,
-            "stream": False, "options": {"temperature": temp, "num_predict": 240},
+            "stream": False, "options": {"temperature": temp, "num_predict": 160},
         }, timeout=300)
         r.raise_for_status()
         return r.json().get("response", "").strip()

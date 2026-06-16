@@ -9,6 +9,7 @@ Avvio:
   python3 telegram_bot.py
 """
 import sys
+import time
 import threading
 from pathlib import Path
 
@@ -143,6 +144,7 @@ def _run_analyse(cid: int, d: dict) -> None:
         content = generiere(d["nische"], growth, MODEL)
         _send(cid, "CONTENT-IDEEN", content)
 
+        time.sleep(3)  # kurze Pause damit Ollama sich erholt
         bot.send_message(cid, "5/5 – DM-Vorlagen...")
         dm = erstelle_dm(d["nische"], "Creator Coaching", "auf Anfrage", MODEL)
         _send(cid, "DM-VORLAGEN", dm)
