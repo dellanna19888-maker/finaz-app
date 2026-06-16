@@ -6,6 +6,7 @@ das jede KI-Operation prüft und protokolliert.
 
 ## Funktionen
 
+- 🧠 **Zentrale:** KI-Schaltzentrale (Startseite) – im Chat die ganze App steuern; die KI schlägt Aktionen vor (Transaktion erfassen, Budget setzen, Notiz ergänzen, navigieren, Compliance-Prüfung), die du per Klick **bestätigst** und ausführst
 - 💰 **Finanzen:** Dashboard, Transaktionen, Budgets, Berichte (Charts)
 - 🤖 **KI-Assistent:** erzeugt aus deinen Daten Monatsberichte, Budget-Insights und Spar-Tipps (Claude)
 - 📝 **Notizen:** Markdown-Editor mit KI (Generieren, Verbessern, Fortsetzen, Zusammenfassen, Übersetzen)
@@ -15,8 +16,9 @@ das jede KI-Operation prüft und protokolliert.
 
 ```
 Vue-SPA (src/)  ──/api──►  Express-Backend (server/)  ──►  Claude API
-   Views: Assistant,          Compliance-Gateway (evaluate)
-   Notes, Compliance          + Audit-Log (JSONL)
+   Views: Zentrale,           Compliance-Gateway (evaluate)
+   Assistant, Notes,          + Audit-Log (JSONL)
+   Compliance
         │
    src/compliance/gateway.ts  ← gemeinsamer, isomorpher Kern (Client + Server)
 ```
@@ -80,7 +82,8 @@ verbotene Praktiken) → Gatekeeping. **Fail-closed** (kein Audit-Log ⇒ Block)
 Standardprofil ist **DSGVO**. Die **GEO-Identifikation** wertet CDN-Header aus und
 löst – falls das optionale Paket `geoip-lite` installiert ist – zusätzlich die
 Client-IP offline zu einem Land auf. Endpoints: `POST /api/assist`,
-`POST /api/compliance/check` (Simulation), `GET /api/compliance/logs`.
+`POST /api/chat` (Zentrale/Dialog), `POST /api/compliance/check` (Simulation),
+`GET /api/compliance/logs`.
 
 > ⚠ Technisches Governance-Gerüst, **keine Rechtsberatung** und keine
 > zertifizierte Compliance. Regeln/GEO sind illustrativ.

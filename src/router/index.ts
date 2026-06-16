@@ -1,4 +1,5 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
+import ControlCenter from '../views/ControlCenter.vue'
 import Dashboard from '../views/Dashboard.vue'
 import Transactions from '../views/Transactions.vue'
 import Budget from '../views/Budget.vue'
@@ -11,7 +12,8 @@ import Settings from '../views/Settings.vue'
 export default createRouter({
   history: createWebHashHistory(),
   routes: [
-    { path: '/', component: Dashboard },
+    { path: '/', component: ControlCenter },
+    { path: '/dashboard', component: Dashboard },
     { path: '/transactions', component: Transactions },
     { path: '/budget', component: Budget },
     { path: '/reports', component: Reports },
