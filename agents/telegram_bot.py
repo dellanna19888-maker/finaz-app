@@ -30,7 +30,7 @@ except Exception:
     HAS_CRM = False
 
 BOT_TOKEN = "8977040512:AAHl-2FWFHljEPZ_FCIPB3iueqSNokKmppA"
-MODEL = "tinyllama"
+MODEL = "qwen2.5:3b"
 
 bot = telebot.TeleBot(BOT_TOKEN)
 

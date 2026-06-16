@@ -8,21 +8,23 @@ import requests
 
 OLLAMA_URL = "http://127.0.0.1:11434/api/generate"
 
-SYSTEM_DM = ""
+SYSTEM_DM = """Du bist ein DM-Texter fuer eine Creator-Agentur. Antworte ausschliesslich auf Deutsch. Schreibe natuerliche, ueberzeugende Kurznachrichten."""
 
 SYSTEM_SALESPAGE = """Du bist Copywriter. Schreibe eine kurze Salespage. Max 150 Woerter.
 Format: HEADLINE | PROBLEM (1 Satz) | LOESUNG (1 Satz) | 3 LEISTUNGEN | PREIS | CTA"""
 
 
-def erstelle_dm(nische, angebot, preis, model, temp=0.6):
+def erstelle_dm(nische, angebot, preis, model, temp=0.7):
     prompt = (
-        f"DM-Vorlage fuer Creator in der Nische {nische}:\n"
-        f"DM1 (Erstkontakt): Hallo,"
+        f"Schreibe 2 DM-Vorlagen, mit denen eine Agentur einen Creator in der Nische '{nische}' anschreibt.\n\n"
+        f"Antworte genau in diesem Format:\n"
+        f"DM1 (Erstkontakt): <3 Saetze, direkt, konkreter Nutzen>\n"
+        f"DM2 (Follow-up): <3 Saetze, sanft, Mehrwert>"
     )
     try:
         r = requests.post(OLLAMA_URL, json={
-            "model": model, "prompt": prompt,
-            "stream": False, "options": {"temperature": temp, "num_predict": 100},
+            "model": model, "system": SYSTEM_DM, "prompt": prompt,
+            "stream": False, "options": {"temperature": temp, "num_predict": 240},
         }, timeout=300)
         r.raise_for_status()
         return r.json().get("response", "").strip()

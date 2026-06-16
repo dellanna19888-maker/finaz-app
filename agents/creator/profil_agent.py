@@ -1,5 +1,5 @@
 """
-Agent 1: Profil-Analyse (kompakt fuer Handy/tinyllama)
+Agent 1: Profil-Analyse
 """
 import sys
 from pathlib import Path
@@ -8,20 +8,28 @@ import requests
 
 OLLAMA_URL = "http://127.0.0.1:11434/api/generate"
 
-SYSTEM = ""
+SYSTEM = """Du bist ein erfahrener Creator-Coach. Antworte ausschliesslich auf Deutsch, kurz und konkret. Halte dich exakt an das vorgegebene Format."""
 
 
-def analyse(nische, follower_tiktok, follower_instagram, posting_freq, problem, model, temp=0.5):
+def analyse(nische, follower_tiktok, follower_instagram, posting_freq, problem, model, temp=0.6):
     prompt = (
-        f"Creator-Profil-Analyse fuer Nische {nische}:\n"
-        f"NISCHE: {nische}\n"
-        f"LEVEL: {'Anfaenger' if int(follower_tiktok or 0) + int(follower_instagram or 0) < 5000 else 'Wachstum'}\n"
-        f"STAERKE: In der Nische {nische} funktioniert"
+        f"Analysiere dieses Creator-Profil:\n"
+        f"- Nische: {nische}\n"
+        f"- TikTok-Follower: {follower_tiktok}\n"
+        f"- Instagram-Follower: {follower_instagram}\n"
+        f"- Posts pro Woche: {posting_freq}\n"
+        f"- Groesstes Problem: {problem}\n\n"
+        f"Antworte genau in diesem Format:\n"
+        f"NISCHE: <Nische>\n"
+        f"LEVEL: <Anfaenger/Wachstum/Profi>\n"
+        f"STAERKE: <ein Satz>\n"
+        f"PROBLEM: <ein Satz>\n"
+        f"TIPP: <eine konkrete Aktion fuer diese Woche>"
     )
     try:
         r = requests.post(OLLAMA_URL, json={
-            "model": model, "prompt": prompt,
-            "stream": False, "options": {"temperature": temp, "num_predict": 80},
+            "model": model, "system": SYSTEM, "prompt": prompt,
+            "stream": False, "options": {"temperature": temp, "num_predict": 220},
         }, timeout=300)
         r.raise_for_status()
         return r.json().get("response", "").strip()
