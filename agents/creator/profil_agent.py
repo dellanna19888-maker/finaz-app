@@ -8,20 +8,19 @@ import requests
 
 OLLAMA_URL = "http://127.0.0.1:11434/api/generate"
 
-SYSTEM = """Du bist Creator-Coach. Antworte immer auf Deutsch."""
+SYSTEM = ""
 
 
 def analyse(nische, follower_tiktok, follower_instagram, posting_freq, problem, model, temp=0.5):
     prompt = (
-        f"Nische:{nische} TikTok:{follower_tiktok} IG:{follower_instagram} Posts:{posting_freq}/Woche Problem:{problem}\n"
-        f"Antworte KURZ auf Deutsch, NUR diese 5 Zeilen:\n"
+        f"Creator-Profil-Analyse fuer Nische {nische}:\n"
         f"NISCHE: {nische}\n"
-        f"LEVEL: Anfaenger\n"
-        f"STAERKE: "
+        f"LEVEL: {'Anfaenger' if int(follower_tiktok or 0) + int(follower_instagram or 0) < 5000 else 'Wachstum'}\n"
+        f"STAERKE: In der Nische {nische} funktioniert"
     )
     try:
         r = requests.post(OLLAMA_URL, json={
-            "model": model, "system": SYSTEM, "prompt": prompt,
+            "model": model, "prompt": prompt,
             "stream": False, "options": {"temperature": temp, "num_predict": 80},
         }, timeout=300)
         r.raise_for_status()
