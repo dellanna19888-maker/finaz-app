@@ -90,7 +90,8 @@ Client-IP offline zu einem Land auf. Endpoints: `POST /api/assist`,
 
 ## Deployment
 
-Vollständige Anleitung: [`DEPLOY.md`](./DEPLOY.md).
+Vollständige Anleitung: [`DEPLOY.md`](./DEPLOY.md). Auf einem **Chromebook**
+selbst hosten (Linux-Umgebung): [`CHROMEBOOK.md`](./CHROMEBOOK.md).
 
 **Volle Version inkl. KI (mit eigenem Key):**
 
