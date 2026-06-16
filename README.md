@@ -102,6 +102,13 @@ In Render den richtigen Branch wählen (oder vorher nach `main` mergen) und
 Finanz-App + Compliance; die **KI braucht ein Backend** (siehe oben). Voraussetzung:
 GitHub Pages aktiviert (Settings → Pages → Source: „GitHub Actions").
 
+**Offline-Variante (ohne Build, ohne Server):** Die Datei
+[`finazapp.html`](./finazapp.html) ist eine eigenständige Single-Page-Version der
+Finanz-App. Sie nutzt die lokal im Ordner [`vendor/`](./vendor/) mitgelieferten
+Bibliotheken (Vue + Chart.js) und läuft daher **komplett ohne Internet** – einfach
+`finazapp.html` (mit dem `vendor/`-Ordner daneben) im Browser öffnen. KI-Funktionen
+sind hier bewusst nicht enthalten (rein lokal, keine API).
+
 > Hinweis: Der KI-Markdown-Editor und die Compliance Console sind vollständig in
 > diese App integriert (Views **Notizen** und **Compliance**) – es gibt nur noch
 > **ein** Projekt, eine Codebasis und einen Server.
