@@ -8,23 +8,22 @@ import requests
 
 OLLAMA_URL = "http://127.0.0.1:11434/api/generate"
 
-SYSTEM = """Du bist ein erfahrener Creator-Coach. Antworte ausschliesslich auf Deutsch, kurz und konkret. Halte dich exakt an das vorgegebene Format."""
+SYSTEM = """Du bist ein erfahrener Creator-Coach spezialisiert auf TikTok und Instagram im deutschsprachigen Raum. Antworte auf Deutsch, kurz und nischen-spezifisch. Halte dich exakt an das Format."""
 
 
 def analyse(nische, follower_tiktok, follower_instagram, posting_freq, problem, model, temp=0.6):
+    total = int(follower_tiktok or 0) + int(follower_instagram or 0)
+    level = "Anfänger" if total < 2000 else ("Wachstum" if total < 20000 else "Profi")
     prompt = (
-        f"Analysiere dieses Creator-Profil:\n"
-        f"- Nische: {nische}\n"
-        f"- TikTok-Follower: {follower_tiktok}\n"
-        f"- Instagram-Follower: {follower_instagram}\n"
-        f"- Posts pro Woche: {posting_freq}\n"
-        f"- Groesstes Problem: {problem}\n\n"
-        f"Antworte genau in diesem Format:\n"
-        f"NISCHE: <Nische>\n"
-        f"LEVEL: <Anfaenger/Wachstum/Profi>\n"
-        f"STAERKE: <ein Satz>\n"
-        f"PROBLEM: <ein Satz>\n"
-        f"TIPP: <eine konkrete Aktion fuer diese Woche>"
+        f"Analysiere diesen {nische}-Creator:\n"
+        f"- TikTok: {follower_tiktok} Follower | Instagram: {follower_instagram} Follower\n"
+        f"- {posting_freq} Posts/Woche | Problem: {problem}\n\n"
+        f"Schreibe eine Analyse speziell für die Nische '{nische}'. Antworte genau so:\n"
+        f"NISCHE: {nische}\n"
+        f"LEVEL: {level}\n"
+        f"STÄRKE: <was in der {nische}-Nische gut funktioniert, 1 Satz>\n"
+        f"PROBLEM: <konkrete Ursache für '{problem}' in dieser Nische, 1 Satz>\n"
+        f"TIPP: <eine sofort umsetzbare Aktion speziell für {nische}-Creator diese Woche>"
     )
     try:
         r = requests.post(OLLAMA_URL, json={

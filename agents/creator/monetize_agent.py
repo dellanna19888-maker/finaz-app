@@ -8,17 +8,17 @@ import requests
 
 OLLAMA_URL = "http://127.0.0.1:11434/api/generate"
 
-SYSTEM = """Du bist ein Monetisierungs-Experte fuer Creator. Antworte ausschliesslich auf Deutsch, kurz und konkret mit realistischen Preisen in EUR. Halte dich exakt an das vorgegebene Format."""
+SYSTEM = """Du bist ein Monetisierungs-Experte für Creator im deutschsprachigen Markt. Nenne konkrete Produkte und realistische EUR-Preise passend zur Nische. Halte dich exakt an das Format."""
 
 
 def erstelle_plan(nische, follower_total, profil_analyse, model, temp=0.6):
     prompt = (
-        f"Erstelle einen Monetisierungsplan fuer einen Creator in der Nische '{nische}' mit {follower_total} Followern.\n\n"
-        f"Antworte genau in diesem Format:\n"
-        f"SOFORT (0-30 Tage): <Produkt + Preis + wie verkaufen>\n"
-        f"WACHSTUM (1-3 Monate): <Produkt + Preis + Ziel>\n"
-        f"VIP (3-6 Monate): <High-Ticket Angebot + Preis 500-5000 EUR>\n"
-        f"AGENTUR_ANGEBOT: <was die Agentur anbietet + Preis>"
+        f"Erstelle einen Monetisierungsplan für einen {nische}-Creator mit {follower_total} Followern im deutschsprachigen Markt.\n\n"
+        f"Nenne konkrete {nische}-Produkte mit realistischen EUR-Preisen. Antworte genau so:\n"
+        f"SOFORT (0-30 Tage): <konkretes {nische}-Produkt + Preis + Verkaufskanal>\n"
+        f"WACHSTUM (1-3 Monate): <skalierbareres {nische}-Produkt + Preis + Follower-Ziel>\n"
+        f"VIP (3-6 Monate): <Premium {nische}-Angebot + Preis 500–5000 EUR>\n"
+        f"AGENTUR_ANGEBOT: <was unsere Agentur dem Creator für {nische} anbietet + monatlicher Preis>"
     )
     try:
         r = requests.post(OLLAMA_URL, json={

@@ -39,11 +39,11 @@ user_state: dict[int, dict] = {}
 
 STEPS = ["nische", "tiktok", "instagram", "posting", "problem"]
 QUESTIONS = {
-    "nische":    "Deine Nische / Thema (z.B. Fitness, Finance, Beauty):",
-    "tiktok":    "Wie viele TikTok-Follower hast du? (z.B. 1200)",
-    "instagram": "Wie viele Instagram-Follower hast du? (z.B. 800)",
-    "posting":   "Wie oft postest du pro Woche? (z.B. 3)",
-    "problem":   "Was ist dein groesstes Problem als Creator?",
+    "nische":    "🎯 Deine Nische / Thema (z.B. Fitness, Finanzen, Beauty, Gaming, Kochen):",
+    "tiktok":    "📱 Wie viele TikTok-Follower hast du? (z.B. 1200)",
+    "instagram": "📸 Wie viele Instagram-Follower hast du? (z.B. 800)",
+    "posting":   "📅 Wie oft postest du pro Woche? (z.B. 3)",
+    "problem":   "❓ Was ist dein größtes Problem als Creator?",
 }
 
 
@@ -59,13 +59,13 @@ def cmd_start(msg):
     user_state.pop(msg.chat.id, None)
     bot.send_message(
         msg.chat.id,
-        "Willkommen beim *Creator Growth System*!\n\n"
+        "🚀 Willkommen beim *Creator Growth System*!\n\n"
         "Ich analysiere dein Creator-Profil und erstelle:\n"
-        "• Profil-Analyse\n"
-        "• 30-Tage-Wachstumsplan\n"
-        "• Monetisierungs-Strategie\n"
-        "• Content-Ideen\n"
-        "• DM-Vorlagen\n\n"
+        "📊 Profil-Analyse\n"
+        "📈 30-Tage-Wachstumsplan\n"
+        "💰 Monetisierungs-Strategie\n"
+        "🎬 Content-Ideen\n"
+        "✉️ DM-Vorlagen\n\n"
         "Tippe *Analyse starten* oder /analyse",
         parse_mode="Markdown",
         reply_markup=_menu()
@@ -91,7 +91,8 @@ def cmd_hilfe(msg):
         "/start – Startmenue\n"
         "/analyse – Neue Analyse starten\n"
         "/hilfe – Diese Hilfe\n\n"
-        "Bei Problemen: schreib einfach was du brauchst.",
+        "Bei Problemen: schreib einfach was du brauchst.\n\n"
+        "💡 Tipp: Gib eine konkrete Nische an (z.B. 'Fitness für Frauen', 'Krypto für Anfänger') für bessere Ergebnisse.",
         parse_mode="Markdown"
     )
 
