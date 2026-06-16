@@ -59,8 +59,6 @@ Der Server bindet automatisch an `PORT` (Fallback 3001).
 
 ## Hinweise
 
-- **Nur das Wurzelprojekt** (finaz-app) wird deployed. Das eigenständige Projekt
-  unter `ai-markdown/` ist davon unabhängig.
 - BYOK im Browser ist für lokale/private Nutzung gedacht. Öffentlich gehostet:
   lieber Server-Key (Secret) nutzen.
 - Audit-Logs werden in `server/logs/` geschrieben (flüchtig auf vielen Hosts –

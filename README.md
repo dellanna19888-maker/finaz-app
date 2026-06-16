@@ -77,7 +77,9 @@ Audit-Log) vollständig; nur KI-Assistent/Notizen brauchen einen Key.
 Vor jedem Modell-Aufruf: GEO-Identifikation → Norm-Mapping (EU/UK/US/DEFAULT) →
 Folgenabschätzung (PII, besondere Kategorien nach DSGVO Art. 9, Datenmenge,
 verbotene Praktiken) → Gatekeeping. **Fail-closed** (kein Audit-Log ⇒ Block),
-Standardprofil ist **DSGVO**. Endpoints: `POST /api/assist`,
+Standardprofil ist **DSGVO**. Die **GEO-Identifikation** wertet CDN-Header aus und
+löst – falls das optionale Paket `geoip-lite` installiert ist – zusätzlich die
+Client-IP offline zu einem Land auf. Endpoints: `POST /api/assist`,
 `POST /api/compliance/check` (Simulation), `GET /api/compliance/logs`.
 
 > ⚠ Technisches Governance-Gerüst, **keine Rechtsberatung** und keine
@@ -100,7 +102,6 @@ In Render den richtigen Branch wählen (oder vorher nach `main` mergen) und
 Finanz-App + Compliance; die **KI braucht ein Backend** (siehe oben). Voraussetzung:
 GitHub Pages aktiviert (Settings → Pages → Source: „GitHub Actions").
 
----
-
-Hinweis: Das eigenständige KI-Markdown-Projekt liegt zusätzlich unter
-[`ai-markdown/`](./ai-markdown/) (separater Express-Server + Compliance Console).
+> Hinweis: Der KI-Markdown-Editor und die Compliance Console sind vollständig in
+> diese App integriert (Views **Notizen** und **Compliance**) – es gibt nur noch
+> **ein** Projekt, eine Codebasis und einen Server.

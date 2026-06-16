@@ -30,6 +30,39 @@ function getClient(userKey: string): Anthropic | null {
   return new Anthropic({ apiKey })
 }
 
+// Optionale, offline GeoIP-Auflösung (Paket `geoip-lite`). Ist es nicht
+// installiert, bleibt die IP-Auflösung deaktiviert und es greifen Header/Fallback.
+type GeoipLookup = (ip: string) => { country?: string } | null
+let geoipLookup: GeoipLookup | null = null
+try {
+  const mod = (await import('geoip-lite')) as unknown as {
+    default?: { lookup?: GeoipLookup }
+    lookup?: GeoipLookup
+  }
+  geoipLookup = mod.default?.lookup ?? mod.lookup ?? null
+} catch {
+  geoipLookup = null
+}
+
+function clientIp(req: Request): string | null {
+  const xff = req.headers['x-forwarded-for']
+  if (xff) return String(xff).split(',')[0].trim()
+  return req.socket?.remoteAddress || null
+}
+
+function countryFromIp(req: Request): string | null {
+  if (!geoipLookup) return null
+  const ip = clientIp(req)
+  if (!ip) return null
+  try {
+    return geoipLookup(ip)?.country || null
+  } catch {
+    return null
+  }
+}
+
+// GEO-Identifikation: erzwungenes Profil → CDN/Länder-Header → echte GeoIP-
+// Auflösung der Client-IP (optional) → restriktivstes Fallback-Profil (DSGVO).
 function resolveJurisdiction(req: Request): string {
   const forced = process.env.COMPLIANCE_FORCE_JURISDICTION
   if (forced) return forced.toUpperCase()
@@ -39,6 +72,7 @@ function resolveJurisdiction(req: Request): string {
     (h['cf-ipcountry'] as string) ||
     (h['x-vercel-ip-country'] as string) ||
     (h['x-appengine-country'] as string) ||
+    countryFromIp(req) ||
     null
   return mapCountryToJurisdiction(country)
 }
@@ -75,7 +109,7 @@ function buildPrompt(action: string, text: string, instruction: string, language
 }
 
 app.get('/api/health', (_req: Request, res: Response) => {
-  res.json({ ok: true, envKey: !!process.env.ANTHROPIC_API_KEY })
+  res.json({ ok: true, envKey: !!process.env.ANTHROPIC_API_KEY, geoip: !!geoipLookup })
 })
 
 app.post('/api/assist', async (req: Request, res: Response) => {
