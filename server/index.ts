@@ -106,6 +106,7 @@ const CHAT_SYSTEM_PROMPT = [
   '- append_note: {"content":"Markdown, wird an die Notiz angehängt"}',
   '- navigate: {"to":"/dashboard"|"/transactions"|"/budget"|"/reports"|"/notes"|"/compliance"|"/settings"}',
   '- compliance_check: {"text":"zu prüfender Inhalt","action":"optional","jurisdiction":"EU"|"UK"|"US"|"DEFAULT" optional}',
+  '- update_transaction: {"id":"<id>","type":"income"|"expense" optional,"amount":Zahl optional,"category":"optional","description":"optional","date":"YYYY-MM-DD optional"}',
   '- delete_transaction: {"id":"<id aus dem Snapshot>"}',
   '- remove_budget: {"category":"<Kategorie>"}',
   'Berichte und Analysen (z. B. Monatsbericht) lieferst du direkt als Markdown-Antwort, ganz ohne Aktionsblock.',

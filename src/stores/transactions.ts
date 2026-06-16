@@ -69,6 +69,12 @@ export const useTransactionStore = defineStore('transactions', () => {
     save()
   }
 
+  // Ersetzt den kompletten Bestand (für Wiederherstellen / Rückgängig).
+  function setAll(list: Transaction[]) {
+    transactions.value = list
+    save()
+  }
+
   const totalIncome = computed(() =>
     transactions.value.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
   )
@@ -113,6 +119,7 @@ export const useTransactionStore = defineStore('transactions', () => {
     addTransaction,
     deleteTransaction,
     updateTransaction,
+    setAll,
     byMonth,
     expensesByCategory,
     monthlyTotals,

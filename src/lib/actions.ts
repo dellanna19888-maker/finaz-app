@@ -59,6 +59,8 @@ export function actionLabel(a: ChatAction): string {
       return `Wechseln zu ${ar.to ?? '?'}`
     case 'compliance_check':
       return `Compliance-Prüfung ausführen${ar.jurisdiction ? ` (${ar.jurisdiction})` : ''}`
+    case 'update_transaction':
+      return `Transaktion bearbeiten (ID ${ar.id ?? '?'})`
     case 'delete_transaction':
       return `Transaktion löschen (ID ${ar.id ?? '?'})`
     case 'remove_budget':
@@ -112,6 +114,24 @@ export async function executeAction(a: ChatAction, ctx: ActionContext): Promise<
       })
       const reasons = ev.reasons.length ? ev.reasons.join('; ') : 'keine Befunde'
       return `Compliance: ${ev.status} (${ev.rulesetLabel}) – ${reasons}.`
+    }
+    case 'update_transaction': {
+      const id = String(ar.id || '').trim()
+      if (!id) throw new Error('Transaktions-ID fehlt.')
+      const cur = ctx.tx.transactions.find((x) => x.id === id)
+      if (!cur) throw new Error(`Keine Transaktion mit ID ${id} gefunden.`)
+      const updated = { ...cur }
+      if (ar.type === 'income' || ar.type === 'expense') updated.type = ar.type
+      if (ar.amount !== undefined) {
+        const amount = Number(ar.amount)
+        if (!Number.isFinite(amount) || amount <= 0) throw new Error('Ungültiger Betrag.')
+        updated.amount = amount
+      }
+      if (ar.category !== undefined && String(ar.category).trim()) updated.category = String(ar.category)
+      if (ar.description !== undefined) updated.description = String(ar.description)
+      if (ar.date !== undefined && /^\d{4}-\d{2}-\d{2}$/.test(String(ar.date))) updated.date = String(ar.date)
+      ctx.tx.updateTransaction(updated)
+      return `Transaktion aktualisiert: ${updated.type === 'income' ? 'Einnahme' : 'Ausgabe'} ${fmtEur(updated.amount)} (${updated.category}).`
     }
     case 'delete_transaction': {
       const id = String(ar.id || '').trim()

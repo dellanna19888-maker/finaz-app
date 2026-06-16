@@ -5,7 +5,10 @@
         <h1>🧠 Zentrale</h1>
         <p class="sub">Deine KI-Schaltzentrale – chatten und die ganze App per Chat steuern (Finanzen, Notizen, Compliance). Jede Anfrage läuft durch das Compliance-Gateway.</p>
       </div>
-      <button class="btn-ghost" :disabled="busy" @click="reset">Neuer Chat</button>
+      <div class="head-actions">
+        <button v-if="lastAction" class="btn-ghost" :disabled="busy" @click="undo" :title="lastAction.label">↩ Rückgängig</button>
+        <button class="btn-ghost" :disabled="busy" @click="reset">Neuer Chat</button>
+      </div>
     </div>
 
     <RouterLink v-if="!hasKey" to="/settings" class="keyhint">🔑 Kein API-Key gesetzt – hier eintragen (⚙️ Einstellungen)</RouterLink>
@@ -61,7 +64,9 @@ import { ref, computed, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { marked } from 'marked'
 import { useTransactionStore } from '../stores/transactions'
+import type { Transaction } from '../stores/transactions'
 import { useBudgetStore } from '../stores/budgets'
+import type { Budget } from '../stores/budgets'
 import { hasApiKey } from '../lib/apiKey'
 import { runChat, type ChatMessage } from '../lib/chat'
 import { buildContext } from '../lib/appState'
@@ -70,6 +75,12 @@ import { parseActions, stripActions, actionLabel, executeAction, type ChatAction
 interface Msg {
   role: 'user' | 'assistant'
   content: string
+}
+
+interface Snapshot {
+  transactions: Transaction[]
+  budgets: Budget[]
+  notes: string
 }
 
 const tx = useTransactionStore()
@@ -84,7 +95,11 @@ const busy = ref(false)
 const status = ref('')
 const pendingAuth = ref<{ message: string; reasons: string[]; text: string } | null>(null)
 const done = ref<Set<string>>(new Set())
+const lastAction = ref<{ key: string; msgIndex: number; label: string; snapshot: Snapshot } | null>(null)
 const scroller = ref<HTMLElement | null>(null)
+
+// Aktionen, die den App-Zustand verändern (Snapshot für Rückgängig).
+const MUTATING = new Set(['add_transaction', 'update_transaction', 'delete_transaction', 'set_budget', 'remove_budget', 'append_note'])
 
 const suggestions = [
   'Wie steht es um meine Finanzen diesen Monat?',
@@ -198,12 +213,14 @@ async function doAction(i: number, j: number, act: ChatAction) {
   if (done.value.has(key) || busy.value) return
   const m = messages.value[i]
   if (!m) return
+  const snap = MUTATING.has(act.tool) ? captureState() : null
   try {
     const result = await executeAction(act, { tx, bud, router })
     done.value.add(key)
     // Ergebnis an die Assistenten-Nachricht anhängen → es bleibt Teil des
     // Dialogs, die KI kennt in der nächsten Runde den neuen Stand.
     m.content += `\n\n_✅ Ausgeführt: ${result}_`
+    if (snap) lastAction.value = { key, msgIndex: i, label: actionLabel(act), snapshot: snap }
     status.value = '✓ Aktion ausgeführt'
   } catch (err) {
     m.content += `\n\n_⚠ Aktion fehlgeschlagen: ${(err as Error).message}_`
@@ -213,9 +230,33 @@ async function doAction(i: number, j: number, act: ChatAction) {
   scrollDown()
 }
 
+function captureState(): Snapshot {
+  return {
+    transactions: JSON.parse(JSON.stringify(tx.transactions)) as Transaction[],
+    budgets: JSON.parse(JSON.stringify(bud.budgets)) as Budget[],
+    notes: localStorage.getItem('finaz_notes') || '',
+  }
+}
+
+function undo() {
+  const la = lastAction.value
+  if (!la || busy.value) return
+  tx.setAll(la.snapshot.transactions)
+  bud.setAll(la.snapshot.budgets)
+  localStorage.setItem('finaz_notes', la.snapshot.notes)
+  done.value.delete(la.key)
+  const m = messages.value[la.msgIndex]
+  if (m) m.content += `\n\n_↩ Rückgängig gemacht: ${la.label}_`
+  status.value = '↩ Rückgängig gemacht'
+  lastAction.value = null
+  persist()
+  scrollDown()
+}
+
 function reset() {
   messages.value = []
   done.value = new Set()
+  lastAction.value = null
   pendingAuth.value = null
   status.value = ''
   input.value = ''
@@ -225,6 +266,7 @@ function reset() {
 
 <style scoped>
 .hub-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.head-actions { display: flex; gap: 0.5rem; flex-shrink: 0; }
 
 .msgs {
   display: flex;

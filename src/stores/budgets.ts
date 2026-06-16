@@ -48,5 +48,11 @@ export const useBudgetStore = defineStore('budgets', () => {
     save()
   }
 
-  return { budgets, setBudget, removeBudget }
+  // Ersetzt alle Budgets (für Wiederherstellen / Rückgängig).
+  function setAll(list: Budget[]) {
+    budgets.value = list
+    save()
+  }
+
+  return { budgets, setBudget, removeBudget, setAll }
 })
