@@ -73,15 +73,16 @@ Audit-Log) vollständig; nur KI-Assistent/Notizen brauchen einen Key.
 | `API_PORT`                      | Port des Backends (= Vite-Proxy-Ziel)       | `3001`            |
 | `COMPLIANCE_FORCE_JURISDICTION` | Profil erzwingen (`EU`/`UK`/`US`/`DEFAULT`) | – (GEO-Erkennung) |
 | `COMPLIANCE_MAX_CHARS`          | Datenminimierung (max. Zeichen)             | `50000`           |
+| `ENABLE_GEOIP`                  | Echte GeoIP-Auflösung der IP (geoip-lite, ~150 MB RAM) | aus    |
 
 ## Compliance-Gateway (D-C-G)
 
 Vor jedem Modell-Aufruf: GEO-Identifikation → Norm-Mapping (EU/UK/US/DEFAULT) →
 Folgenabschätzung (PII, besondere Kategorien nach DSGVO Art. 9, Datenmenge,
 verbotene Praktiken) → Gatekeeping. **Fail-closed** (kein Audit-Log ⇒ Block),
-Standardprofil ist **DSGVO**. Die **GEO-Identifikation** wertet CDN-Header aus und
-löst – falls das optionale Paket `geoip-lite` installiert ist – zusätzlich die
-Client-IP offline zu einem Land auf. Endpoints: `POST /api/assist`,
+Standardprofil ist **DSGVO**. Die **GEO-Identifikation** wertet CDN-Header aus;
+optional (per `ENABLE_GEOIP=1`, Paket `geoip-lite`, ~150 MB RAM) wird zusätzlich
+die Client-IP offline zu einem Land aufgelöst. Endpoints: `POST /api/assist`,
 `POST /api/chat` (Zentrale/Dialog), `POST /api/compliance/check` (Simulation),
 `GET /api/compliance/logs`.
 

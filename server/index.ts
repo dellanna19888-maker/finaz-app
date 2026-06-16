@@ -30,18 +30,26 @@ function getClient(userKey: string): Anthropic | null {
   return new Anthropic({ apiKey })
 }
 
-// Optionale, offline GeoIP-Auflösung (Paket `geoip-lite`). Ist es nicht
-// installiert, bleibt die IP-Auflösung deaktiviert und es greifen Header/Fallback.
+// Optionale, offline GeoIP-Auflösung der Client-IP über `geoip-lite`.
+// Standardmäßig AUS: Das Paket lädt ~150 MB Daten in den Speicher – auf kleinen
+// Instanzen (z. B. Render Free, 512 MB) würde das den Start belasten. Mit
+// ENABLE_GEOIP=1 wird es im HINTERGRUND geladen (blockiert den Serverstart nie);
+// bis es bereit ist – oder wenn aus – greifen CDN-Header bzw. das DEFAULT-Profil.
 type GeoipLookup = (ip: string) => { country?: string } | null
 let geoipLookup: GeoipLookup | null = null
-try {
-  const mod = (await import('geoip-lite')) as unknown as {
-    default?: { lookup?: GeoipLookup }
-    lookup?: GeoipLookup
+const GEOIP_ENABLED = /^(1|true|yes|on)$/i.test(process.env.ENABLE_GEOIP || '')
+async function loadGeoip(): Promise<void> {
+  if (!GEOIP_ENABLED) return
+  try {
+    const mod = (await import('geoip-lite')) as unknown as {
+      default?: { lookup?: GeoipLookup }
+      lookup?: GeoipLookup
+    }
+    geoipLookup = mod.default?.lookup ?? mod.lookup ?? null
+    console.log('GeoIP aktiv (geoip-lite geladen).')
+  } catch {
+    geoipLookup = null
   }
-  geoipLookup = mod.default?.lookup ?? mod.lookup ?? null
-} catch {
-  geoipLookup = null
 }
 
 function clientIp(req: Request): string | null {
@@ -322,14 +330,27 @@ app.get('/api/compliance/logs', async (req: Request, res: Response) => {
   }
 })
 
-// Optional: gebautes Frontend ausliefern (Einzel-Prozess-Demo: npm run demo).
+// Gebautes Frontend ausliefern (dist/). SPA: alle Nicht-/api-GETs -> index.html.
 const dist = join(__dirname, '..', 'dist')
-if (existsSync(dist)) app.use(express.static(dist))
+const hasDist = existsSync(dist)
+if (hasDist) {
+  app.use(express.static(dist))
+  app.get(/^(?!\/api\/).*/, (_req: Request, res: Response) => res.sendFile(join(dist, 'index.html')))
+} else {
+  app.get('/', (_req: Request, res: Response) =>
+    res
+      .status(503)
+      .type('text/plain')
+      .send('Frontend nicht gebaut (dist/ fehlt). Bitte "npm run build" ausführen. Die API unter /api/... läuft.'),
+  )
+}
 
 app.listen(PORT, () => {
-  console.log(`finaz API + Compliance-Gateway: http://localhost:${PORT}`)
-  if (existsSync(dist)) console.log(`Demo-UI (gebaut) ebenfalls unter http://localhost:${PORT}`)
+  console.log(`finaz API + Compliance-Gateway: Port ${PORT}`)
+  if (hasDist) console.log(`Frontend (dist/) wird ebenfalls auf Port ${PORT} ausgeliefert.`)
+  else console.warn('⚠  dist/ fehlt – nur die API läuft. Bitte "npm run build".')
   if (!process.env.ANTHROPIC_API_KEY) {
     console.warn('ℹ  Kein Server-Key (.env). KI-Funktionen nutzen den im Browser hinterlegten Key (⚙️ Einstellungen).')
   }
+  void loadGeoip()
 })
