@@ -19,7 +19,7 @@ from pathlib import Path
 DB_PATH = Path(__file__).parent / "output" / "crm.db"
 DB_PATH.parent.mkdir(exist_ok=True)
 
-STATI = ["nuovo", "kontaktiert", "interessiert", "angebot", "kunde", "verloren"]
+STATI = ["neu", "kontaktiert", "interessiert", "angebot", "kunde", "verloren"]
 QUELLEN = ["instagram", "tiktok", "linkedin", "email", "empfehlung", "website", "sonstige"]
 
 
@@ -45,6 +45,26 @@ def _conn() -> sqlite3.Connection:
 def _status_icon(s: str) -> str:
     return {"neu": "🆕", "kontaktiert": "📬", "interessiert": "🔥",
             "angebot": "💼", "kunde": "✅", "verloren": "❌"}.get(s, "•")
+
+
+def save_lead(name: str, email: str = "", telefon: str = "",
+              interesse: str = "", quelle: str = "sonstige",
+              notizen: str = "", followup_tage: int = 3) -> int:
+    """
+    Salva un lead nel CRM. Usato programmaticamente da sales_receiver.py e altri agenti.
+    Restituisce l'ID del lead creato.
+    """
+    followup = (date.today() + timedelta(days=followup_tage)).isoformat()
+    if quelle not in QUELLEN:
+        quelle = "sonstige"
+    with _conn() as con:
+        cur = con.execute(
+            "INSERT INTO leads (name, email, telefon, interesse, quelle, status, followup, notizen) "
+            "VALUES (?,?,?,?,?,?,?,?)",
+            (name, email, telefon, interesse, quelle, "neu", followup, notizen)
+        )
+        lid = cur.lastrowid
+    return lid
 
 
 def cmd_add() -> None:
