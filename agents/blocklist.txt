@@ -1,15 +1,36 @@
-garantiert
+# Sperrliste – ein Wort/Phrase pro Zeile, Kleinschreibung
+# Erweitern mit: echo "neues wort" >> blocklist.txt
+
+# Gewinnversprechen / UWG-Verstöße
+garantiert reich
+garantierter gewinn
+garantierte rendite
+garantiertes einkommen
+garantierter erfolg
+garantiert erfolgreich
+risikofrei
 risikolos
-sicher
-100%
-immer
-niemals
-gratis
-kostenlos
-reichwerden
-schnellgeld
-sofortgewinn
-passiveseinkommen garantiert
-§34f
-anlageberatung
-renditeversprechen
+ohne risiko
+todsicher
+100% sicher
+100 % sicher
+100% garantiert
+sicheres einkommen
+sicherer gewinn
+schnell reich
+reich werden
+ueber nacht reich
+über nacht reich
+muehelos geld
+mühelos geld
+ohne arbeit geld
+ohne aufwand geld
+verdopple dein geld
+verdreifache dein geld
+finanzielle freiheit garantiert
+passives einkommen garantiert
+kein risiko
+
+# Weitere Branchen-Wörter (ggf. auskommentieren)
+wunderheilmittel
+ohne vorkenntnisse
