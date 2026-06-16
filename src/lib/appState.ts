@@ -1,52 +1,36 @@
 // Baut einen kompakten Snapshot des App-Zustands, den die "Zentrale" als
-// Kontext an die KI mitschickt (aggregiert, nur die wirklich nötigen Daten).
+// Kontext an die KI mitschickt (Aufgaben + Wissensbasis, nur das Nötige).
 
-import type { useTransactionStore } from '../stores/transactions'
-import type { useBudgetStore } from '../stores/budgets'
-import { INCOME_CATEGORIES, EXPENSE_CATEGORIES } from '../stores/transactions'
+import type { useTaskStore } from '../stores/tasks'
 
-type TxStore = ReturnType<typeof useTransactionStore>
-type BudStore = ReturnType<typeof useBudgetStore>
+type TaskStore = ReturnType<typeof useTaskStore>
 
-const fmt = (n: number) => new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(n)
-
-export function buildContext(tx: TxStore, bud: BudStore): string {
-  const byCat = tx.expensesByCategory()
-  const rate = tx.totalIncome > 0 ? Math.round((tx.balance / tx.totalIncome) * 100) : 0
-
+export function buildContext(tasks: TaskStore): string {
   const lines: string[] = [
     `Datum: ${new Date().toISOString().slice(0, 10)}`,
-    `Einnahmen gesamt: ${fmt(tx.totalIncome)}`,
-    `Ausgaben gesamt: ${fmt(tx.totalExpenses)}`,
-    `Bilanz: ${fmt(tx.balance)}`,
-    `Sparquote: ${rate}%`,
-    '',
-    'Ausgaben nach Kategorie (mit Budget):',
+    `Aufgaben offen: ${tasks.openCount} · erledigt: ${tasks.doneCount} · überfällig: ${tasks.overdue.length}`,
   ]
-  for (const [cat, amount] of Object.entries(byCat).sort((a, b) => b[1] - a[1])) {
-    const limit = bud.budgets.find((b) => b.category === cat)?.limit
-    lines.push(`- ${cat}: ${fmt(amount)}${limit != null ? ` / Budget ${fmt(limit)}` : ''}`)
+
+  const projects = tasks.projects
+  if (projects.length) lines.push(`Projekte: ${projects.join(', ')}`)
+
+  const open = tasks.tasks.filter((t) => !t.done).slice(0, 20)
+  if (open.length) {
+    lines.push('', 'Offene Aufgaben (id · titel · prio · projekt · fällig):')
+    for (const t of open) {
+      lines.push(`- ${t.id} · ${t.title} · ${t.priority}${t.project ? ` · ${t.project}` : ''}${t.due ? ` · ${t.due}` : ''}`)
+    }
   }
 
-  lines.push('', 'Budgets:')
-  for (const b of bud.budgets) lines.push(`- ${b.category}: ${fmt(b.limit)}`)
-
-  lines.push('', `Einnahmen-Kategorien: ${INCOME_CATEGORIES.join(', ')}`)
-  lines.push(`Ausgaben-Kategorien: ${EXPENSE_CATEGORIES.join(', ')}`)
-
-  const recent = tx.transactions.slice(0, 15)
-  if (recent.length) {
-    lines.push('', 'Letzte Transaktionen (id · datum · typ · betrag · kategorie · beschreibung):')
-    for (const t of recent) {
-      lines.push(
-        `- ${t.id} · ${t.date} · ${t.type === 'income' ? 'Einnahme' : 'Ausgabe'} · ${fmt(t.amount)} · ${t.category}${t.description ? ` · ${t.description}` : ''}`,
-      )
-    }
+  const doneRecent = tasks.tasks.filter((t) => t.done).slice(0, 5)
+  if (doneRecent.length) {
+    lines.push('', 'Zuletzt erledigt (id · titel):')
+    for (const t of doneRecent) lines.push(`- ${t.id} · ${t.title}`)
   }
 
   try {
     const note = localStorage.getItem('finaz_notes') || ''
-    if (note.trim()) lines.push('', `Notiz (Auszug): ${note.slice(0, 200)}${note.length > 200 ? ' …' : ''}`)
+    if (note.trim()) lines.push('', `Wissensbasis/Notizen (Auszug): ${note.slice(0, 400)}${note.length > 400 ? ' …' : ''}`)
   } catch {
     /* localStorage nicht verfügbar – ignorieren */
   }

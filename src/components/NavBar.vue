@@ -2,8 +2,8 @@
   <!-- Top bar (desktop) -->
   <nav class="navbar">
     <div class="brand">
-      <span class="brand-icon">💰</span>
-      <span class="brand-name">FinazApp</span>
+      <span class="brand-icon">🧠</span>
+      <span class="brand-name">Hub</span>
     </div>
     <div class="nav-links">
       <RouterLink v-for="l in links" :key="l.to" :to="l.to" class="nav-link">{{ l.label }}</RouterLink>
@@ -23,12 +23,8 @@
 <script setup lang="ts">
 const links = [
   { to: '/', label: 'Zentrale', short: 'Zentrale', icon: '🧠' },
-  { to: '/dashboard', label: 'Dashboard', short: 'Dashboard', icon: '🏠' },
-  { to: '/transactions', label: 'Transaktionen', short: 'Buchungen', icon: '💸' },
-  { to: '/budget', label: 'Budget', short: 'Budget', icon: '🎯' },
-  { to: '/reports', label: 'Berichte', short: 'Berichte', icon: '📊' },
-  { to: '/assistant', label: 'KI-Assistent', short: 'KI', icon: '🤖' },
-  { to: '/notes', label: 'Notizen', short: 'Notizen', icon: '📝' },
+  { to: '/tasks', label: 'Aufgaben', short: 'Aufgaben', icon: '📋' },
+  { to: '/notes', label: 'Wissen', short: 'Wissen', icon: '📚' },
   { to: '/compliance', label: 'Compliance', short: 'Comp.', icon: '🛡️' },
 ]
 </script>
