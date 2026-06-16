@@ -12,8 +12,19 @@ SYSTEM = """Du bist ein Monetisierungs-Experte für Creator im deutschsprachigen
 
 
 def erstelle_plan(nische, follower_total, profil_analyse, model, temp=0.6):
+    # follower_total kann "TikTok:400 IG:200" oder eine Zahl sein
+    try:
+        if isinstance(follower_total, str) and "TikTok" in follower_total:
+            parts = follower_total.replace("TikTok:", "").replace("IG:", "").split()
+            total_n = sum(int(x) for x in parts if x.isdigit())
+            follower_str = f"{total_n} Gesamt-Followern"
+        else:
+            follower_str = f"{follower_total} Followern"
+    except Exception:
+        follower_str = "wenigen Followern"
+
     prompt = (
-        f"Erstelle einen Monetisierungsplan für einen {nische}-Creator mit {follower_total} Followern im deutschsprachigen Markt.\n\n"
+        f"Erstelle einen Monetisierungsplan für einen {nische}-Creator mit {follower_str} im deutschsprachigen Markt.\n\n"
         f"Nenne konkrete {nische}-Produkte mit realistischen EUR-Preisen. Antworte genau so:\n"
         f"SOFORT (0-30 Tage): <konkretes {nische}-Produkt + Preis + Verkaufskanal>\n"
         f"WACHSTUM (1-3 Monate): <skalierbareres {nische}-Produkt + Preis + Follower-Ziel>\n"
