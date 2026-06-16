@@ -8,7 +8,7 @@ import requests
 
 OLLAMA_URL = "http://127.0.0.1:11434/api/generate"
 
-SYSTEM_DM = """Du bist ein DM-Texter für eine Creator-Wachstums-Agentur im deutschsprachigen Raum. Schreibe kurze, persönliche DMs die sich nicht wie Werbung anfühlen. Auf Deutsch."""
+SYSTEM_DM = """Du bist Vertriebs-Texter für eine Creator-Wachstums-Agentur. Schreibe DMs die eine Agentur an einen Social-Media-Creator schickt, um ihm Wachstumshilfe anzubieten. Auf Deutsch, kurz und direkt."""
 
 SYSTEM_SALESPAGE = """Du bist Copywriter. Schreibe eine kurze Salespage. Max 150 Woerter.
 Format: HEADLINE | PROBLEM (1 Satz) | LOESUNG (1 Satz) | 3 LEISTUNGEN | PREIS | CTA"""
@@ -16,9 +16,11 @@ Format: HEADLINE | PROBLEM (1 Satz) | LOESUNG (1 Satz) | 3 LEISTUNGEN | PREIS | 
 
 def erstelle_dm(nische, angebot, preis, model, temp=0.7):
     prompt = (
-        f"2 kurze DM-Vorlagen für {nische}-Creator auf Deutsch:\n"
-        f"DM1: <persönliche Ansprache + Nutzen in 2 Sätzen>\n"
-        f"DM2: <Nachfass in 2 Sätzen>"
+        f"Unsere Agentur schreibt einem {nische}-Creator auf Instagram/TikTok an.\n"
+        f"Schreibe 2 kurze DMs auf Deutsch:\n"
+        f"DM1 (Erstkontakt): Wir loben seinen {nische}-Content und bieten konkret an, "
+        f"ihm mehr Follower und Einnahmen zu verschaffen. Max 3 Sätze.\n"
+        f"DM2 (Follow-up): Freundliche Nachfrage mit einem konkreten Mehrwert-Angebot. Max 2 Sätze."
     )
     try:
         r = requests.post(OLLAMA_URL, json={
