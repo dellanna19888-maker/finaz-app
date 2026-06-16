@@ -18,9 +18,10 @@ def erstelle_dm(nische, angebot, preis, model, temp=0.7):
     prompt = (
         f"Unsere Agentur schreibt einem {nische}-Creator auf Instagram/TikTok an.\n"
         f"Schreibe 2 kurze DMs auf Deutsch:\n"
-        f"DM1 (Erstkontakt): Wir loben seinen {nische}-Content und bieten konkret an, "
-        f"ihm mehr Follower und Einnahmen zu verschaffen. Max 3 Sätze.\n"
-        f"DM2 (Follow-up): Freundliche Nachfrage mit einem konkreten Mehrwert-Angebot. Max 2 Sätze."
+        f"DM1 (Erstkontakt): Lobe seinen {nische}-Content und biete konkret an, "
+        f"mehr Follower und Einnahmen zu generieren. Kurz und direkt, 2-3 Sätze.\n"
+        f"DM2 (Follow-up): Freundliche Nachfrage mit einem konkreten Mehrwert. 2 Sätze.\n"
+        f"Schreibe NUR die zwei DMs, keine Erklärungen."
     )
     try:
         r = requests.post(OLLAMA_URL, json={
