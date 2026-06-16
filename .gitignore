@@ -29,3 +29,4 @@ make-icons.cjs
 .env.*
 !.env.example
 server/logs/
+.claude/
