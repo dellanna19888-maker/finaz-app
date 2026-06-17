@@ -2,7 +2,7 @@
 // die Compliance-Antworten (428 = Autorisierung nötig, 403 = blockiert) zurück.
 // Sendet den im Browser hinterlegten API-Key (BYOK) als Header mit.
 
-import { getApiKey } from './apiKey'
+import { getApiKey, getGeminiKey } from './apiKey'
 
 export interface AssistRequest {
   action: string
@@ -30,8 +30,10 @@ export async function runAssist(
   signal?: AbortSignal,
 ): Promise<AssistOutcome> {
   const key = getApiKey()
+  const gkey = getGeminiKey()
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   if (key) headers['x-anthropic-key'] = key
+  if (gkey) headers['x-gemini-key'] = gkey
 
   let resp: Response
   try {

@@ -23,3 +23,32 @@ export function setApiKey(value: string): void {
 export function hasApiKey(): boolean {
   return getApiKey().length > 0
 }
+
+// Google Gemini (kostenlose Alternative). Ebenfalls nur im Browser gespeichert.
+const GKEY = 'finaz_gemini_key'
+
+export function getGeminiKey(): string {
+  try {
+    return localStorage.getItem(GKEY) || ''
+  } catch {
+    return ''
+  }
+}
+
+export function setGeminiKey(value: string): void {
+  try {
+    if (value) localStorage.setItem(GKEY, value)
+    else localStorage.removeItem(GKEY)
+  } catch {
+    /* ignore */
+  }
+}
+
+export function hasGeminiKey(): boolean {
+  return getGeminiKey().length > 0
+}
+
+/** True, wenn IRGENDEIN KI-Schlüssel (Anthropic oder Gemini) gesetzt ist. */
+export function hasAnyKey(): boolean {
+  return hasApiKey() || hasGeminiKey()
+}

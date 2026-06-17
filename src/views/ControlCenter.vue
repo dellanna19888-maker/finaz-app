@@ -65,7 +65,7 @@ import { useRouter } from 'vue-router'
 import { marked } from 'marked'
 import { useTaskStore } from '../stores/tasks'
 import type { Task } from '../stores/tasks'
-import { hasApiKey } from '../lib/apiKey'
+import { hasAnyKey } from '../lib/apiKey'
 import { runChat, type ChatMessage } from '../lib/chat'
 import { buildContext } from '../lib/appState'
 import { parseActions, stripActions, actionLabel, executeAction, type ChatAction } from '../lib/actions'
@@ -82,7 +82,7 @@ interface Snapshot {
 
 const tasks = useTaskStore()
 const router = useRouter()
-const hasKey = hasApiKey()
+const hasKey = hasAnyKey()
 
 const SAVE_KEY = 'finaz_chat'
 const messages = ref<Msg[]>(load())

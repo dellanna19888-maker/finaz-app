@@ -47,7 +47,7 @@ npm run demo     # baut das Frontend und startet ALLES auf http://localhost:3001
 ```
 
 Dann **http://localhost:3001** öffnen und unter **⚙️ Einstellungen** deinen
-**eigenen** Anthropic-API-Key eintragen (Bring Your Own Key). Der Key wird nur im
+**eigenen** KI-Schlüssel eintragen – Anthropic **oder kostenlos Google Gemini**. Der Key wird nur im
 Browser gespeichert und pro Anfrage an dein lokales Backend gesendet – er landet
 **nie** im Repository. Alternativ kann der Server einen Key aus `.env`
 (`ANTHROPIC_API_KEY`) nutzen.
@@ -72,6 +72,8 @@ brauchen einen Key.
 | ------------------------------- | ------------------------------------------- | ----------------- |
 | `ANTHROPIC_API_KEY`             | Claude-Key (optional – sonst Key im Browser via ⚙️) | –           |
 | `CLAUDE_MODEL`                  | Modell                                      | `claude-opus-4-8` |
+| `GEMINI_API_KEY`                | Gratis-Alternative (Google Gemini, falls kein Anthropic-Key) | –   |
+| `GEMINI_MODEL`                  | Gemini-Modell                               | `gemini-2.0-flash` |
 | `API_PORT`                      | Port des Backends (= Vite-Proxy-Ziel)       | `3001`            |
 | `COMPLIANCE_FORCE_JURISDICTION` | Profil erzwingen (`EU`/`UK`/`US`/`DEFAULT`) | – (GEO-Erkennung) |
 | `COMPLIANCE_MAX_CHARS`          | Datenminimierung (max. Zeichen)             | `50000`           |

@@ -58,9 +58,9 @@
 import { ref, computed, watch } from 'vue'
 import { marked } from 'marked'
 import { runAssist } from '../lib/assist'
-import { hasApiKey } from '../lib/apiKey'
+import { hasAnyKey } from '../lib/apiKey'
 
-const hasKey = hasApiKey()
+const hasKey = hasAnyKey()
 
 const actions = [
   { id: 'generate', label: 'Generieren' },
