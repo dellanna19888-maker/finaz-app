@@ -1,10 +1,11 @@
 // Aktionen der "Zentrale": Die KI gibt Handlungswünsche als ```action-Block
 // (JSON) aus. Hier werden sie aus dem Text geparst, beschriftet und – nach
-// Bestätigung durch den Nutzer – real gegen den Aufgaben-Store / die
-// Wissensbasis (Notizen) / den Router ausgeführt.
+// Bestätigung – real gegen den Content-Store / die Wissensbasis / den Router
+// ausgeführt.
 
 import type { Router } from 'vue-router'
-import type { useTaskStore, Priority } from '../stores/tasks'
+import type { useTaskStore, Priority, ContentStatus } from '../stores/tasks'
+import { STATUSES } from '../stores/tasks'
 import { evaluate } from '../compliance/gateway'
 
 type TaskStore = ReturnType<typeof useTaskStore>
@@ -48,21 +49,30 @@ function normPriority(v: unknown): Priority {
   return (PRIOS.has(s) ? s : 'normal') as Priority
 }
 
+const STATUS_KEYS = new Set(STATUSES.map((s) => s.key))
+const statusLabel = (k: string) => STATUSES.find((s) => s.key === k)?.label ?? k
+function normStatus(v: unknown): ContentStatus {
+  const s = String(v ?? '').toLowerCase()
+  return (STATUS_KEYS.has(s as ContentStatus) ? s : 'idee') as ContentStatus
+}
+
 const isDate = (v: unknown) => /^\d{4}-\d{2}-\d{2}$/.test(String(v ?? ''))
 
 export function actionLabel(a: ChatAction): string {
   const ar = a.args as Record<string, string | number | boolean | undefined>
   switch (a.tool) {
     case 'add_task':
-      return `Aufgabe anlegen: „${ar.title ?? '?'}"${ar.project ? ` · ${ar.project}` : ''}${ar.due ? ` · fällig ${ar.due}` : ''}`
+      return `Inhalt anlegen: „${ar.title ?? '?'}"${ar.platform ? ` · ${ar.platform}` : ''}${ar.status ? ` · ${statusLabel(String(ar.status))}` : ''}`
+    case 'set_status':
+      return `Status setzen → ${statusLabel(String(ar.status ?? '?'))} (ID ${ar.id ?? '?'})`
     case 'complete_task':
-      return `Aufgabe abhaken (ID ${ar.id ?? '?'})`
+      return `Als veröffentlicht markieren (ID ${ar.id ?? '?'})`
     case 'reopen_task':
-      return `Aufgabe wieder öffnen (ID ${ar.id ?? '?'})`
+      return `Wieder in Arbeit nehmen (ID ${ar.id ?? '?'})`
     case 'update_task':
-      return `Aufgabe bearbeiten (ID ${ar.id ?? '?'})`
+      return `Inhalt bearbeiten (ID ${ar.id ?? '?'})`
     case 'delete_task':
-      return `Aufgabe löschen (ID ${ar.id ?? '?'})`
+      return `Inhalt löschen (ID ${ar.id ?? '?'})`
     case 'append_note':
       return `Wissen/Notiz ergänzen (${String(ar.content ?? '').length} Zeichen)`
     case 'navigate':
@@ -85,47 +95,60 @@ export async function executeAction(a: ChatAction, ctx: ActionContext): Promise<
       if (!title) throw new Error('Titel fehlt.')
       ctx.tasks.addTask({
         title,
+        platform: String(ar.platform || ''),
+        status: ar.status !== undefined ? normStatus(ar.status) : 'idee',
         priority: normPriority(ar.priority),
         project: String(ar.project || ''),
         due: isDate(ar.due) ? String(ar.due) : '',
         notes: String(ar.notes || ''),
       })
-      return `Aufgabe „${title}" angelegt.`
+      return `Inhalt „${title}" angelegt.`
+    }
+    case 'set_status': {
+      const id = String(ar.id || '').trim()
+      const t = ctx.tasks.tasks.find((x) => x.id === id)
+      if (!t) throw new Error(`Kein Inhalt mit ID ${id} gefunden.`)
+      const status = normStatus(ar.status)
+      ctx.tasks.setStatus(id, status)
+      return `Status von „${t.title}" → ${statusLabel(status)}.`
     }
     case 'complete_task': {
       const id = String(ar.id || '').trim()
       const t = ctx.tasks.tasks.find((x) => x.id === id)
-      if (!t) throw new Error(`Keine Aufgabe mit ID ${id} gefunden.`)
-      ctx.tasks.setDone(id, true)
-      return `Aufgabe „${t.title}" abgehakt.`
+      if (!t) throw new Error(`Kein Inhalt mit ID ${id} gefunden.`)
+      ctx.tasks.setStatus(id, 'live')
+      return `„${t.title}" als veröffentlicht markiert.`
     }
     case 'reopen_task': {
       const id = String(ar.id || '').trim()
       const t = ctx.tasks.tasks.find((x) => x.id === id)
-      if (!t) throw new Error(`Keine Aufgabe mit ID ${id} gefunden.`)
+      if (!t) throw new Error(`Kein Inhalt mit ID ${id} gefunden.`)
       ctx.tasks.setDone(id, false)
-      return `Aufgabe „${t.title}" wieder geöffnet.`
+      return `„${t.title}" wieder in Arbeit genommen.`
     }
     case 'update_task': {
       const id = String(ar.id || '').trim()
       const cur = ctx.tasks.tasks.find((x) => x.id === id)
-      if (!cur) throw new Error(`Keine Aufgabe mit ID ${id} gefunden.`)
+      if (!cur) throw new Error(`Kein Inhalt mit ID ${id} gefunden.`)
       const updated = { ...cur }
       if (ar.title !== undefined && String(ar.title).trim()) updated.title = String(ar.title)
+      if (ar.platform !== undefined) updated.platform = String(ar.platform)
+      if (ar.status !== undefined) updated.status = normStatus(ar.status)
       if (ar.priority !== undefined) updated.priority = normPriority(ar.priority)
       if (ar.project !== undefined) updated.project = String(ar.project)
       if (ar.due !== undefined && (String(ar.due) === '' || isDate(ar.due))) updated.due = String(ar.due)
       if (ar.notes !== undefined) updated.notes = String(ar.notes)
       if (ar.done !== undefined) updated.done = ar.done === true || ar.done === 'true'
+      if (ar.status !== undefined) updated.done = updated.status === 'live'
       ctx.tasks.updateTask(updated)
-      return `Aufgabe „${updated.title}" aktualisiert.`
+      return `Inhalt „${updated.title}" aktualisiert.`
     }
     case 'delete_task': {
       const id = String(ar.id || '').trim()
       const t = ctx.tasks.tasks.find((x) => x.id === id)
-      if (!t) throw new Error(`Keine Aufgabe mit ID ${id} gefunden.`)
+      if (!t) throw new Error(`Kein Inhalt mit ID ${id} gefunden.`)
       ctx.tasks.deleteTask(id)
-      return `Aufgabe „${t.title}" gelöscht.`
+      return `Inhalt „${t.title}" gelöscht.`
     }
     case 'append_note': {
       const content = String(ar.content || '')
