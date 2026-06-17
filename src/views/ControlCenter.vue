@@ -60,7 +60,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed, nextTick, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { marked } from 'marked'
 import { useTaskStore } from '../stores/tasks'
@@ -98,10 +98,10 @@ const scroller = ref<HTMLElement | null>(null)
 const MUTATING = new Set(['add_task', 'set_status', 'complete_task', 'reopen_task', 'update_task', 'delete_task', 'append_note'])
 
 const suggestions = [
+  'Analysiere meinen Kanal: 3 Verbesserungen + was die Konkurrenz macht',
   'Gib mir 10 YouTube-Video-Ideen zum Thema Produktivität',
   'Schreibe einen 30-Sekunden-Hook + Skript für ein TikTok',
   'Plane meine Content-Woche aus den offenen Ideen',
-  'Lege an: Reel „3 Tools, die ich liebe", Plattform Instagram',
 ]
 
 const statusClass = computed(() => {
@@ -255,6 +255,15 @@ function reset() {
   input.value = ''
   persist()
 }
+
+// Vom Kanal-Check übergebene Analyse-Aufforderung automatisch starten.
+onMounted(() => {
+  const pending = localStorage.getItem('finaz_pending_prompt')
+  if (!pending) return
+  localStorage.removeItem('finaz_pending_prompt')
+  if (hasKey) send(pending)
+  else input.value = pending
+})
 </script>
 
 <style scoped>

@@ -33,6 +33,24 @@ export function buildContext(tasks: TaskStore): string {
     for (const t of live) lines.push(`- ${t.id} · ${t.title}`)
   }
 
+  // Kanal-Check: eigenes Profil + Konkurrenz (für Performance-/Konkurrenz-Analyse).
+  try {
+    const pr = JSON.parse(localStorage.getItem('finaz_channel') || 'null') as
+      | { platform?: string; handle?: string; followers?: number; niche?: string; recent?: string }
+      | null
+    if (pr && (pr.handle || pr.followers || pr.niche || (pr.recent && pr.recent.trim()))) {
+      lines.push('', `Mein Kanal: ${pr.platform || '?'} ${pr.handle || ''} · ${pr.followers || 0} Follower · Nische: ${pr.niche || '-'}`)
+      if (pr.recent && pr.recent.trim()) lines.push(`Meine letzten Inhalte:\n${pr.recent.slice(0, 500)}`)
+    }
+    const comps = JSON.parse(localStorage.getItem('finaz_competitors') || '[]') as Array<{ handle?: string; followers?: number; notes?: string }>
+    if (Array.isArray(comps) && comps.length) {
+      lines.push('', 'Konkurrenz:')
+      for (const c of comps.slice(0, 5)) lines.push(`- ${c.handle || '?'} · ${c.followers || 0} Follower${c.notes ? ` · ${c.notes}` : ''}`)
+    }
+  } catch {
+    /* ignore */
+  }
+
   try {
     const note = localStorage.getItem('finaz_notes') || ''
     if (note.trim()) lines.push('', `Wissensbasis/Notizen (Auszug): ${note.slice(0, 400)}${note.length > 400 ? ' …' : ''}`)
