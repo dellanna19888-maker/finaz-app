@@ -60,3 +60,59 @@ Community + Produktliste – gut für Sichtbarkeit unter Gründern.
 ## Empfohlene Reihenfolge
 KI-Verzeichnisse (schnell, viele) → AlternativeTo → BetaList →
 **Product-Hunt-Launch vorbereiten** → Capterra/G2 (parallel Bewertungen sammeln).
+
+---
+
+# Schritt für Schritt: „There's An AI For That" (theresanaiforthat.com)
+
+Schnellster Einstieg – viele Besucher suchen dort gezielt KI-Tools.
+
+1. Seite öffnen: **theresanaiforthat.com** → oben/unten **„Submit AI"** (bzw. „Submit a tool").
+2. **Tool-URL** eingeben (deine Render-App oder die gehostete `landing.html`). Die Seite zieht oft Titel/Bild automatisch – danach prüfen/anpassen.
+3. Felder ausfüllen (Werte zum Kopieren):
+   - **Name:** Hub
+   - **Tagline / one-liner:** `Free AI copilot for creators`
+   - **Beschreibung:** Kurztext (EN) aus `LISTING.md` (Abschnitt 2).
+   - **Aufgabe/Kategorie (task):** „content creation" / „social media" / „video".
+   - **Pricing:** **Free** (wichtig – „Free" zieht Klicks).
+   - **Logo:** `icon-512.png` · **Screenshots:** 2–3 (Zentrale, Content-Plan, Kanal-Check).
+   - **E-Mail:** deine.
+4. Absenden. Hinweis: Es gibt eine **kostenlose Warteschlange** (kann dauern) und bezahlte „Fast-Track"-Optionen – fürs Erste **gratis** einreichen.
+5. Sobald online: Link in deine Bio / Posts aufnehmen.
+
+> Gleiches Vorgehen bei **Futurepedia** und **Toolify** – einfach dort ebenfalls „Submit".
+
+---
+
+# Product-Hunt-Launch-Kit (producthunt.com)
+
+## Eintrag (Produktseite anlegen → „Submit"/„Launch a product")
+- **Name:** Hub
+- **Tagline (≤60 Zeichen):** `Free AI copilot for creators`
+- **Links:** Live-App-URL (+ optional Landingpage)
+- **Topics/Tags:** Artificial Intelligence · Content Creation · Social Media · Marketing · Productivity
+- **Beschreibung:** lange EN-Beschreibung aus `LISTING.md` (Abschnitt 3).
+- **Galerie (Reihenfolge):** 1) kurzes Demo-Video/GIF (Kanal-Analyse), 2) Zentrale/Chat, 3) Content-Plan, 4) Kanal-Check.
+- **Maker:** dich als Maker hinzufügen.
+
+## First-Comment (sofort nach dem Launch posten)
+> Hey 👋 As a creator I was drowning in tools — one for ideas, one for planning,
+> guesswork for "is my channel even working?". Hub puts it in one free chat: ask
+> for ideas/scripts, plan content in a simple pipeline, and run a Channel Check
+> that compares you to competitors and suggests improvements. It's free (bring a
+> free Gemini key), privacy-aware, and self-hostable. Would love your feedback —
+> what would make this part of your weekly routine?
+
+## Launch-Tag – Checkliste
+- [ ] **Tag wählen:** Di–Do. PH-Tag startet **00:01 Uhr Pazifik (PT)** – plane danach.
+- [ ] Direkt nach dem Launch den **First-Comment** posten.
+- [ ] Link in deine Communities/DMs teilen: **„Ich bin heute auf Product Hunt – über Feedback freue ich mich!"**
+- [ ] ⚠️ **Nicht** direkt um Upvotes bitten (gegen die Regeln) – um **Feedback/Support** bitten.
+- [ ] Den **ganzen Tag** jeden Kommentar beantworten.
+- [ ] Vorab (Tage davor): ein paar Leute informieren, die am Launch-Tag vorbeischauen.
+
+## Vorbereitung (1–2 Tage vorher)
+- [ ] PH-Profil ausfüllen, ein paar Tools upvoten/kommentieren (Konto „aufwärmen").
+- [ ] Galerie-Bilder + Demo-Video fertig.
+- [ ] App läuft stabil (Render „Live") + mit Gratis-Key getestet.
+
