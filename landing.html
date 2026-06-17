@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hub – der KI-Arbeitsplatz für Agenturen & Freelancer</title>
+    <meta
+      name="description"
+      content="Sag der KI, was zu tun ist – sie legt Aufgaben an, pflegt dein Wissen und beantwortet Kundenfragen. Ein Arbeitsplatz, per Chat gesteuert. DSGVO-bewusst."
+    />
+    <!--
+      ANPASSEN: Trage unten bei DEMO_URL deine echte Render-Adresse ein
+      (z. B. https://hub-xyz.onrender.com). Die "Warteliste"-Buttons öffnen
+      eine E-Mail an dich (Adresse weiter unten im data-mail anpassbar).
+    -->
+    <style>
+      :root {
+        --bg: #0f172a;
+        --bg2: #1e293b;
+        --line: #334155;
+        --text: #e2e8f0;
+        --muted: #94a3b8;
+        --accent: #3b82f6;
+        --accent2: #60a5fa;
+      }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      html { scroll-behavior: smooth; }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.6;
+      }
+      .wrap { max-width: 1040px; margin: 0 auto; padding: 0 1.25rem; }
+      a { color: var(--accent2); }
+
+      .nav { display: flex; align-items: center; justify-content: space-between; padding: 1.1rem 0; }
+      .brand { font-weight: 800; font-size: 1.2rem; letter-spacing: 0.02em; }
+      .brand .dot { color: var(--accent2); }
+      .nav a.cta-sm {
+        text-decoration: none; color: #fff; background: var(--accent);
+        padding: 0.5rem 0.9rem; border-radius: 8px; font-weight: 600; font-size: 0.9rem;
+      }
+
+      .hero { text-align: center; padding: 3.5rem 0 2.5rem; }
+      .badge {
+        display: inline-block; font-size: 0.78rem; color: var(--accent2);
+        border: 1px solid var(--line); border-radius: 999px; padding: 0.3rem 0.8rem; margin-bottom: 1.2rem;
+      }
+      .hero h1 { font-size: clamp(1.9rem, 5vw, 3rem); line-height: 1.15; letter-spacing: -0.02em; }
+      .hero h1 .grad { background: linear-gradient(90deg, #60a5fa, #a78bfa); -webkit-background-clip: text; background-clip: text; color: transparent; }
+      .hero p.sub { color: var(--muted); font-size: clamp(1rem, 2.5vw, 1.2rem); max-width: 640px; margin: 1.1rem auto 0; }
+      .cta-row { display: flex; gap: 0.8rem; justify-content: center; flex-wrap: wrap; margin-top: 1.8rem; }
+      .btn { text-decoration: none; padding: 0.85rem 1.4rem; border-radius: 10px; font-weight: 700; font-size: 1rem; display: inline-block; }
+      .btn-primary { background: var(--accent); color: #fff; }
+      .btn-primary:hover { background: var(--accent2); }
+      .btn-ghost { border: 1px solid var(--line); color: var(--text); }
+      .btn-ghost:hover { background: rgba(255,255,255,0.05); }
+      .trust { color: var(--muted); font-size: 0.85rem; margin-top: 1.4rem; }
+
+      section { padding: 2.5rem 0; }
+      h2 { font-size: clamp(1.4rem, 4vw, 2rem); text-align: center; letter-spacing: -0.01em; }
+      .lead { color: var(--muted); text-align: center; max-width: 620px; margin: 0.7rem auto 0; }
+
+      .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1rem; margin-top: 2rem; }
+      .card { background: var(--bg2); border: 1px solid var(--line); border-radius: 14px; padding: 1.4rem; }
+      .card .ic { font-size: 1.8rem; }
+      .card h3 { margin: 0.6rem 0 0.4rem; font-size: 1.1rem; }
+      .card p { color: var(--muted); font-size: 0.92rem; }
+
+      .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-top: 2rem; counter-reset: s; }
+      .step { background: var(--bg2); border: 1px solid var(--line); border-radius: 14px; padding: 1.4rem; position: relative; }
+      .step::before {
+        counter-increment: s; content: counter(s);
+        display: flex; align-items: center; justify-content: center;
+        width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 800; margin-bottom: 0.7rem;
+      }
+      .step h3 { font-size: 1.05rem; margin-bottom: 0.3rem; }
+      .step p { color: var(--muted); font-size: 0.92rem; }
+
+      .who { background: var(--bg2); border: 1px solid var(--line); border-radius: 16px; padding: 1.6rem; margin-top: 2rem; text-align: center; }
+      .who .tags { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; margin-top: 1rem; }
+      .tag { border: 1px solid var(--line); border-radius: 999px; padding: 0.4rem 0.9rem; font-size: 0.9rem; color: var(--text); }
+
+      .final { text-align: center; background: linear-gradient(180deg, var(--bg2), var(--bg)); border: 1px solid var(--line); border-radius: 18px; padding: 2.6rem 1.4rem; margin: 1rem 0 2rem; }
+      .final h2 { margin-bottom: 0.4rem; }
+      .final p { color: var(--muted); margin-bottom: 1.4rem; }
+
+      footer { border-top: 1px solid var(--line); padding: 1.6rem 0 2.4rem; color: var(--muted); font-size: 0.85rem; text-align: center; }
+      .disc { font-size: 0.78rem; color: #64748b; margin-top: 0.5rem; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <nav class="nav">
+        <div class="brand">🧠 Hub<span class="dot">.</span></div>
+        <a class="cta-sm" href="#warteliste">Warteliste</a>
+      </nav>
+
+      <header class="hero">
+        <span class="badge">Early Access · für Agenturen & Freelancer</span>
+        <h1>Dein Arbeitsplatz, der <span class="grad">auf Zuruf</span> arbeitet.</h1>
+        <p class="sub">
+          Sag der KI-Zentrale, was zu tun ist – sie legt <strong>Aufgaben</strong> an,
+          pflegt dein <strong>Wissen</strong> und beantwortet <strong>Kundenfragen</strong>.
+          Ein Tool statt fünf. Du bestätigst, die KI erledigt.
+        </p>
+        <div class="cta-row">
+          <!-- ANPASSEN: href durch deine Render-URL ersetzen -->
+          <a class="btn btn-primary" href="DEMO_URL">🚀 Kostenlos testen</a>
+          <a class="btn btn-ghost" href="#warteliste">Auf die Warteliste</a>
+        </div>
+        <p class="trust">Dein eigener KI-Schlüssel · DSGVO-bewusstes Compliance-Gateway · kein Vendor-Lock-in</p>
+      </header>
+
+      <section>
+        <h2>Schluss mit Tool-Chaos</h2>
+        <p class="lead">Aufgaben in einem Tool, Wissen im nächsten, Kundenfragen im Postfach. Der Hub bündelt alles – per Chat steuerbar.</p>
+        <div class="grid">
+          <div class="card"><div class="ic">🧠</div><h3>Zentrale (Chat)</h3><p>Schreib einfach, was du brauchst. Die KI schlägt die Aktion vor – du bestätigst per Klick.</p></div>
+          <div class="card"><div class="ic">📋</div><h3>Aufgaben & Projekte</h3><p>To-dos mit Priorität, Projekt und Fälligkeit. Per Chat anlegen, abhaken, umplanen.</p></div>
+          <div class="card"><div class="ic">📚</div><h3>Wissensbasis</h3><p>Dein Team-Wissen an einem Ort – und die KI antwortet Kunden direkt daraus.</p></div>
+          <div class="card"><div class="ic">🛡️</div><h3>Compliance & Audit</h3><p>Jede KI-Aktion wird geprüft und protokolliert. DSGVO-bewusst by design.</p></div>
+        </div>
+      </section>
+
+      <section>
+        <h2>So funktioniert's</h2>
+        <div class="steps">
+          <div class="step"><h3>Sag, was du brauchst</h3><p>„Lege eine Aufgabe an: Angebot für Kunde X bis Freitag."</p></div>
+          <div class="step"><h3>Bestätige die Aktion</h3><p>Die KI zeigt dir genau, was sie tun will – ein Klick auf „Ausführen".</p></div>
+          <div class="step"><h3>Erledigt</h3><p>Aufgabe steht, Wissen ist ergänzt, Kundenfrage beantwortet. Rückgängig jederzeit.</p></div>
+        </div>
+
+        <div class="who">
+          <strong>Gemacht für kleine Teams, die viel jonglieren:</strong>
+          <div class="tags">
+            <span class="tag">Web- & Design-Agenturen</span>
+            <span class="tag">Marketing-Freelancer</span>
+            <span class="tag">Solo-Selbstständige</span>
+            <span class="tag">Berater & Kreative</span>
+          </div>
+        </div>
+      </section>
+
+      <section id="warteliste">
+        <div class="final">
+          <h2>Sei beim Early Access dabei</h2>
+          <p>Trag dich ein und teste den Hub als eine:r der Ersten – Feedback fließt direkt in die Entwicklung ein.</p>
+          <!-- ANPASSEN: Mail-Adresse bei Bedarf ändern -->
+          <a
+            class="btn btn-primary"
+            href="mailto:dellanna19888@gmail.com?subject=Warteliste%20Hub&body=Hi%2C%20ich%20m%C3%B6chte%20den%20Hub%20testen.%20Meine%20Branche%3A%20"
+            >✉️ Auf die Warteliste</a
+          >
+        </div>
+      </section>
+
+      <footer>
+        🧠 Hub – der KI-Arbeitsplatz für Agenturen & Freelancer.
+        <div class="disc">
+          Technisches Governance-Gerüst (Compliance-Gateway) – keine Rechtsberatung.
+        </div>
+      </footer>
+    </div>
+  </body>
+</html>

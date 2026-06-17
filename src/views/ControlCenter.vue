@@ -3,7 +3,7 @@
     <div class="page-header hub-header">
       <div>
         <h1>🧠 Zentrale</h1>
-        <p class="sub">Deine KI-Schaltzentrale – chatten und die ganze App per Chat steuern (Aufgaben, Wissen, Support). Jede Anfrage läuft durch das Compliance-Gateway.</p>
+        <p class="sub">Deine KI-Zentrale für Online-Creator – Ideen, Skripte &amp; Content-Plan, Wissen und Support per Chat. Jede Anfrage läuft durch das Compliance-Gateway.</p>
       </div>
       <div class="head-actions">
         <button v-if="lastAction" class="btn-ghost" :disabled="busy" :title="lastAction.label" @click="undo">↩ Rückgängig</button>
@@ -95,13 +95,13 @@ const lastAction = ref<{ key: string; msgIndex: number; label: string; snapshot:
 const scroller = ref<HTMLElement | null>(null)
 
 // Aktionen, die den App-Zustand verändern (Snapshot für Rückgängig).
-const MUTATING = new Set(['add_task', 'complete_task', 'reopen_task', 'update_task', 'delete_task', 'append_note'])
+const MUTATING = new Set(['add_task', 'set_status', 'complete_task', 'reopen_task', 'update_task', 'delete_task', 'append_note'])
 
 const suggestions = [
-  'Lege eine Aufgabe an: Angebot für Kunde Schmidt bis Freitag',
-  'Was steht offen an und was ist überfällig?',
-  'Schreibe einen kurzen Wissensartikel über unser Onboarding',
-  'Fasse meine offenen Aufgaben nach Projekt zusammen',
+  'Gib mir 10 YouTube-Video-Ideen zum Thema Produktivität',
+  'Schreibe einen 30-Sekunden-Hook + Skript für ein TikTok',
+  'Plane meine Content-Woche aus den offenen Ideen',
+  'Lege an: Reel „3 Tools, die ich liebe", Plattform Instagram',
 ]
 
 const statusClass = computed(() => {

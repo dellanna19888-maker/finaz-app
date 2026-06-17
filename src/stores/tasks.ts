@@ -2,11 +2,23 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
 export type Priority = 'low' | 'normal' | 'high'
+export type ContentStatus = 'idee' | 'skript' | 'aufnahme' | 'schnitt' | 'live'
+
+// Content-Pipeline: Reihenfolge + Anzeigelabels.
+export const STATUSES: { key: ContentStatus; label: string }[] = [
+  { key: 'idee', label: 'Idee' },
+  { key: 'skript', label: 'Skript' },
+  { key: 'aufnahme', label: 'Aufnahme' },
+  { key: 'schnitt', label: 'Schnitt' },
+  { key: 'live', label: 'Veröffentlicht' },
+]
 
 export interface Task {
   id: string
   title: string
   done: boolean
+  status: ContentStatus
+  platform: string
   priority: Priority
   project: string
   due: string // '' oder 'YYYY-MM-DD'
@@ -16,6 +28,8 @@ export interface Task {
 
 export interface NewTask {
   title: string
+  status?: ContentStatus
+  platform?: string
   priority?: Priority
   project?: string
   due?: string
@@ -29,10 +43,30 @@ function today(): string {
   return new Date().toISOString().slice(0, 10)
 }
 
+// Robust gegen alte/teildefinierte Einträge (z. B. ohne status/platform).
+function normalize(raw: unknown): Task {
+  const t = (raw ?? {}) as Partial<Task>
+  const status: ContentStatus = STATUSES.some((s) => s.key === t.status) ? (t.status as ContentStatus) : 'idee'
+  return {
+    id: String(t.id ?? Date.now().toString()),
+    title: String(t.title ?? ''),
+    done: t.done ?? status === 'live',
+    status,
+    platform: String(t.platform ?? ''),
+    priority: t.priority === 'low' || t.priority === 'high' ? t.priority : 'normal',
+    project: String(t.project ?? ''),
+    due: String(t.due ?? ''),
+    notes: String(t.notes ?? ''),
+    createdAt: String(t.createdAt ?? today()),
+  }
+}
+
 function loadFromStorage(): Task[] {
   try {
     const data = localStorage.getItem(STORAGE_KEY)
-    return data ? (JSON.parse(data) as Task[]) : sampleData()
+    if (!data) return sampleData()
+    const arr = JSON.parse(data) as unknown[]
+    return Array.isArray(arr) ? arr.map(normalize) : sampleData()
   } catch {
     return sampleData()
   }
@@ -41,9 +75,10 @@ function loadFromStorage(): Task[] {
 function sampleData(): Task[] {
   const t = today()
   return [
-    { id: '1', title: 'Angebot für Kunde Müller erstellen', done: false, priority: 'high', project: 'Vertrieb', due: t, notes: '', createdAt: t },
-    { id: '2', title: 'Wissensartikel „Onboarding" schreiben', done: false, priority: 'normal', project: 'Wissen', due: '', notes: '', createdAt: t },
-    { id: '3', title: 'Support-Anfragen vom Vormittag beantworten', done: true, priority: 'normal', project: 'Support', due: '', notes: '', createdAt: t },
+    normalize({ id: '1', title: 'YouTube: „Mein Setup 2026" – Skript schreiben', status: 'skript', platform: 'YouTube', priority: 'high', project: 'YouTube', due: t }),
+    normalize({ id: '2', title: '10 TikTok-Hook-Ideen sammeln', status: 'idee', platform: 'TikTok', priority: 'normal', project: 'Shorts' }),
+    normalize({ id: '3', title: 'Newsletter #12 fertig schneiden', status: 'schnitt', platform: 'Newsletter', priority: 'normal' }),
+    normalize({ id: '4', title: 'Reel „3 Tools, die ich liebe"', status: 'live', platform: 'Instagram', priority: 'low' }),
   ]
 }
 
@@ -55,10 +90,13 @@ export const useTaskStore = defineStore('tasks', () => {
   }
 
   function addTask(input: NewTask) {
+    const status: ContentStatus = input.status ?? 'idee'
     tasks.value.unshift({
       id: Date.now().toString(),
       title: input.title,
-      done: input.done ?? false,
+      done: input.done ?? status === 'live',
+      status,
+      platform: input.platform ?? '',
       priority: input.priority ?? 'normal',
       project: input.project ?? '',
       due: input.due ?? '',
@@ -68,20 +106,29 @@ export const useTaskStore = defineStore('tasks', () => {
     save()
   }
 
+  // Status entlang der Pipeline setzen; "live" = veröffentlicht (= done).
+  function setStatus(id: string, status: ContentStatus) {
+    const t = tasks.value.find((x) => x.id === id)
+    if (t) {
+      t.status = status
+      t.done = status === 'live'
+      save()
+    }
+  }
+
   function setDone(id: string, done: boolean) {
     const t = tasks.value.find((x) => x.id === id)
     if (t) {
       t.done = done
+      if (done) t.status = 'live'
+      else if (t.status === 'live') t.status = 'schnitt'
       save()
     }
   }
 
   function toggleTask(id: string) {
     const t = tasks.value.find((x) => x.id === id)
-    if (t) {
-      t.done = !t.done
-      save()
-    }
+    if (t) setDone(id, !t.done)
   }
 
   function updateTask(updated: Task) {
@@ -95,7 +142,7 @@ export const useTaskStore = defineStore('tasks', () => {
     save()
   }
 
-  // Ersetzt alle Aufgaben (für Wiederherstellen / Rückgängig).
+  // Ersetzt alle Inhalte (für Wiederherstellen / Rückgängig).
   function setAll(list: Task[]) {
     tasks.value = list
     save()
@@ -105,9 +152,9 @@ export const useTaskStore = defineStore('tasks', () => {
   const doneCount = computed(() => tasks.value.filter((t) => t.done).length)
   const projects = computed(() => Array.from(new Set(tasks.value.map((t) => t.project).filter(Boolean))))
   const overdue = computed(() => {
-    const t = today()
-    return tasks.value.filter((x) => !x.done && x.due && x.due < t)
+    const d = today()
+    return tasks.value.filter((x) => !x.done && x.due && x.due < d)
   })
 
-  return { tasks, addTask, setDone, toggleTask, updateTask, deleteTask, setAll, openCount, doneCount, projects, overdue }
+  return { tasks, addTask, setStatus, setDone, toggleTask, updateTask, deleteTask, setAll, openCount, doneCount, projects, overdue }
 })
