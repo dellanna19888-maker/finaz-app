@@ -1,11 +1,12 @@
-# Verzeichnis-Einträge für „Hub" (Copy-Paste)
+# Verzeichnis-Einträge für „Hub" (Copy-Paste) – Creator-Edition
 
-Fertige Texte zum Eintragen in Software-Verzeichnisse (Product Hunt, Capterra,
-G2, BetaList, AppSumo, AlternativeTo, OMR Reviews …). DE **und** EN.
+Fertige Texte für Software-Verzeichnisse (Product Hunt, Capterra, G2, BetaList,
+AppSumo, AlternativeTo, OMR). DE **und** EN. Zielgruppe: **Online-Creator**,
+Aufhänger: **kostenlos**.
 
-> 💡 Tipp: Der Name „Hub" ist sehr allgemein (schwer auffindbar, oft vergeben).
-> Überleg dir evtl. einen eindeutigeren Namen, z. B. **Hubly, FlowDesk, TaskPilot,
-> AgentDesk**. Unten einfach „Hub" ersetzen.
+> 💡 Der Name „Hub" ist sehr allgemein. Ein eindeutigerer Name (z. B.
+> **CreatorHub, FlowTube, ClipPilot, TubeMate-AI**) ist leichter auffindbar –
+> unten einfach „Hub" ersetzen.
 
 ---
 
@@ -13,100 +14,87 @@ G2, BetaList, AppSumo, AlternativeTo, OMR Reviews …). DE **und** EN.
 
 **Name:** Hub
 
-**Tagline DE** (kurz, ~50 Zeichen):
-> Ein Chat statt fünf Tools – für Agenturen & Freelancer
+**Tagline DE** (~50 Zeichen): „Kostenloses KI-Tool für Creator"
 
-**Tagline EN** (Product Hunt, ≤60 Zeichen):
-> One AI chat to run tasks, knowledge & support
+**Tagline EN** (≤60 Zeichen): „Free AI copilot for creators"
 
 Alternativen:
-- „Dein Arbeitsplatz, der auf Zuruf arbeitet."
-- „Tasks, knowledge & client answers — from one AI chat."
+- „Plane Content & check deinen Kanal – per Chat, gratis."
+- „Plan content, analyze your channel — free AI for creators."
 
-## 2. Kurzbeschreibung (1–2 Sätze)
+## 2. Kurzbeschreibung
 
 **DE:**
-> Hub ist der KI-Arbeitsplatz für Agenturen & Freelancer. Sag dem Chat, was zu
-> tun ist – er legt Aufgaben an, pflegt dein Wissen und beantwortet Kundenfragen.
-> Du bestätigst, die KI erledigt den Rest. Eigener API-Key, DSGVO-bewusst.
+> Hub ist das kostenlose KI-Tool für Creator. Per Chat bekommst du Ideen, Hooks
+> und Skripte, planst deinen Content (Idee → veröffentlicht) und siehst, wie dein
+> Kanal läuft und was die Konkurrenz macht. Eigener Gratis-Schlüssel, keine
+> Kreditkarte.
 
 **EN:**
-> Hub is the AI workspace for agencies and freelancers. Tell the chat what to do —
-> it creates tasks, organizes your knowledge, and answers client questions. You
-> confirm, the AI does the busywork. Bring your own key, privacy-aware by design.
+> Hub is the free AI tool for creators. Chat to get ideas, hooks and scripts,
+> plan your content (idea → published), and see how your channel performs vs.
+> competitors. Bring your own free key, no credit card.
 
 ## 3. Lange Beschreibung (Capterra / G2 / Website)
 
 **EN:**
-> **Stop juggling five tools.** Hub brings tasks, team knowledge, and client
-> support into one place — controlled by a single AI chat.
+> **Stop juggling tools and guesswork.** Hub is a free, chat-driven workspace for
+> creators. Ask for video ideas, hooks, scripts, captions and hashtags; plan your
+> content through a clear pipeline (idea → script → recording → editing →
+> published) per platform; and run a Channel Check that tells you how your channel
+> is doing and what competitors are doing differently.
 >
-> Just type what you need ("Create a task: send proposal to client X by Friday").
-> The AI proposes the exact action; you approve it with one click. It also keeps
-> your knowledge base tidy and answers repetitive client questions straight from it.
->
-> Built for small teams: agencies, freelancers, and solo founders who lose hours to
-> busywork. Every AI action runs through a compliance gateway (checked & logged),
-> you use your own Claude/Anthropic API key, and you can self-host it. Installable
-> as a PWA, with one-click undo.
+> Built for YouTubers, TikTokers, Instagram creators and podcasters. You bring
+> your own (free) AI key, every AI action runs through a privacy-aware compliance
+> gateway, and you can self-host it. Installable as a PWA. 100% free to start.
 
-**DE:** (gekürzt)
-> **Schluss mit Tool-Chaos.** Hub bündelt Aufgaben, Team-Wissen und Kunden-Support
-> an einem Ort – gesteuert über einen einzigen KI-Chat. Du tippst, was du brauchst,
-> die KI macht den Vorschlag, du bestätigst per Klick. DSGVO-bewusst, eigener
-> API-Key, selbst hostbar.
+**DE (kurz):**
+> Das kostenlose KI-Tool für Creator: Ideen/Hooks/Skripte per Chat, Content-Plan
+> mit Status-Pipeline und ein Kanal-Check inkl. Konkurrenz-Vergleich. Eigener
+> Gratis-Schlüssel, DSGVO-bewusst, selbst hostbar.
 
-## 4. Kern-Features (Bullet-Liste)
+## 4. Kern-Features
 
-- 🧠 **Chat command center** — type what you need, the AI proposes, you approve
-- 📋 **Tasks & projects** — priority, project, due date; create/complete/edit by chat
-- 📚 **Knowledge base** — your know-how in one place; the AI answers from it
-- 💬 **Client support** — reply to repetitive questions from your knowledge
-- 🛡️ **Compliance gateway** — every AI action is checked & logged (privacy-aware)
-- 🔑 **Bring your own key** — your Claude/Anthropic key, no vendor lock-in
-- ↩️ **One-click undo** · 📱 **PWA (installable)** · 🏠 **self-hostable**
+- 🧠 **Chat-Zentrale** – Ideen, Hooks, Skripte, Captions, Hashtags, Wochenpläne
+- 🎬 **Content-Plan** – Pipeline Idee → Skript → Aufnahme → Schnitt → Veröffentlicht (pro Plattform)
+- 📊 **Kanal-Check** – Performance-Analyse + Konkurrenz-Vergleich, konkrete Tipps
+- 📚 **Wissens-/Skript-Basis** – die KI antwortet aus deinen eigenen Inhalten
+- 🆓 **Kostenlos** – eigener Gratis-Schlüssel (Google Gemini), keine Kreditkarte
+- 🛡️ Compliance-Gateway · 📱 PWA · 🏠 self-hostable
 
-## 5. Product Hunt – „First Comment" des Makers
+## 5. Product Hunt – „First Comment"
 
 **EN:**
-> Hey everyone 👋 I'm building Hub because, as a small team, I was drowning in
-> tools — one app for tasks, another for notes, the inbox for client questions.
-> Hub puts it all behind one AI chat: you say what you need, it proposes the
-> action, you approve. It keeps a knowledge base and answers client questions from
-> it, and every AI step goes through a compliance/audit gateway. You bring your own
-> key, and you can self-host it. Would love your honest feedback — what would make
-> this a daily driver for you?
-
-**DE:** (falls deutsches Publikum)
-> Hi 👋 Ich baue Hub, weil ich als kleines Team in Tools ertrunken bin – eins für
-> Aufgaben, eins für Notizen, das Postfach für Kundenfragen. Hub macht alles über
-> einen KI-Chat: du sagst, was du brauchst, die KI schlägt die Aktion vor, du
-> bestätigst. Über Feedback freue ich mich riesig!
+> Hey 👋 As a creator I was drowning in tools — one for ideas, one for planning,
+> guesswork for "is my channel even working?". Hub puts it in one free chat: ask
+> for ideas/scripts, plan content in a simple pipeline, and run a Channel Check
+> that compares you to competitors and suggests improvements. It's free (bring a
+> free Gemini key), privacy-aware, and self-hostable. Would love your feedback —
+> what would make this part of your weekly routine?
 
 ## 6. AlternativeTo / Vergleich
 
-Positioniere dich als **Alternative zu**: Notion, Trello, ClickUp, Todoist
-(„AI-driven, chat-controlled, privacy-aware").
+Alternative zu: **TubeBuddy, vidIQ, Notion, Trello** („free, chat-driven, with
+competitor insights").
 
 ## 7. Kategorien / Tags
 
-`Productivity` · `Task Management` · `Project Management` · `Artificial Intelligence` ·
-`Knowledge Base` · `Collaboration` · `SaaS` · `For Freelancers` · `For Agencies`
+`Productivity` · `Artificial Intelligence` · `Content Creation` · `Social Media` ·
+`Video` · `Analytics` · `For Creators` · `Free`
 
-## 8. Preis (Platzhalter – du entscheidest)
+## 8. Preis
 
-Vorschlag fürs Early-Access-Listing:
-> **Free** während Early Access · **BYOK** (du zahlst nur deine eigene KI-Nutzung)
+> **Free** – eigener Gratis-KI-Schlüssel (Google Gemini). Keine Kreditkarte.
 
 ## 9. SEO-Stichwörter
 
-KI-Arbeitsplatz, AI workspace, AI task manager, chat-driven project management,
-agency tools, freelancer productivity, AI knowledge base, Notion alternative.
+kostenloses KI-Tool Creator, AI tool for youtubers, content planner AI, channel
+analytics free, competitor analysis youtube, vidIQ alternative, AI script writer.
 
-## 10. Was du beim Eintrag brauchst (Checkliste)
+## 10. Eintrags-Checkliste
 
-- [ ] Logo / Icon (vorhanden: `icon-512.png`)
-- [ ] 2–3 Screenshots (Zentrale, Aufgaben-Ansicht)
-- [ ] Link zur Landingpage (`landing.html` hosten) **oder** zur Live-App (Render-URL)
+- [ ] Logo/Icon (`icon-512.png`)
+- [ ] 2–3 Screenshots (Zentrale, Content-Plan, Kanal-Check)
+- [ ] Link: Landingpage (`landing.html`) **oder** Live-App (Render-URL)
 - [ ] Tagline + Kurzbeschreibung (oben)
-- [ ] 2–3 erste Bewertungen von Testern (bei Capterra/G2/OMR)
+- [ ] 2–3 erste Bewertungen von Test-Creatorn (bei Capterra/G2/OMR)
