@@ -24,6 +24,7 @@
 const links = [
   { to: '/', label: 'Zentrale', short: 'Zentrale', icon: '🧠' },
   { to: '/tasks', label: 'Content', short: 'Content', icon: '🎬' },
+  { to: '/channel', label: 'Kanal', short: 'Kanal', icon: '📊' },
   { to: '/notes', label: 'Wissen', short: 'Wissen', icon: '📚' },
   { to: '/compliance', label: 'Compliance', short: 'Comp.', icon: '🛡️' },
 ]

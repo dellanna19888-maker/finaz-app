@@ -84,7 +84,7 @@ export function actionLabel(a: ChatAction): string {
   }
 }
 
-const ROUTES = new Set(['/', '/tasks', '/notes', '/compliance', '/settings'])
+const ROUTES = new Set(['/', '/tasks', '/channel', '/notes', '/compliance', '/settings'])
 const NOTES_KEY = 'finaz_notes'
 
 export async function executeAction(a: ChatAction, ctx: ActionContext): Promise<string> {
