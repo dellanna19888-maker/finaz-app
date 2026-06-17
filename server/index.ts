@@ -20,14 +20,129 @@ app.set('trust proxy', true)
 app.use(express.json({ limit: '2mb' }))
 
 const envClient = process.env.ANTHROPIC_API_KEY ? new Anthropic() : null
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.0-flash'
 
-// "Bring your own key": pro Anfrage darf der Client einen eigenen Key senden
-// (Header x-anthropic-key). Sonst greift der Server-Key aus .env (falls gesetzt).
-function getClient(userKey: string): Anthropic | null {
-  const apiKey = userKey || process.env.ANTHROPIC_API_KEY
-  if (!apiKey) return null
-  if (!userKey && envClient) return envClient
-  return new Anthropic({ apiKey })
+interface ModelMessage {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+// Streamt eine Modell-Antwort als Server-Sent Events (Events: delta/done/error).
+// Provider-Wahl: Anthropic (Claude) wenn ein Anthropic-Key vorhanden ist, sonst
+// Google Gemini (kostenloser Tier). "Bring your own key": pro Anfrage darf der
+// Client eigene Keys senden (x-anthropic-key / x-gemini-key); sonst greifen die
+// Server-Keys aus .env (ANTHROPIC_API_KEY / GEMINI_API_KEY).
+async function streamModel(
+  req: Request,
+  res: Response,
+  opts: { system: string; messages: ModelMessage[]; userAnthropicKey: string; userGeminiKey: string; maxTokens?: number },
+): Promise<void> {
+  const { system, messages, userAnthropicKey, userGeminiKey, maxTokens = 4096 } = opts
+  const aKey = userAnthropicKey || process.env.ANTHROPIC_API_KEY || ''
+  const gKey = userGeminiKey || process.env.GEMINI_API_KEY || ''
+  if (!aKey && !gKey) {
+    res.status(400).json({
+      error: 'Kein API-Key. Hinterlege einen Anthropic- ODER (kostenlosen) Gemini-Key in den Einstellungen (⚙️).',
+    })
+    return
+  }
+
+  res.setHeader('Content-Type', 'text/event-stream')
+  res.setHeader('Cache-Control', 'no-cache')
+  res.setHeader('Connection', 'keep-alive')
+  const send = (payload: unknown) => res.write(`data: ${JSON.stringify(payload)}\n\n`)
+
+  const ac = new AbortController()
+  let anthropicStream: ReturnType<Anthropic['messages']['stream']> | undefined
+  req.on('close', () => {
+    try {
+      ac.abort()
+    } catch {
+      /* ignore */
+    }
+    try {
+      anthropicStream?.abort()
+    } catch {
+      /* ignore */
+    }
+  })
+
+  try {
+    if (aKey) {
+      const ai = userAnthropicKey ? new Anthropic({ apiKey: userAnthropicKey }) : (envClient ?? new Anthropic({ apiKey: aKey }))
+      anthropicStream = ai.messages.stream({ model: MODEL, max_tokens: maxTokens, system, messages })
+      anthropicStream.on('text', (delta: string) => send({ type: 'delta', text: delta }))
+      await anthropicStream.finalMessage()
+    } else {
+      await streamGemini({ apiKey: gKey, system, messages, maxTokens, send, signal: ac.signal })
+    }
+    send({ type: 'done' })
+  } catch (err) {
+    const message =
+      err instanceof Anthropic.APIError
+        ? `Claude-API-Fehler (${err.status}): ${err.message}`
+        : (err as Error)?.message || 'Unbekannter Fehler'
+    send({ type: 'error', message })
+  } finally {
+    res.end()
+  }
+}
+
+// Google Gemini (REST, SSE-Streaming). Mappt assistant→model und system→system_instruction.
+async function streamGemini(opts: {
+  apiKey: string
+  system: string
+  messages: ModelMessage[]
+  maxTokens: number
+  send: (payload: unknown) => void
+  signal: AbortSignal
+}): Promise<void> {
+  const { apiKey, system, messages, maxTokens, send, signal } = opts
+  const contents = messages.map((m) => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] }))
+  const body = {
+    contents,
+    ...(system ? { system_instruction: { parts: [{ text: system }] } } : {}),
+    generationConfig: { maxOutputTokens: maxTokens },
+  }
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:streamGenerateContent?alt=sse&key=${encodeURIComponent(apiKey)}`
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+    signal,
+  })
+  if (!resp.ok || !resp.body) {
+    let detail = ''
+    try {
+      detail = ((await resp.json()) as { error?: { message?: string } })?.error?.message || ''
+    } catch {
+      /* ignore */
+    }
+    throw new Error(`Gemini-API-Fehler (${resp.status})${detail ? ': ' + detail : ''}`)
+  }
+  const reader = resp.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+  for (;;) {
+    const { value, done } = await reader.read()
+    if (done) break
+    buffer += decoder.decode(value, { stream: true }).replace(/\r/g, '')
+    const parts = buffer.split('\n\n')
+    buffer = parts.pop() ?? ''
+    for (const part of parts) {
+      const line = part.split('\n').find((l) => l.startsWith('data:'))
+      if (!line) continue
+      const json = line.slice(5).trim()
+      if (!json || json === '[DONE]') continue
+      try {
+        const obj = JSON.parse(json) as { candidates?: { content?: { parts?: { text?: string }[] } }[] }
+        const text = (obj.candidates?.[0]?.content?.parts || []).map((p) => p.text || '').join('')
+        if (text) send({ type: 'delta', text })
+      } catch {
+        /* unvollständiges JSON ignorieren */
+      }
+    }
+  }
 }
 
 // Optionale, offline GeoIP-Auflösung der Client-IP über `geoip-lite`.
@@ -151,7 +266,7 @@ function buildPrompt(action: string, text: string, instruction: string, language
 }
 
 app.get('/api/health', (_req: Request, res: Response) => {
-  res.json({ ok: true, envKey: !!process.env.ANTHROPIC_API_KEY, geoip: !!geoipLookup })
+  res.json({ ok: true, envKey: !!process.env.ANTHROPIC_API_KEY, gemini: !!process.env.GEMINI_API_KEY, geoip: !!geoipLookup })
 })
 
 app.post('/api/assist', async (req: Request, res: Response) => {
@@ -180,49 +295,16 @@ app.post('/api/assist', async (req: Request, res: Response) => {
     return res.status(428).json({ authorizationRequired: true, error: ev.decisionText, reasons: ev.reasons, compliance: ev.logEntry })
   }
 
-  const userKey = (req.headers['x-anthropic-key'] as string) || ''
-  const ai = getClient(userKey)
-  if (!ai) {
-    return res.status(400).json({
-      error: 'Kein API-Key. Hinterlege ihn in den Einstellungen (⚙️) oder als ANTHROPIC_API_KEY in .env.',
-    })
-  }
-
   const prompt = buildPrompt(action, text, instruction, language)
   if (!prompt) return res.status(400).json({ error: `Unbekannte Aktion: ${action}` })
 
-  res.setHeader('Content-Type', 'text/event-stream')
-  res.setHeader('Cache-Control', 'no-cache')
-  res.setHeader('Connection', 'keep-alive')
-  const send = (payload: unknown) => res.write(`data: ${JSON.stringify(payload)}\n\n`)
-
-  let stream: ReturnType<typeof ai.messages.stream> | undefined
-  try {
-    stream = ai.messages.stream({
-      model: MODEL,
-      max_tokens: 16000,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: prompt }],
-    })
-    req.on('close', () => {
-      try {
-        stream?.abort()
-      } catch {
-        /* ignore */
-      }
-    })
-    stream.on('text', (delta: string) => send({ type: 'delta', text: delta }))
-    await stream.finalMessage()
-    send({ type: 'done' })
-  } catch (err) {
-    const message =
-      err instanceof Anthropic.APIError
-        ? `Claude-API-Fehler (${err.status}): ${err.message}`
-        : (err as Error)?.message || 'Unbekannter Fehler'
-    send({ type: 'error', message })
-  } finally {
-    res.end()
-  }
+  await streamModel(req, res, {
+    system: SYSTEM_PROMPT,
+    messages: [{ role: 'user', content: prompt }],
+    userAnthropicKey: (req.headers['x-anthropic-key'] as string) || '',
+    userGeminiKey: (req.headers['x-gemini-key'] as string) || '',
+    maxTokens: 16000,
+  })
 })
 
 // Zentrale: Mehr-Runden-Chat, der die ganze App bedient. Wie /api/assist läuft
@@ -264,45 +346,17 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     return res.status(428).json({ authorizationRequired: true, error: ev.decisionText, reasons: ev.reasons, compliance: ev.logEntry })
   }
 
-  const userKey = (req.headers['x-anthropic-key'] as string) || ''
-  const ai = getClient(userKey)
-  if (!ai) {
-    return res.status(400).json({
-      error: 'Kein API-Key. Hinterlege ihn in den Einstellungen (⚙️) oder als ANTHROPIC_API_KEY in .env.',
-    })
-  }
-
   const system =
     CHAT_SYSTEM_PROMPT +
     (context && String(context).trim() ? `\n\nAktueller App-Zustand (Snapshot):\n${context}` : '')
 
-  res.setHeader('Content-Type', 'text/event-stream')
-  res.setHeader('Cache-Control', 'no-cache')
-  res.setHeader('Connection', 'keep-alive')
-  const send = (payload: unknown) => res.write(`data: ${JSON.stringify(payload)}\n\n`)
-
-  let stream: ReturnType<typeof ai.messages.stream> | undefined
-  try {
-    stream = ai.messages.stream({ model: MODEL, max_tokens: 4096, system, messages: history })
-    req.on('close', () => {
-      try {
-        stream?.abort()
-      } catch {
-        /* ignore */
-      }
-    })
-    stream.on('text', (delta: string) => send({ type: 'delta', text: delta }))
-    await stream.finalMessage()
-    send({ type: 'done' })
-  } catch (err) {
-    const message =
-      err instanceof Anthropic.APIError
-        ? `Claude-API-Fehler (${err.status}): ${err.message}`
-        : (err as Error)?.message || 'Unbekannter Fehler'
-    send({ type: 'error', message })
-  } finally {
-    res.end()
-  }
+  await streamModel(req, res, {
+    system,
+    messages: history,
+    userAnthropicKey: (req.headers['x-anthropic-key'] as string) || '',
+    userGeminiKey: (req.headers['x-gemini-key'] as string) || '',
+    maxTokens: 4096,
+  })
 })
 
 // Simulation: bewertet ohne Modell-Aufruf und ohne Schreiben ins Audit-Log.

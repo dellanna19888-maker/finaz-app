@@ -2,7 +2,7 @@
 // verarbeitet den SSE-Stream und meldet die Compliance-Antworten zurück
 // (428 = Autorisierung nötig, 403 = blockiert). Sendet den BYOK-Key als Header.
 
-import { getApiKey } from './apiKey'
+import { getApiKey, getGeminiKey } from './apiKey'
 
 export interface ChatMessage {
   role: 'user' | 'assistant'
@@ -32,8 +32,10 @@ export async function runChat(
   signal?: AbortSignal,
 ): Promise<ChatOutcome> {
   const key = getApiKey()
+  const gkey = getGeminiKey()
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   if (key) headers['x-anthropic-key'] = key
+  if (gkey) headers['x-gemini-key'] = gkey
 
   let resp: Response
   try {
