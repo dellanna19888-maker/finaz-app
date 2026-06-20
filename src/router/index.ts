@@ -5,6 +5,7 @@ import Channel from '../views/Channel.vue'
 import Notes from '../views/Notes.vue'
 import Compliance from '../views/Compliance.vue'
 import Settings from '../views/Settings.vue'
+import SecurityCenter from '../views/SecurityCenter.vue'
 
 export default createRouter({
   history: createWebHashHistory(),
@@ -14,6 +15,7 @@ export default createRouter({
     { path: '/channel', component: Channel },
     { path: '/notes', component: Notes },
     { path: '/compliance', component: Compliance },
+    { path: '/security', component: SecurityCenter },
     { path: '/settings', component: Settings },
   ],
 })

@@ -269,6 +269,90 @@ app.get('/api/health', (_req: Request, res: Response) => {
   res.json({ ok: true, envKey: !!process.env.ANTHROPIC_API_KEY, gemini: !!process.env.GEMINI_API_KEY, geoip: !!geoipLookup })
 })
 
+// Security Scanner: prüft HTTP-Sicherheitsheader + HTTPS einer URL.
+app.post('/api/security/scan', async (req: Request, res: Response) => {
+  const { url } = req.body ?? {}
+  if (!url || typeof url !== 'string') return res.status(400).json({ error: 'URL fehlt.' })
+
+  let target = url.trim()
+  if (!/^https?:\/\//i.test(target)) target = 'https://' + target
+
+  try {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 8000)
+
+    let response: Response
+    let usedHttps = target.startsWith('https')
+    try {
+      response = await fetch(target, { method: 'HEAD', signal: controller.signal, redirect: 'follow' })
+    } catch {
+      if (usedHttps) {
+        const httpFallback = target.replace(/^https/i, 'http')
+        response = await fetch(httpFallback, { method: 'HEAD', signal: controller.signal, redirect: 'follow' })
+        usedHttps = false
+      } else throw new Error('Verbindung fehlgeschlagen.')
+    }
+    clearTimeout(timer)
+
+    const headers = Object.fromEntries(response.headers.entries())
+    const checks = [
+      { key: 'strict-transport-security', label: 'HSTS', weight: 20 },
+      { key: 'content-security-policy', label: 'Content-Security-Policy', weight: 20 },
+      { key: 'x-frame-options', label: 'X-Frame-Options', weight: 15 },
+      { key: 'x-content-type-options', label: 'X-Content-Type-Options', weight: 15 },
+      { key: 'referrer-policy', label: 'Referrer-Policy', weight: 10 },
+      { key: 'permissions-policy', label: 'Permissions-Policy', weight: 10 },
+      { key: 'x-xss-protection', label: 'X-XSS-Protection', weight: 10 },
+    ]
+
+    const results = checks.map((c) => ({
+      label: c.label,
+      present: !!headers[c.key],
+      value: headers[c.key] || null,
+      weight: c.weight,
+    }))
+
+    let score = usedHttps ? 10 : 0
+    for (const r of results) if (r.present) score += r.weight
+
+    const grade = score >= 90 ? 'A+' : score >= 80 ? 'A' : score >= 70 ? 'B' : score >= 50 ? 'C' : score >= 30 ? 'D' : 'F'
+
+    res.json({ url: target, https: usedHttps, score, grade, checks: results, status: response.status, responseTime: Date.now() })
+  } catch (err) {
+    res.status(502).json({ error: (err as Error)?.message || 'Scan fehlgeschlagen.' })
+  }
+})
+
+// Rechenzentrum-Monitor: liefert simulierte Server-Metriken.
+// In Produktion würdest du hier echte Systeme per SSH/SNMP/Prometheus anbinden.
+const DC_NODES = [
+  { id: 'srv-01', name: 'Web Server 01', role: 'Web', location: 'Frankfurt' },
+  { id: 'srv-02', name: 'Web Server 02', role: 'Web', location: 'Frankfurt' },
+  { id: 'db-01', name: 'Database Primary', role: 'Database', location: 'Amsterdam' },
+  { id: 'db-02', name: 'Database Replica', role: 'Database', location: 'Amsterdam' },
+  { id: 'cache-01', name: 'Redis Cache', role: 'Cache', location: 'Frankfurt' },
+  { id: 'lb-01', name: 'Load Balancer', role: 'Network', location: 'Frankfurt' },
+]
+
+function simMetric(base: number, variance: number) {
+  return Math.min(100, Math.max(0, base + (Math.random() - 0.5) * variance * 2))
+}
+
+app.get('/api/dc/metrics', (_req: Request, res: Response) => {
+  const nodes = DC_NODES.map((n) => {
+    const cpu = simMetric(n.role === 'Database' ? 45 : 30, 20)
+    const ram = simMetric(n.role === 'Database' ? 70 : 50, 15)
+    const net = simMetric(40, 30)
+    const disk = simMetric(n.role === 'Database' ? 60 : 40, 5)
+    const status = cpu > 90 || ram > 95 ? 'critical' : cpu > 75 || ram > 85 ? 'warning' : 'ok'
+    return { ...n, cpu: +cpu.toFixed(1), ram: +ram.toFixed(1), net: +net.toFixed(1), disk: +disk.toFixed(1), status, uptime: Math.floor(Math.random() * 100 + 900) }
+  })
+  const alerts = nodes
+    .filter((n) => n.status !== 'ok')
+    .map((n) => ({ node: n.name, level: n.status, msg: n.cpu > 90 ? `CPU ${n.cpu}% kritisch` : `RAM ${n.ram}% hoch` }))
+  res.json({ nodes, alerts, ts: new Date().toISOString() })
+})
+
 app.post('/api/assist', async (req: Request, res: Response) => {
   const { action = '', text = '', instruction = '', language = '', consent = false } = req.body ?? {}
   const jurisdiction = resolveJurisdiction(req)
