@@ -2,6 +2,8 @@ import { createRouter, createWebHashHistory } from 'vue-router'
 import Landing from '../views/Landing.vue'
 import LoginPage from '../views/LoginPage.vue'
 import PricingPage from '../views/PricingPage.vue'
+import AffiliatePage from '../views/AffiliatePage.vue'
+import AffiliatePortal from '../views/AffiliatePortal.vue'
 import ControlCenter from '../views/ControlCenter.vue'
 import Tasks from '../views/Tasks.vue'
 import Channel from '../views/Channel.vue'
@@ -16,6 +18,8 @@ export default createRouter({
     { path: '/', component: Landing },
     { path: '/login', component: LoginPage },
     { path: '/pricing', component: PricingPage },
+    { path: '/affiliate', component: AffiliatePage },
+    { path: '/affiliate/portal', component: AffiliatePortal },
     { path: '/app', component: ControlCenter },
     { path: '/tasks', component: Tasks },
     { path: '/channel', component: Channel },

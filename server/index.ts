@@ -4,16 +4,35 @@ import express from 'express'
 import type { Request, Response } from 'express'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import Anthropic from '@anthropic-ai/sdk'
 import Stripe from 'stripe'
 import 'dotenv/config'
 import { evaluate, mapCountryToJurisdiction } from '../src/compliance/gateway'
 import { writeDecisionLog, readRecentDecisions } from './logger'
 
-const stripe = process.env.STRIPE_SECRET_KEY
-  ? new Stripe(process.env.STRIPE_SECRET_KEY)
-  : null
+const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null
+
+// ── Affiliate-Datenspeicher (JSON-Datei, DB-unabhängig) ──────────────────────
+const AFF_FILE = join(dirname(fileURLToPath(import.meta.url)), 'affiliates.json')
+
+interface AffConversion { date: string; plan: string; commission: number }
+interface Affiliate {
+  code: string; name: string; email: string; website: string
+  clicks: number; conversions: number; earnings: number
+  recentConversions: AffConversion[]; createdAt: string
+}
+
+function loadAffiliates(): Record<string, Affiliate> {
+  try { return JSON.parse(readFileSync(AFF_FILE, 'utf-8')) } catch { return {} }
+}
+function saveAffiliates(data: Record<string, Affiliate>) {
+  writeFileSync(AFF_FILE, JSON.stringify(data, null, 2))
+}
+function generateCode(name: string): string {
+  const base = name.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4) || 'AFF'
+  return base + Math.floor(1000 + Math.random() * 9000)
+}
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const PORT = Number(process.env.API_PORT || process.env.PORT || 3001)
@@ -484,7 +503,7 @@ app.get('/api/compliance/logs', async (req: Request, res: Response) => {
 // Stripe: Checkout-Session erstellen → gibt URL zurück.
 app.post('/api/stripe/create-checkout', async (req: Request, res: Response) => {
   if (!stripe) return res.status(503).json({ error: 'Stripe nicht konfiguriert. STRIPE_SECRET_KEY in .env setzen.' })
-  const { priceId, userEmail, successUrl, cancelUrl } = req.body ?? {}
+  const { priceId, userEmail, refCode = '', successUrl, cancelUrl } = req.body ?? {}
   if (!priceId) return res.status(400).json({ error: 'priceId fehlt.' })
   try {
     const session = await stripe.checkout.sessions.create({
@@ -492,6 +511,7 @@ app.post('/api/stripe/create-checkout', async (req: Request, res: Response) => {
       payment_method_types: ['card'],
       line_items: [{ price: priceId, quantity: 1 }],
       customer_email: userEmail || undefined,
+      client_reference_id: refCode || undefined,
       success_url: successUrl || `${req.headers.origin}/#/pricing?success=true`,
       cancel_url: cancelUrl || `${req.headers.origin}/#/pricing?cancel=true`,
       allow_promotion_codes: true,
@@ -518,7 +538,7 @@ app.post('/api/stripe/portal', async (req: Request, res: Response) => {
   }
 })
 
-// Stripe Webhook: Abo-Status nach Zahlung aktualisieren.
+// Stripe Webhook: Abo + Affiliate-Provision verarbeiten.
 app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), (req: Request, res: Response) => {
   if (!stripe) return res.status(503).send('Stripe nicht konfiguriert.')
   const sig = req.headers['stripe-signature'] as string
@@ -527,13 +547,62 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), (req:
     const event = stripe.webhooks.constructEvent(req.body as Buffer, sig, secret)
     if (event.type === 'checkout.session.completed') {
       const s = event.data.object as Stripe.Checkout.Session
-      console.log(`Zahlung erfolgreich: ${s.customer_email} – ${s.id}`)
+      const affCode = (s.client_reference_id || '').toUpperCase()
+      const amount = (s.amount_total || 0) / 100
+      if (affCode) {
+        const affs = loadAffiliates()
+        const aff = affs[affCode]
+        if (aff) {
+          const commission = +(amount * 0.3).toFixed(2)
+          aff.conversions++
+          aff.earnings = +(aff.earnings + commission).toFixed(2)
+          aff.recentConversions.unshift({ date: new Date().toISOString(), plan: `${amount}€`, commission })
+          if (aff.recentConversions.length > 20) aff.recentConversions.pop()
+          saveAffiliates(affs)
+          console.log(`Affiliate-Provision: ${affCode} → +${commission}€`)
+        }
+      }
+      console.log(`Zahlung: ${s.customer_email} – ${amount}€`)
     }
     res.json({ received: true })
   } catch (err) {
     console.error('Webhook-Fehler:', (err as Error).message)
     res.status(400).send(`Webhook Error: ${(err as Error).message}`)
   }
+})
+
+// Affiliate: Klick tracken (aufgerufen wenn jemand mit ?ref= landet).
+app.post('/api/affiliate/click', (req: Request, res: Response) => {
+  const { code } = req.body ?? {}
+  if (!code) return res.status(400).json({ error: 'Code fehlt.' })
+  const affs = loadAffiliates()
+  const aff = affs[code.toUpperCase()]
+  if (aff) { aff.clicks++; saveAffiliates(affs) }
+  res.json({ ok: true })
+})
+
+// Affiliate: Registrierung.
+app.post('/api/affiliate/register', (req: Request, res: Response) => {
+  const { name, email, website = '' } = req.body ?? {}
+  if (!name || !email) return res.status(400).json({ error: 'Name und E-Mail erforderlich.' })
+  const affs = loadAffiliates()
+  const existing = Object.values(affs).find(a => a.email === email)
+  if (existing) return res.json({ code: existing.code, message: 'Konto bereits vorhanden.' })
+  let code = generateCode(name)
+  while (affs[code]) code = generateCode(name)
+  affs[code] = { code, name, email, website, clicks: 0, conversions: 0, earnings: 0, recentConversions: [], createdAt: new Date().toISOString() }
+  saveAffiliates(affs)
+  console.log(`Neuer Affiliate: ${code} – ${email}`)
+  res.json({ code, message: 'Affiliate-Konto erstellt.' })
+})
+
+// Affiliate: Statistiken abrufen.
+app.get('/api/affiliate/stats/:code', (req: Request, res: Response) => {
+  const code = req.params.code.toUpperCase()
+  const affs = loadAffiliates()
+  const aff = affs[code]
+  if (!aff) return res.status(404).json({ error: 'Affiliate-Code nicht gefunden.' })
+  res.json(aff)
 })
 
 // Gebautes Frontend ausliefern (dist/). SPA: alle Nicht-/api-GETs -> index.html.

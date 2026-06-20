@@ -11,7 +11,7 @@ import { useRoute } from 'vue-router'
 import NavBar from './components/NavBar.vue'
 
 const route = useRoute()
-const noNavRoutes = ['/', '/login', '/pricing']
+const noNavRoutes = ['/', '/login', '/pricing', '/affiliate', '/affiliate/portal']
 const showNav = computed(() => !noNavRoutes.includes(route.path))
 </script>
 

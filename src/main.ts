@@ -12,4 +12,12 @@ app.use(pinia).use(router)
 const auth = useAuthStore()
 auth.init()
 
+// Affiliate-Referral-Code aus URL speichern + Klick tracken
+const refParam = new URLSearchParams(window.location.search).get('ref')
+if (refParam) {
+  const code = refParam.toUpperCase()
+  localStorage.setItem('finaz_ref', code)
+  fetch('/api/affiliate/click', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code }) }).catch(() => {})
+}
+
 app.mount('#app')

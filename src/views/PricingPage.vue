@@ -147,6 +147,7 @@ async function checkout(plan: typeof plans[0]) {
         priceId: plan.stripePriceId,
         planId: plan.id,
         userEmail: auth.email,
+        refCode: localStorage.getItem('finaz_ref') || '',
         successUrl: window.location.origin + '/#/pricing?success=true',
         cancelUrl: window.location.origin + '/#/pricing?cancel=true',
       }),

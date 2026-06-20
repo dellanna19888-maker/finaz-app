@@ -130,6 +130,7 @@
       <div class="footer-links">
         <RouterLink to="/app">App</RouterLink>
         <RouterLink to="/pricing">Preise</RouterLink>
+        <RouterLink to="/affiliate">Partner werden</RouterLink>
         <RouterLink to="/login">Anmelden</RouterLink>
       </div>
       <div class="footer-copy">© 2025 SecureHub · Alle Rechte vorbehalten</div>
