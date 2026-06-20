@@ -1,14 +1,16 @@
 # Hub – KI-Arbeits-Hub
 
-Ein **KI-gesteuerter Arbeits-/Business-Hub** (Vue 3 + Vite + TypeScript + Pinia, PWA):
-**Aufgaben/Projekte**, **Wissen/Notizen** und **Support** – alles über eine zentrale
-**KI-Schaltzentrale** bedienbar, abgesichert durch ein **Compliance-Gateway**, das jede
-KI-Operation prüft und protokolliert.
+Ein **KI-gesteuerter Arbeits-/Business-Hub für Online-Creator** (Vue 3 + Vite + TypeScript + Pinia, PWA):
+**Content-Plan**, **Kanal-Check**, **Finanzen**, **Wissen/Notizen** und **Support** – alles über eine
+zentrale **KI-Schaltzentrale** bedienbar, abgesichert durch ein **Compliance-Gateway**, das jede
+KI-Operation prüft und protokolliert. **Ein Projekt, eine App** – alle früheren Einzelteile
+(Finanz-App, Markdown-Editor, Compliance-Konsole, Creator-Tools) sind hier vereint.
 
 ## Funktionen
 
 - 🧠 **Zentrale:** KI-Schaltzentrale (Startseite) – im Chat die ganze App steuern; die KI schlägt Aktionen vor (Aufgabe anlegen/bearbeiten/abhaken/löschen, Wissen/Notiz ergänzen, navigieren, Compliance-Prüfung), die du per Klick **bestätigst** und ausführst – inkl. **Rückgängig** für die letzte Aktion. Ergebnisse fließen in den Dialog zurück, sodass die KI den neuen Stand kennt
 - 📋 **Aufgaben/Projekte:** To-dos mit Priorität, Projekt und Fälligkeit – per Hand oder über die Zentrale
+- 💰 **Finanzen:** Einnahmen &amp; Ausgaben des Creator-Business (Kategorien, Saldo, Währung) – buchbar per Hand oder über die Zentrale, plus **KI-Finanzüberblick** auf Knopfdruck
 - 📚 **Wissen/Notizen:** Markdown-Editor mit KI (Generieren, Verbessern, Fortsetzen, Zusammenfassen, Übersetzen)
 - 💬 **Support-Assistent:** die Zentrale beantwortet Fragen sachlich aus deiner Wissensbasis
 - 🛡️ **Compliance (D-C-G):** jede KI-Anfrage läuft durch ein Gateway → **PASS / WARN / BLOCK** + Audit-Log
@@ -16,9 +18,9 @@ KI-Operation prüft und protokolliert.
 ## Architektur
 
 ```
-Vue-SPA (src/)  ──/api──►  Express-Backend (server/)  ──►  Claude API
-   Views: Zentrale,           Compliance-Gateway (evaluate)
-   Aufgaben, Wissen,          + Audit-Log (JSONL)
+Vue-SPA (src/)  ──/api──►  Express-Backend (server/)  ──►  Claude / Gemini API
+   Views: Zentrale, Content,   Compliance-Gateway (evaluate)
+   Kanal, Finanzen, Wissen,    + Audit-Log (JSONL)
    Compliance
         │
    src/compliance/gateway.ts  ← gemeinsamer, isomorpher Kern (Client + Server)
@@ -52,9 +54,9 @@ Browser gespeichert und pro Anfrage an dein lokales Backend gesendet – er land
 **nie** im Repository. Alternativ kann der Server einen Key aus `.env`
 (`ANTHROPIC_API_KEY`) nutzen.
 
-Ohne Key laufen die **Aufgaben** und die **Compliance-Seite** (lokale Prüfung +
-Audit-Log) vollständig; nur die **Zentrale** und die KI-Funktionen der **Notizen**
-brauchen einen Key.
+Ohne Key laufen die **Aufgaben**, die **Finanzen** (Buchungen + Kennzahlen) und die
+**Compliance-Seite** (lokale Prüfung + Audit-Log) vollständig; nur die **Zentrale**,
+der **KI-Finanzüberblick** und die KI-Funktionen der **Notizen** brauchen einen Key.
 
 ## Skripte
 
@@ -111,9 +113,10 @@ In Render den richtigen Branch wählen (oder vorher nach `main` mergen) und
 Aufgaben + Compliance; die **KI braucht ein Backend** (siehe oben). Voraussetzung:
 GitHub Pages aktiviert (Settings → Pages → Source: „GitHub Actions").
 
-**Bonus – separate Offline-Finanz-Demo:** Die Datei
-[`finazapp.html`](./finazapp.html) ist eine eigenständige Single-Page-**Finanz**-Demo
-(Vorgänger-Konzept). Sie nutzt die lokal im Ordner [`vendor/`](./vendor/)
-mitgelieferten Bibliotheken und läuft **komplett ohne Internet** – einfach
-`finazapp.html` (mit dem `vendor/`-Ordner daneben) im Browser öffnen. Sie gehört
-**nicht** zum Hub und braucht kein Backend.
+**Bonus – Offline-Finanz-Demo (Vorgänger):** Die Datei
+[`finazapp.html`](./finazapp.html) ist die eigenständige Single-Page-**Finanz**-Demo,
+aus der dieses Projekt hervorging. Ihre Funktion lebt jetzt **im Hub** unter
+**💰 Finanzen** weiter; die HTML-Datei bleibt als reine Offline-Variante erhalten:
+Sie nutzt die lokal im Ordner [`vendor/`](./vendor/) mitgelieferten Bibliotheken und
+läuft **komplett ohne Internet** und ohne Backend – einfach `finazapp.html` (mit dem
+`vendor/`-Ordner daneben) im Browser öffnen.
