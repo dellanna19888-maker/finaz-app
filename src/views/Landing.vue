@@ -124,6 +124,58 @@
       <RouterLink to="/app" class="btn-hero">Kostenlos starten →</RouterLink>
     </section>
 
+    <!-- Source Code kaufen -->
+    <section class="code-sale-section">
+      <div class="code-sale-inner">
+        <div class="code-sale-badge">👨‍💻 Für Entwickler & Agenturen</div>
+        <h2>Starte dein eigenes SaaS</h2>
+        <p class="section-sub">Kaufe den kompletten Quellcode – deploy, rebrande und verkaufe als dein eigenes Produkt.</p>
+        <div class="code-sale-grid">
+          <div class="code-tier">
+            <div class="ct-icon">📦</div>
+            <div class="ct-name">Starter</div>
+            <div class="ct-price">49€</div>
+            <ul>
+              <li>✅ Kompletter Quellcode</li>
+              <li>✅ Setup-Anleitung (README)</li>
+              <li>✅ Render.com Deploy-Config</li>
+              <li>❌ Video-Tutorial</li>
+              <li>❌ Support</li>
+            </ul>
+          </div>
+          <div class="code-tier popular-tier">
+            <div class="popular-badge-code">⭐ Empfohlen</div>
+            <div class="ct-icon">🚀</div>
+            <div class="ct-name">Pro Bundle</div>
+            <div class="ct-price">99€</div>
+            <ul>
+              <li>✅ Kompletter Quellcode</li>
+              <li>✅ Setup + Deploy-Anleitung</li>
+              <li>✅ Video-Tutorial (Setup → Live)</li>
+              <li>✅ 30 Tage E-Mail-Support</li>
+              <li>✅ Gratis-Updates (6 Monate)</li>
+            </ul>
+          </div>
+          <div class="code-tier">
+            <div class="ct-icon">🏢</div>
+            <div class="ct-name">White-Label</div>
+            <div class="ct-price">249€</div>
+            <ul>
+              <li>✅ Alles aus Pro Bundle</li>
+              <li>✅ Vollständige White-Label-Lizenz</li>
+              <li>✅ Darf unbegrenzt verkauft werden</li>
+              <li>✅ Unbegrenzte Instanzen</li>
+              <li>✅ Priorität-Support</li>
+            </ul>
+          </div>
+        </div>
+        <a :href="gumroadLink || '#'" class="btn-gumroad" target="_blank">
+          Jetzt kaufen auf Gumroad →
+        </a>
+        <p class="code-sub">Einmalzahlung · sofortiger Download · keine Abonnements</p>
+      </div>
+    </section>
+
     <!-- Footer -->
     <footer class="l-footer">
       <div class="footer-brand">🛡️ SecureHub</div>
@@ -139,7 +191,7 @@
 </template>
 
 <script setup lang="ts">
-// Static landing page – no logic needed
+const gumroadLink = import.meta.env.VITE_GUMROAD_LINK || ''
 </script>
 
 <style scoped>
@@ -268,6 +320,49 @@
 .footer-links a { color: #64748b; text-decoration: none; font-size: 0.85rem; }
 .footer-links a:hover { color: #94a3b8; }
 .footer-copy { font-size: 0.8rem; color: #475569; }
+
+/* Code Sale Section */
+.code-sale-section {
+  padding: 5rem 2rem;
+  background: linear-gradient(180deg, #020817 0%, #0a1628 50%, #020817 100%);
+  text-align: center;
+}
+.code-sale-inner { max-width: 900px; margin: 0 auto; }
+.code-sale-badge {
+  display: inline-block; padding: 0.35rem 1rem; border-radius: 999px;
+  background: rgba(139,92,246,0.15); border: 1px solid rgba(139,92,246,0.3);
+  color: #a78bfa; font-size: 0.85rem; margin-bottom: 1.5rem;
+}
+.code-sale-section h2 { font-size: 2.25rem; font-weight: 700; margin: 0 0 0.5rem; }
+.code-sale-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.25rem; margin: 2.5rem 0;
+}
+.code-tier {
+  background: #0f172a; border: 1px solid #1e293b; border-radius: 16px;
+  padding: 1.75rem; text-align: left; position: relative;
+  transition: border-color 0.2s;
+}
+.code-tier:hover { border-color: #334155; }
+.code-tier.popular-tier { border-color: #8b5cf6; background: linear-gradient(180deg, rgba(139,92,246,0.05), #0f172a); }
+.popular-badge-code {
+  position: absolute; top: -13px; left: 50%; transform: translateX(-50%);
+  background: #8b5cf6; color: #fff; padding: 0.2rem 0.9rem;
+  border-radius: 999px; font-size: 0.78rem; white-space: nowrap;
+}
+.ct-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+.ct-name { font-size: 1rem; font-weight: 600; color: #94a3b8; margin-bottom: 0.25rem; }
+.ct-price { font-size: 2.25rem; font-weight: 800; color: #e2e8f0; margin-bottom: 1.25rem; }
+.code-tier ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.45rem; }
+.code-tier li { font-size: 0.85rem; color: #cbd5e1; }
+.btn-gumroad {
+  display: inline-block; padding: 0.9rem 2.5rem; border-radius: 12px;
+  background: linear-gradient(135deg, #8b5cf6, #6d28d9); color: #fff;
+  text-decoration: none; font-size: 1rem; font-weight: 700;
+  transition: all 0.2s; margin-bottom: 0.75rem;
+}
+.btn-gumroad:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(139,92,246,0.3); }
+.code-sub { color: #475569; font-size: 0.82rem; margin: 0; }
 
 @media (max-width: 700px) {
   .hero h1 { font-size: 2.2rem; }

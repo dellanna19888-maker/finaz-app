@@ -1,119 +1,215 @@
-# Hub – KI-Arbeits-Hub
+# 🛡️ SecureHub — Cyber Security SaaS Starter Kit
 
-Ein **KI-gesteuerter Arbeits-/Business-Hub** (Vue 3 + Vite + TypeScript + Pinia, PWA):
-**Aufgaben/Projekte**, **Wissen/Notizen** und **Support** – alles über eine zentrale
-**KI-Schaltzentrale** bedienbar, abgesichert durch ein **Compliance-Gateway**, das jede
-KI-Operation prüft und protokolliert.
+> **Full-stack SaaS app** — Security Scanner + Data Center Monitor + AI Assistant + Affiliate System + Automated Email Reports. Ready to deploy and sell.
 
-## Funktionen
+![Vue 3](https://img.shields.io/badge/Vue_3-TypeScript-blue) ![License](https://img.shields.io/badge/license-Commercial-green) ![Deploy](https://img.shields.io/badge/Deploy-Render.com-purple)
 
-- 🧠 **Zentrale:** KI-Schaltzentrale (Startseite) – im Chat die ganze App steuern; die KI schlägt Aktionen vor (Aufgabe anlegen/bearbeiten/abhaken/löschen, Wissen/Notiz ergänzen, navigieren, Compliance-Prüfung), die du per Klick **bestätigst** und ausführst – inkl. **Rückgängig** für die letzte Aktion. Ergebnisse fließen in den Dialog zurück, sodass die KI den neuen Stand kennt
-- 📋 **Aufgaben/Projekte:** To-dos mit Priorität, Projekt und Fälligkeit – per Hand oder über die Zentrale
-- 📚 **Wissen/Notizen:** Markdown-Editor mit KI (Generieren, Verbessern, Fortsetzen, Zusammenfassen, Übersetzen)
-- 💬 **Support-Assistent:** die Zentrale beantwortet Fragen sachlich aus deiner Wissensbasis
-- 🛡️ **Compliance (D-C-G):** jede KI-Anfrage läuft durch ein Gateway → **PASS / WARN / BLOCK** + Audit-Log
+---
 
-## Architektur
+## 🚀 What You Get
 
-```
-Vue-SPA (src/)  ──/api──►  Express-Backend (server/)  ──►  Claude API
-   Views: Zentrale,           Compliance-Gateway (evaluate)
-   Aufgaben, Wissen,          + Audit-Log (JSONL)
-   Compliance
-        │
-   src/compliance/gateway.ts  ← gemeinsamer, isomorpher Kern (Client + Server)
-```
+A complete, production-ready SaaS application:
 
-- Der **API-Key bleibt serverseitig** (im Backend), nie im Browser.
-- Das **Compliance-Gateway** ist ein isomorphes Modul: die Client-Seite kann
-  Operationen sofort lokal prüfen, der Server prüft + protokolliert echte Aufrufe.
+| Feature | Description |
+|---|---|
+| 🔍 **Security Scanner** | Scans any website for 7 HTTP security headers, grades A+ to F |
+| 🖥️ **Data Center Monitor** | Real-time CPU, RAM, Network, Disk metrics with alert system |
+| 🔧 **Fix Guides** | Copy-paste code snippets for Apache, Nginx, Node.js, WordPress |
+| 📧 **Weekly Email Reports** | Automated security scans with beautiful HTML emails via Nodemailer |
+| 🤖 **AI Assistant** | Powered by Claude (Anthropic) or Google Gemini (free tier) |
+| 💳 **Digistore24 Payments** | German payment platform — Kreditkarte, PayPal, Sofort, Klarna |
+| 👥 **Affiliate System** | 30% commission, referral tracking, partner dashboard |
+| 🏠 **Landing Page** | Professional marketing page with pricing, FAQ, trust badges |
+| 🔐 **Auth (Supabase)** | Login/Register or demo mode — works without any setup |
+| 📄 **PDF Export** | Security report export (Pro feature gate) |
 
-## Setup
+---
+
+## 💻 Tech Stack
+
+- **Frontend:** Vue 3 + TypeScript + Vite + Pinia
+- **Backend:** Node.js + Express + TypeScript
+- **Auth:** Supabase (optional — demo mode works without it)
+- **Payments:** Digistore24 (webhook integration)
+- **Email:** Nodemailer (SMTP — Gmail, SendGrid, etc.)
+- **AI:** Anthropic Claude API + Google Gemini API
+- **Deploy:** Render.com (render.yaml included)
+
+---
+
+## ⚡ Quick Start
+
+### 1. Install
 
 ```bash
 npm install
-cp .env.example .env      # ANTHROPIC_API_KEY eintragen (nur für KI-Funktionen)
-npm run dev:all           # startet Vite (Frontend) UND das API-Backend
 ```
 
-- Frontend: http://localhost:5173  ·  API: http://localhost:3001 (per Vite-Proxy unter `/api`)
-- Alternativ getrennt: `npm run dev` (nur Frontend) und `npm run api` (nur Backend)
+### 2. Configure Environment
 
-### Als Demo mit eigenem Key (ein Befehl)
+Create a `.env` file:
+
+```env
+# AI — choose one or both
+ANTHROPIC_API_KEY=sk-ant-...
+GEMINI_API_KEY=AIza...              # free tier available
+
+# Email Reports
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your@gmail.com
+SMTP_PASS=your-app-password
+SMTP_FROM=SecureHub <your@gmail.com>
+
+# Auth (optional)
+VITE_SUPABASE_URL=https://xxx.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJ...
+
+# Payments (optional)
+VITE_DS24_PRO_LINK=https://www.digistore24.com/product/YOUR_ID
+VITE_DS24_BUSINESS_LINK=https://www.digistore24.com/product/YOUR_ID
+```
+
+### 3. Run Development
 
 ```bash
-npm install
-npm run demo     # baut das Frontend und startet ALLES auf http://localhost:3001
+npm run api:dev    # backend on port 3001
+npm run dev        # frontend on port 5173 (new terminal)
 ```
 
-Dann **http://localhost:3001** öffnen und unter **⚙️ Einstellungen** deinen
-**eigenen** KI-Schlüssel eintragen – Anthropic **oder kostenlos Google Gemini**. Der Key wird nur im
-Browser gespeichert und pro Anfrage an dein lokales Backend gesendet – er landet
-**nie** im Repository. Alternativ kann der Server einen Key aus `.env`
-(`ANTHROPIC_API_KEY`) nutzen.
+### 4. Build & Deploy
 
-Ohne Key laufen die **Aufgaben** und die **Compliance-Seite** (lokale Prüfung +
-Audit-Log) vollständig; nur die **Zentrale** und die KI-Funktionen der **Notizen**
-brauchen einen Key.
+```bash
+npm run build      # builds frontend to dist/
+npm run start      # serves frontend + API on one port
+```
 
-## Skripte
+---
 
-| Skript            | Zweck                                            |
-| ----------------- | ------------------------------------------------ |
-| `npm run dev`     | Vite-Frontend                                    |
-| `npm run api`     | API-Backend (Claude + Compliance-Gateway)        |
-| `npm run dev:all` | Frontend + Backend parallel                      |
-| `npm run demo`    | Build + Backend auf **einem** Port (eine URL)    |
-| `npm run build`   | Typecheck + Produktions-Build (`dist/`)          |
+## 🌐 Deploy to Render.com
 
-## Konfiguration (`.env`)
+1. Push code to GitHub
+2. Go to [render.com](https://render.com) → New Web Service
+3. Connect repo — Render auto-detects `render.yaml`
+4. Add environment variables in Render Dashboard
+5. Done — free tier works for getting started
 
-| Variable                        | Zweck                                       | Standard          |
-| ------------------------------- | ------------------------------------------- | ----------------- |
-| `ANTHROPIC_API_KEY`             | Claude-Key (optional – sonst Key im Browser via ⚙️) | –           |
-| `CLAUDE_MODEL`                  | Modell                                      | `claude-opus-4-8` |
-| `GEMINI_API_KEY`                | Gratis-Alternative (Google Gemini, falls kein Anthropic-Key) | –   |
-| `GEMINI_MODEL`                  | Gemini-Modell                               | `gemini-2.0-flash` |
-| `API_PORT`                      | Port des Backends (= Vite-Proxy-Ziel)       | `3001`            |
-| `COMPLIANCE_FORCE_JURISDICTION` | Profil erzwingen (`EU`/`UK`/`US`/`DEFAULT`) | – (GEO-Erkennung) |
-| `COMPLIANCE_MAX_CHARS`          | Datenminimierung (max. Zeichen)             | `50000`           |
-| `ENABLE_GEOIP`                  | Echte GeoIP-Auflösung der IP (geoip-lite, ~150 MB RAM) | aus    |
+---
 
-## Compliance-Gateway (D-C-G)
+## 📧 Email Reports Setup
 
-Vor jedem Modell-Aufruf: GEO-Identifikation → Norm-Mapping (EU/UK/US/DEFAULT) →
-Folgenabschätzung (PII, besondere Kategorien nach DSGVO Art. 9, Datenmenge,
-verbotene Praktiken) → Gatekeeping. **Fail-closed** (kein Audit-Log ⇒ Block),
-Standardprofil ist **DSGVO**. Die **GEO-Identifikation** wertet CDN-Header aus;
-optional (per `ENABLE_GEOIP=1`, Paket `geoip-lite`, ~150 MB RAM) wird zusätzlich
-die Client-IP offline zu einem Land aufgelöst. Endpoints: `POST /api/assist`,
-`POST /api/chat` (Zentrale/Dialog), `POST /api/compliance/check` (Simulation),
-`GET /api/compliance/logs`.
+**Gmail (easiest):**
+1. Enable 2-Factor Authentication
+2. Google Account → Security → App Passwords → create one for "Mail"
+3. Use the 16-character password as `SMTP_PASS`
 
-> ⚠ Technisches Governance-Gerüst, **keine Rechtsberatung** und keine
-> zertifizierte Compliance. Regeln/GEO sind illustrativ.
+**Weekly Cron (Render Free sleeps after 24h):**
+1. Sign up at [cron-job.org](https://cron-job.org) — free
+2. Create job: `POST https://your-app.onrender.com/api/monitor/weekly-run`
+3. Schedule: every Sunday 08:00
 
-## Deployment
+---
 
-Vollständige Anleitung: [`DEPLOY.md`](./DEPLOY.md). Auf einem **Chromebook**
-selbst hosten (Linux-Umgebung): [`CHROMEBOOK.md`](./CHROMEBOOK.md).
+## 💳 Digistore24 Setup
 
-**Volle Version inkl. KI (mit eigenem Key):**
+1. Create account at [digistore24.com](https://www.digistore24.com)
+2. Create two products: **Pro (19€/month)** and **Business (49€/month)**
+3. Copy product links → add to `.env`
+4. In Digistore24 → IPN/Webhook → set URL: `https://your-app.onrender.com/api/ds24/webhook`
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/dellanna19888-maker/finaz-app)
+---
 
-In Render den richtigen Branch wählen (oder vorher nach `main` mergen) und
-`ANTHROPIC_API_KEY` als Secret setzen. Universell auch per `Dockerfile`
-(jeder Container-Host) – siehe `DEPLOY.md`.
+## 👥 Affiliate System
 
-**Kostenloser Vorschau-Link (GitHub Pages, ohne Key):** Der Workflow
-`.github/workflows/deploy.yml` veröffentlicht das statische Frontend. Dort laufen
-Aufgaben + Compliance; die **KI braucht ein Backend** (siehe oben). Voraussetzung:
-GitHub Pages aktiviert (Settings → Pages → Source: „GitHub Actions").
+Users register at `/affiliate` and get:
+- Unique referral code (e.g. `MAXM3375`)
+- Tracking link: `https://your-app.com?ref=MAXM3375`
+- 30% commission on every sale (via Digistore24 webhook)
+- Dashboard at `/affiliate/portal`
 
-**Bonus – separate Offline-Finanz-Demo:** Die Datei
-[`finazapp.html`](./finazapp.html) ist eine eigenständige Single-Page-**Finanz**-Demo
-(Vorgänger-Konzept). Sie nutzt die lokal im Ordner [`vendor/`](./vendor/)
-mitgelieferten Bibliotheken und läuft **komplett ohne Internet** – einfach
-`finazapp.html` (mit dem `vendor/`-Ordner daneben) im Browser öffnen. Sie gehört
-**nicht** zum Hub und braucht kein Backend.
+Data stored in `server/affiliates.json` — no database needed.
+
+---
+
+## 🔌 API Reference
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `/api/security/scan` | POST | Scan URL for security headers |
+| `/api/dc/metrics` | GET | Data center metrics |
+| `/api/monitor/add` | POST | Add site to monitoring |
+| `/api/monitor/list` | GET | List monitored sites |
+| `/api/monitor/remove` | POST | Remove site |
+| `/api/monitor/scan-now` | POST | Immediate scan + email |
+| `/api/monitor/weekly-run` | POST | Cron trigger for weekly scans |
+| `/api/ds24/webhook` | POST | Digistore24 payment webhook |
+| `/api/affiliate/register` | POST | Register as affiliate |
+| `/api/affiliate/click` | POST | Track referral click |
+| `/api/affiliate/stats/:code` | GET | Affiliate statistics |
+| `/api/assist` | POST | AI assistant (SSE streaming) |
+| `/api/chat` | POST | AI chat (SSE streaming) |
+
+---
+
+## 📁 Project Structure
+
+```
+securehub/
+├── src/
+│   ├── views/
+│   │   ├── Landing.vue           # Marketing landing page
+│   │   ├── LoginPage.vue         # Auth (Supabase + demo mode)
+│   │   ├── SecurityCenter.vue    # Scanner + Monitor + Email reports
+│   │   ├── PricingPage.vue       # Plans + Digistore24 checkout
+│   │   ├── AffiliatePage.vue     # Affiliate registration
+│   │   └── AffiliatePortal.vue   # Affiliate dashboard
+│   ├── stores/auth.ts            # Pinia auth store
+│   └── router/index.ts           # Vue Router
+├── server/
+│   ├── index.ts                  # Express API + all endpoints
+│   ├── affiliates.json           # Affiliate data (auto-created)
+│   └── monitored-sites.json      # Monitoring data (auto-created)
+└── render.yaml                   # Render.com deploy config
+```
+
+---
+
+## 🛠️ Customization
+
+**Rebrand:**
+1. Find & replace `SecureHub` with your brand name
+2. Update colors: `#3b82f6` → your brand color
+3. Replace `🛡️` with your logo
+4. Update contact email in `Landing.vue`
+
+**Real server monitoring** (instead of simulated):
+- Replace `simMetric()` in `server/index.ts` with Prometheus/Datadog/SSH calls
+
+**Add database:**
+- Replace JSON file storage (`affiliates.json`, `monitored-sites.json`) with PostgreSQL or Supabase
+
+---
+
+## NPM Scripts
+
+| Script | Purpose |
+|---|---|
+| `npm run dev` | Vite frontend (port 5173) |
+| `npm run api:dev` | Express backend (port 3001) |
+| `npm run dev:all` | Frontend + Backend parallel |
+| `npm run build` | TypeCheck + production build |
+| `npm run start` | Serve built app (frontend + API) |
+
+---
+
+## 📝 License
+
+**Commercial License** — Use this code to build and sell your own SaaS. You may not resell or redistribute the source code itself.
+
+---
+
+## 🆘 Support
+
+Questions? Open an issue or contact: **your@email.com**
+
+> Built with Vue 3, Node.js, Anthropic Claude AI
