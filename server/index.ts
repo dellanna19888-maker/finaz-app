@@ -5,6 +5,7 @@ import type { Request, Response } from 'express'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import tls from 'node:tls'
 import Anthropic from '@anthropic-ai/sdk'
 import nodemailer from 'nodemailer'
 import 'dotenv/config'
@@ -291,7 +292,41 @@ app.get('/api/health', (_req: Request, res: Response) => {
   res.json({ ok: true, envKey: !!process.env.ANTHROPIC_API_KEY, gemini: !!process.env.GEMINI_API_KEY, geoip: !!geoipLookup })
 })
 
-// Security Scanner: prüft HTTP-Sicherheitsheader + HTTPS einer URL.
+// ── SSL-Zertifikat prüfen ─────────────────────────────────────────────────────
+interface SslInfo { valid: boolean; daysRemaining: number | null; expiry: string | null; issuer: string | null; subject: string | null }
+
+function checkSslCert(hostname: string): Promise<SslInfo> {
+  return new Promise((resolve) => {
+    const timeout = setTimeout(() => { socket.destroy(); resolve({ valid: false, daysRemaining: null, expiry: null, issuer: null, subject: null }) }, 6000)
+    const socket = tls.connect(443, hostname, { servername: hostname, rejectUnauthorized: false }, () => {
+      clearTimeout(timeout)
+      const cert = socket.getPeerCertificate()
+      socket.destroy()
+      if (!cert?.valid_to) return resolve({ valid: false, daysRemaining: null, expiry: null, issuer: null, subject: null })
+      const expiry = new Date(cert.valid_to)
+      const days = Math.floor((expiry.getTime() - Date.now()) / 86_400_000)
+      resolve({ valid: days > 0, daysRemaining: days, expiry: expiry.toISOString(), issuer: (cert.issuer as Record<string, string>)?.O || (cert.issuer as Record<string, string>)?.CN || null, subject: (cert.subject as Record<string, string>)?.CN || null })
+    })
+    socket.on('error', () => { clearTimeout(timeout); resolve({ valid: false, daysRemaining: null, expiry: null, issuer: null, subject: null }) })
+  })
+}
+
+// ── Scan-Verlauf (letzte 10 Scans pro URL) ────────────────────────────────────
+const HISTORY_FILE = join(dirname(fileURLToPath(import.meta.url)), 'scan-history.json')
+interface HistoryEntry { date: string; score: number; grade: string; https: boolean }
+
+function loadHistory(): Record<string, HistoryEntry[]> {
+  try { return JSON.parse(readFileSync(HISTORY_FILE, 'utf-8')) } catch { return {} }
+}
+function saveToHistory(url: string, entry: HistoryEntry) {
+  const h = loadHistory()
+  if (!h[url]) h[url] = []
+  h[url].unshift(entry)
+  if (h[url].length > 10) h[url] = h[url].slice(0, 10)
+  writeFileSync(HISTORY_FILE, JSON.stringify(h, null, 2))
+}
+
+// Security Scanner: HTTP-Header + HTTPS + SSL-Zertifikat + Verlauf
 app.post('/api/security/scan', async (req: Request, res: Response) => {
   const { url } = req.body ?? {}
   if (!url || typeof url !== 'string') return res.status(400).json({ error: 'URL fehlt.' })
@@ -303,20 +338,19 @@ app.post('/api/security/scan', async (req: Request, res: Response) => {
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), 8000)
 
-    let response: Response
+    let fetchResponse: globalThis.Response
     let usedHttps = target.startsWith('https')
     try {
-      response = await fetch(target, { method: 'HEAD', signal: controller.signal, redirect: 'follow' })
+      fetchResponse = await fetch(target, { method: 'HEAD', signal: controller.signal, redirect: 'follow' })
     } catch {
       if (usedHttps) {
-        const httpFallback = target.replace(/^https/i, 'http')
-        response = await fetch(httpFallback, { method: 'HEAD', signal: controller.signal, redirect: 'follow' })
+        fetchResponse = await fetch(target.replace(/^https/i, 'http'), { method: 'HEAD', signal: controller.signal, redirect: 'follow' })
         usedHttps = false
       } else throw new Error('Verbindung fehlgeschlagen.')
     }
     clearTimeout(timer)
 
-    const headers = Object.fromEntries(response.headers.entries())
+    const headers = Object.fromEntries(fetchResponse.headers.entries())
     const checks = [
       { key: 'strict-transport-security', label: 'HSTS', weight: 20 },
       { key: 'content-security-policy', label: 'Content-Security-Policy', weight: 20 },
@@ -326,23 +360,30 @@ app.post('/api/security/scan', async (req: Request, res: Response) => {
       { key: 'permissions-policy', label: 'Permissions-Policy', weight: 10 },
       { key: 'x-xss-protection', label: 'X-XSS-Protection', weight: 10 },
     ]
-
-    const results = checks.map((c) => ({
-      label: c.label,
-      present: !!headers[c.key],
-      value: headers[c.key] || null,
-      weight: c.weight,
-    }))
-
+    const results = checks.map((c) => ({ label: c.label, present: !!headers[c.key], value: headers[c.key] || null, weight: c.weight }))
     let score = usedHttps ? 10 : 0
     for (const r of results) if (r.present) score += r.weight
-
     const grade = score >= 90 ? 'A+' : score >= 80 ? 'A' : score >= 70 ? 'B' : score >= 50 ? 'C' : score >= 30 ? 'D' : 'F'
 
-    res.json({ url: target, https: usedHttps, score, grade, checks: results, status: response.status, responseTime: Date.now() })
+    // SSL-Zertifikat parallel prüfen
+    const hostname = new URL(target).hostname
+    const ssl = usedHttps ? await checkSslCert(hostname) : null
+
+    // Scan-Verlauf speichern
+    saveToHistory(target, { date: new Date().toISOString(), score, grade, https: usedHttps })
+
+    res.json({ url: target, https: usedHttps, score, grade, checks: results, ssl, status: fetchResponse.status, responseTime: Date.now() })
   } catch (err) {
     res.status(502).json({ error: (err as Error)?.message || 'Scan fehlgeschlagen.' })
   }
+})
+
+// Scan-Verlauf abrufen
+app.get('/api/security/history', (req: Request, res: Response) => {
+  const { url } = req.query
+  if (!url) return res.status(400).json({ error: 'url Parameter fehlt.' })
+  const h = loadHistory()
+  res.json({ history: h[String(url)] || [] })
 })
 
 // ── Data Center Monitor: Real Agents + Simulated Fallback ────────────────────
@@ -639,8 +680,9 @@ interface ScanResult {
 }
 interface MonitoredSite {
   url: string; email: string; label: string
-  lastScore: number | null; lastGrade: string | null
+  lastScore: number | null; lastGrade: string | null; prevScore: number | null
   lastScan: string | null; addedAt: string
+  uptime: boolean | null; lastUptimeCheck: string | null; uptimeAlertSent: boolean
 }
 
 function loadSites(): MonitoredSite[] {
@@ -699,30 +741,57 @@ async function sendReportEmail(site: MonitoredSite, result: { https: boolean; sc
   if (!transport) return
   const missing = result.checks.filter((c) => !c.present).map((c) => `<li>❌ ${c.label}</li>`).join('')
   const present = result.checks.filter((c) => c.present).map((c) => `<li>✅ ${c.label}</li>`).join('')
-  const gradeColor = result.grade.startsWith('A') ? '#22c55e' : result.grade === 'B' ? '#84cc16' : result.grade === 'C' ? '#f59e0b' : '#ef4444'
+  const gc = result.grade.startsWith('A') ? '#22c55e' : result.grade === 'B' ? '#84cc16' : result.grade === 'C' ? '#f59e0b' : '#ef4444'
+  const prevScore = site.prevScore
+  const trend = prevScore !== null
+    ? result.score > prevScore ? `<span style="color:#4ade80">▲ +${result.score - prevScore} Pkt. gegenüber letzter Woche</span>`
+    : result.score < prevScore ? `<span style="color:#f87171">▼ −${prevScore - result.score} Pkt. gegenüber letzter Woche</span>`
+    : `<span style="color:#94a3b8">→ Unverändert</span>` : ''
   const html = `
-    <div style="font-family:sans-serif;max-width:560px;margin:0 auto;background:#020817;color:#e2e8f0;border-radius:12px;padding:2rem;">
+    <div style="font-family:sans-serif;max-width:580px;margin:0 auto;background:#020817;color:#e2e8f0;border-radius:12px;padding:2rem;">
       <h2 style="color:#60a5fa;margin-top:0">🛡️ SecureHub – Wöchentlicher Sicherheitsbericht</h2>
-      <p>Website: <strong>${site.url}</strong></p>
-      <div style="background:#0f172a;border-radius:8px;padding:1rem;margin:1rem 0;display:flex;align-items:center;gap:1rem;">
-        <span style="font-size:3rem;font-weight:800;color:${gradeColor}">${result.grade}</span>
+      <p style="color:#94a3b8">Website: <strong style="color:#e2e8f0">${site.url}</strong></p>
+      <div style="background:#0f172a;border-radius:8px;padding:1.25rem;margin:1rem 0;display:flex;align-items:center;gap:1.5rem;">
+        <span style="font-size:3.5rem;font-weight:800;color:${gc};min-width:70px;text-align:center">${result.grade}</span>
         <div>
-          <div style="font-size:1.5rem;font-weight:700">${result.score}/100 Punkte</div>
-          <div style="color:#94a3b8;font-size:0.85rem">HTTPS: ${result.https ? '✅ Aktiv' : '❌ Fehlt'}</div>
+          <div style="font-size:1.6rem;font-weight:700">${result.score}<span style="font-size:1rem;color:#64748b">/100 Pkt.</span></div>
+          ${trend ? `<div style="font-size:0.88rem;margin-top:4px">${trend}</div>` : ''}
+          <div style="color:#94a3b8;font-size:0.85rem;margin-top:4px">HTTPS: ${result.https ? '✅ Aktiv' : '❌ Fehlt'} &nbsp;|&nbsp; Uptime: ${site.uptime ? '✅ Online' : '🔴 Offline'}</div>
         </div>
       </div>
-      ${present ? `<h3 style="color:#22c55e">Vorhanden:</h3><ul style="color:#cbd5e1">${present}</ul>` : ''}
-      ${missing ? `<h3 style="color:#ef4444">Fehlende Header:</h3><ul style="color:#cbd5e1">${missing}</ul>` : ''}
+      ${present ? `<h3 style="color:#22c55e;font-size:0.95rem">✅ Vorhanden:</h3><ul style="color:#cbd5e1;font-size:0.88rem">${present}</ul>` : ''}
+      ${missing ? `<h3 style="color:#ef4444;font-size:0.95rem">❌ Fehlende Header:</h3><ul style="color:#cbd5e1;font-size:0.88rem">${missing}</ul><p style="color:#94a3b8;font-size:0.82rem">Öffne die App für Copy-Paste Fix-Anleitungen (Apache, Nginx, Node.js, WordPress).</p>` : ''}
       <hr style="border-color:#1e293b;margin:1.5rem 0">
-      <p style="color:#64748b;font-size:0.8rem">Du erhältst diesen Bericht wöchentlich von SecureHub.<br>
-      Abmelden: Öffne die App unter dem Monitoring-Tab und entferne die Website.</p>
+      <p style="color:#475569;font-size:0.78rem">Wöchentlicher Bericht von 🛡️ SecureHub · <a href="https://securehub.de" style="color:#60a5fa">securehub.de</a><br>
+      Abmelden: App → Monitoring-Tab → Website entfernen.</p>
     </div>`
   await transport.sendMail({
     from: process.env.SMTP_FROM || process.env.SMTP_USER,
     to: site.email,
-    subject: `SecureHub: ${site.url} – Note ${result.grade} (${result.score}/100)`,
+    subject: `SecureHub: ${site.url} – Note ${result.grade} (${result.score}/100)${prevScore !== null && result.score > prevScore ? ' ▲' : prevScore !== null && result.score < prevScore ? ' ▼' : ''}`,
     html,
   })
+}
+
+// Uptime-Check: ist die Seite erreichbar?
+async function checkUptime(url: string): Promise<boolean> {
+  try {
+    const ctrl = new AbortController()
+    const t = setTimeout(() => ctrl.abort(), 8000)
+    const r = await fetch(url, { method: 'HEAD', signal: ctrl.signal, redirect: 'follow' })
+    clearTimeout(t)
+    return r.status < 500
+  } catch { return false }
+}
+
+// Uptime-Alert E-Mail senden
+async function sendUptimeAlert(site: MonitoredSite, isUp: boolean) {
+  const transport = createMailTransport()
+  if (!transport) return
+  const html = isUp
+    ? `<div style="font-family:sans-serif;max-width:520px;margin:0 auto;background:#020817;color:#e2e8f0;padding:2rem;border-radius:12px"><h2 style="color:#4ade80">✅ Website wieder online</h2><p><strong>${site.url}</strong> ist wieder erreichbar.</p><p style="color:#64748b;font-size:0.85rem">SecureHub Uptime-Monitor</p></div>`
+    : `<div style="font-family:sans-serif;max-width:520px;margin:0 auto;background:#020817;color:#e2e8f0;padding:2rem;border-radius:12px"><h2 style="color:#f87171">🔴 Website nicht erreichbar!</h2><p><strong>${site.url}</strong> antwortet nicht. Bitte sofort prüfen.</p><p style="color:#64748b;font-size:0.85rem">SecureHub Uptime-Monitor · ${new Date().toLocaleString('de-DE')}</p></div>`
+  await transport.sendMail({ from: process.env.SMTP_FROM || process.env.SMTP_USER, to: site.email, subject: isUp ? `✅ ${site.url} – wieder online` : `🔴 ALERT: ${site.url} nicht erreichbar!`, html })
 }
 
 // Monitoring: Site hinzufügen
@@ -731,14 +800,12 @@ app.post('/api/monitor/add', async (req: Request, res: Response) => {
   if (!url || !email) return res.status(400).json({ error: 'URL und E-Mail erforderlich.' })
   const sites = loadSites()
   if (sites.find((s) => s.url === url && s.email === email)) return res.json({ ok: true, message: 'Bereits vorhanden.' })
-  const result = await scanUrl(url)
+  const [result, up] = await Promise.all([scanUrl(url), checkUptime(url)])
   const site: MonitoredSite = {
-    url, email,
-    label: label || url,
-    lastScore: result?.score ?? null,
-    lastGrade: result?.grade ?? null,
-    lastScan: result ? new Date().toISOString() : null,
-    addedAt: new Date().toISOString(),
+    url, email, label: label || url,
+    lastScore: result?.score ?? null, lastGrade: result?.grade ?? null, prevScore: null,
+    lastScan: result ? new Date().toISOString() : null, addedAt: new Date().toISOString(),
+    uptime: up, lastUptimeCheck: new Date().toISOString(), uptimeAlertSent: false,
   }
   sites.push(site)
   saveSites(sites)
@@ -766,33 +833,58 @@ app.post('/api/monitor/remove', (req: Request, res: Response) => {
 app.post('/api/monitor/scan-now', async (req: Request, res: Response) => {
   const { url, email } = req.body ?? {}
   if (!url) return res.status(400).json({ error: 'URL erforderlich.' })
-  const result = await scanUrl(url)
+  const [result, up] = await Promise.all([scanUrl(url), checkUptime(url)])
   if (!result) return res.status(502).json({ error: 'Scan fehlgeschlagen.' })
   const sites = loadSites()
   const site = sites.find((s) => s.url === url)
   if (site) {
-    site.lastScore = result.score
-    site.lastGrade = result.grade
+    site.prevScore = site.lastScore
+    site.lastScore = result.score; site.lastGrade = result.grade
     site.lastScan = new Date().toISOString()
+    site.uptime = up; site.lastUptimeCheck = new Date().toISOString()
     saveSites(sites)
     if (email) await sendReportEmail(site, result).catch((e) => console.error('E-Mail-Fehler:', e))
   }
-  res.json({ ok: true, ...result })
+  res.json({ ok: true, uptime: up, ...result })
 })
 
-// Wöchentlicher Scan-Job: läuft alle 7 Tage und sendet E-Mail-Berichte.
-// Für Render Free (24h Spin-Down): verwende stattdessen einen externen Cron-Dienst
-// (z. B. cron-job.org), der POST /api/monitor/weekly-run aufruft.
+// Uptime-Schnellcheck (alle 5 Minuten per externem Cron möglich)
+app.post('/api/monitor/uptime-check', async (_req: Request, res: Response) => {
+  res.json({ ok: true, message: 'Uptime-Check gestartet.' })
+  const sites = loadSites()
+  for (const site of sites) {
+    try {
+      const wasUp = site.uptime
+      const isUp = await checkUptime(site.url)
+      site.uptime = isUp; site.lastUptimeCheck = new Date().toISOString()
+      if (wasUp === true && !isUp && !site.uptimeAlertSent) {
+        site.uptimeAlertSent = true
+        await sendUptimeAlert(site, false).catch((e) => console.error('Uptime-Alert-Fehler:', e))
+      } else if (!wasUp && isUp && site.uptimeAlertSent) {
+        site.uptimeAlertSent = false
+        await sendUptimeAlert(site, true).catch((e) => console.error('Uptime-Recovery-Fehler:', e))
+      }
+    } catch (e) { console.error(`Uptime-Check-Fehler ${site.url}:`, e) }
+  }
+  saveSites(sites)
+})
+
+// Wöchentlicher Scan-Job: Security + Uptime + Score-Trend-E-Mail
 async function weeklyRun() {
   const sites = loadSites()
   console.log(`Wöchentlicher Scan: ${sites.length} Seiten`)
   for (const site of sites) {
     try {
-      const result = await scanUrl(site.url)
+      const [result, up] = await Promise.all([scanUrl(site.url), checkUptime(site.url)])
       if (!result) continue
-      site.lastScore = result.score
-      site.lastGrade = result.grade
+      site.prevScore = site.lastScore
+      site.lastScore = result.score; site.lastGrade = result.grade
       site.lastScan = new Date().toISOString()
+      site.uptime = up; site.lastUptimeCheck = new Date().toISOString()
+      if (!up && !site.uptimeAlertSent) {
+        site.uptimeAlertSent = true
+        await sendUptimeAlert(site, false)
+      }
       await sendReportEmail(site, result)
     } catch (e) { console.error(`Scan-Fehler ${site.url}:`, e) }
   }

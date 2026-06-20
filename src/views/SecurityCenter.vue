@@ -37,6 +37,38 @@
           <button class="btn-icon" @click="exportPdf" title="Bericht exportieren">📄 Export</button>
         </div>
 
+        <!-- SSL-Zertifikat Info -->
+        <div v-if="scanResult.ssl" class="ssl-box">
+          <div class="ssl-left">
+            <span class="ssl-icon">🔐</span>
+            <div>
+              <div class="ssl-title">SSL-Zertifikat</div>
+              <div class="ssl-issuer">{{ scanResult.ssl.issuer || 'Unbekannter Aussteller' }}</div>
+            </div>
+          </div>
+          <div class="ssl-right">
+            <span v-if="scanResult.ssl.daysRemaining !== null" :style="{ color: sslDaysColor(scanResult.ssl.daysRemaining) }" class="ssl-days">
+              {{ scanResult.ssl.daysRemaining > 0 ? `${scanResult.ssl.daysRemaining} Tage` : 'ABGELAUFEN!' }}
+            </span>
+            <span class="ssl-expiry">{{ scanResult.ssl.expiry ? new Date(scanResult.ssl.expiry).toLocaleDateString('de-DE') : '–' }}</span>
+            <span v-if="scanResult.ssl.daysRemaining !== null && scanResult.ssl.daysRemaining <= 30" class="ssl-warn">⚠ Bald ablaufend</span>
+          </div>
+        </div>
+
+        <!-- Scan-Verlauf / Trend -->
+        <div v-if="scanHistory.length >= 2" class="history-box">
+          <div class="history-header">
+            <span>📈 Score-Verlauf</span>
+            <span :style="{ color: trendColor(scanHistory) }" class="trend-badge">{{ historyTrend(scanHistory) }} vs. letzter Scan</span>
+          </div>
+          <div class="history-dots">
+            <div v-for="(h, i) in scanHistory.slice(0, 7)" :key="i" class="history-dot">
+              <div :class="['dot-grade', gradeClass(h.grade)]" :title="`${new Date(h.date).toLocaleDateString('de-DE')}: ${h.score}/100`">{{ h.grade }}</div>
+              <div class="dot-score">{{ h.score }}</div>
+            </div>
+          </div>
+        </div>
+
         <!-- Checks mit Fix-Anleitungen -->
         <div class="checks-list">
           <div v-for="c in scanResult.checks" :key="c.label" :class="['check-row', c.present ? 'ok' : 'missing']">
@@ -208,6 +240,7 @@
             <div class="site-meta">📧 {{ s.email }} · Letzter Scan: {{ s.lastScan ? formatDate(s.lastScan) : 'Noch nicht' }}</div>
           </div>
           <div v-if="s.lastScore" :class="['site-grade', gradeClass(s.lastGrade || 'F')]">{{ s.lastGrade }}</div>
+          <span :class="['uptime-dot', s.uptime === false ? 'down' : s.uptime === true ? 'up' : 'unknown']" :title="s.uptime === false ? 'Offline!' : s.uptime === true ? 'Online' : 'Unbekannt'">{{ s.uptime === false ? '🔴' : s.uptime === true ? '🟢' : '⚪' }}</span>
           <div class="site-actions">
             <button class="btn btn-sm" @click="scanNow(s.url)">▶ Jetzt scannen</button>
             <button class="btn-remove" @click="removeSite(s.url)">✕</button>
@@ -243,12 +276,15 @@ const tab = ref<Tab>('scanner')
 
 // ── Security Scanner ──────────────────────────────────────────────────────────
 interface CheckResult { label: string; present: boolean; value: string | null; weight: number }
-interface ScanResult { url: string; https: boolean; score: number; grade: string; checks: CheckResult[] }
+interface SslInfo { valid: boolean; daysRemaining: number | null; expiry: string | null; issuer: string | null; subject: string | null }
+interface ScanResult { url: string; https: boolean; score: number; grade: string; checks: CheckResult[]; ssl?: SslInfo }
+interface HistoryEntry { date: string; score: number; grade: string; https: boolean }
 
 const scanUrl = ref('')
 const scanning = ref(false)
 const scanError = ref('')
 const scanResult = ref<ScanResult | null>(null)
+const scanHistory = ref<HistoryEntry[]>([])
 const openFix = ref('')
 const fixLang = ref('Apache')
 const fixTabs = ['Apache', 'Nginx', 'Node.js', 'WordPress']
@@ -260,14 +296,33 @@ const monitorError = ref('')
 
 async function runScan() {
   if (!scanUrl.value.trim() || scanning.value) return
-  scanning.value = true; scanError.value = ''; scanResult.value = null; monitorSaved.value = false
+  scanning.value = true; scanError.value = ''; scanResult.value = null; monitorSaved.value = false; scanHistory.value = []
   try {
     const res = await fetch('/api/security/scan', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: scanUrl.value.trim() }) })
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || 'Scan fehlgeschlagen')
     scanResult.value = data
+    // Verlauf laden
+    const hRes = await fetch(`/api/security/history?url=${encodeURIComponent(data.url)}`)
+    const hData = await hRes.json()
+    scanHistory.value = hData.history || []
   } catch (err) { scanError.value = (err as Error).message }
   finally { scanning.value = false }
+}
+
+function sslDaysColor(days: number | null) {
+  if (days === null) return '#64748b'
+  return days <= 7 ? '#f87171' : days <= 30 ? '#fbbf24' : '#4ade80'
+}
+function historyTrend(entries: HistoryEntry[]) {
+  if (entries.length < 2) return ''
+  const diff = entries[0].score - entries[1].score
+  return diff > 0 ? `▲ +${diff}` : diff < 0 ? `▼ ${diff}` : '→'
+}
+function trendColor(entries: HistoryEntry[]) {
+  if (entries.length < 2) return '#94a3b8'
+  const diff = entries[0].score - entries[1].score
+  return diff > 0 ? '#4ade80' : diff < 0 ? '#f87171' : '#94a3b8'
 }
 
 function toggleFix(label: string) { openFix.value = openFix.value === label ? '' : label }
@@ -456,7 +511,7 @@ function barClass(v: number) { return v > 90 ? 'critical' : v > 75 ? 'warning' :
 onUnmounted(() => { if (autoTimer) clearInterval(autoTimer) })
 
 // ── Monitoring ─────────────────────────────────────────────────────────────────
-interface MonSite { url: string; email: string; lastScore?: number; lastGrade?: string; lastScan?: string }
+interface MonSite { url: string; email: string; lastScore?: number; lastGrade?: string; lastScan?: string; uptime?: boolean | null }
 
 const monitoredSites = ref<MonSite[]>([])
 const loadingSites = ref(false)
@@ -558,6 +613,26 @@ function formatDate(d: string) { return new Date(d).toLocaleDateString('de-DE') 
 .btn-copy-code:hover { color: #e2e8f0; }
 .fix-hint { font-size: 0.78rem; color: #64748b; margin: 0.6rem 0 0; line-height: 1.5; }
 
+/* SSL-Zertifikat Box */
+.ssl-box { display: flex; align-items: center; justify-content: space-between; background: #0f172a; border: 1px solid rgba(96,165,250,0.2); border-radius: 10px; padding: 0.85rem 1.1rem; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem; }
+.ssl-left { display: flex; align-items: center; gap: 0.75rem; }
+.ssl-icon { font-size: 1.5rem; }
+.ssl-title { font-weight: 600; color: #e2e8f0; font-size: 0.88rem; }
+.ssl-issuer { font-size: 0.75rem; color: #64748b; }
+.ssl-right { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+.ssl-days { font-weight: 700; font-size: 0.9rem; }
+.ssl-expiry { font-size: 0.75rem; color: #64748b; }
+.ssl-warn { font-size: 0.75rem; background: rgba(251,191,36,0.15); color: #fbbf24; padding: 0.15rem 0.6rem; border-radius: 999px; border: 1px solid rgba(251,191,36,0.3); }
+
+/* Scan-Verlauf / History */
+.history-box { background: #0f172a; border: 1px solid #1e293b; border-radius: 10px; padding: 0.85rem 1.1rem; margin-bottom: 1rem; }
+.history-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; font-size: 0.85rem; color: #94a3b8; }
+.trend-badge { font-weight: 700; font-size: 0.88rem; }
+.history-dots { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+.history-dot { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; }
+.dot-grade { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 700; cursor: default; }
+.dot-score { font-size: 0.68rem; color: #64748b; }
+
 /* Monitoring speichern */
 .monitor-save { background: #0f172a; border: 1px solid rgba(59,130,246,0.2); border-radius: 12px; padding: 1.25rem; }
 .monitor-save h3 { margin: 0 0 0.35rem; color: #e2e8f0; font-size: 1rem; }
@@ -633,6 +708,7 @@ function formatDate(d: string) { return new Date(d).toLocaleDateString('de-DE') 
 .site-url { font-weight: 600; color: #e2e8f0; font-size: 0.9rem; }
 .site-meta { font-size: 0.78rem; color: #64748b; margin-top: 0.2rem; }
 .site-grade { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.9rem; flex-shrink: 0; }
+.uptime-dot { font-size: 1rem; flex-shrink: 0; cursor: default; }
 .site-actions { display: flex; gap: 0.5rem; align-items: center; }
 .btn-remove { padding: 0.3rem 0.6rem; border-radius: 6px; border: 1px solid rgba(248,113,113,0.3); background: transparent; color: #f87171; cursor: pointer; font-size: 0.82rem; }
 .btn-remove:hover { background: rgba(248,113,113,0.1); }
