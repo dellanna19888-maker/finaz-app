@@ -6,6 +6,7 @@
       <div class="l-nav-links">
         <a href="#features">Features</a>
         <a href="#pricing">Preise</a>
+        <RouterLink to="/partner" class="partner-link">🤝 Partner werden</RouterLink>
         <RouterLink to="/login" class="btn-outline">Anmelden</RouterLink>
         <RouterLink to="/app" class="btn-primary">Kostenlos starten</RouterLink>
       </div>
@@ -182,7 +183,8 @@
       <div class="footer-links">
         <RouterLink to="/app">App</RouterLink>
         <RouterLink to="/pricing">Preise</RouterLink>
-        <RouterLink to="/affiliate">Partner werden</RouterLink>
+        <RouterLink to="/affiliate">Affiliate</RouterLink>
+        <RouterLink to="/partner">Vertriebspartner</RouterLink>
         <RouterLink to="/login">Anmelden</RouterLink>
       </div>
       <div class="footer-copy">© 2025 SecureHub · Alle Rechte vorbehalten</div>
@@ -208,6 +210,11 @@ const gumroadLink = import.meta.env.VITE_GUMROAD_LINK || ''
 .l-nav-links { display: flex; align-items: center; gap: 1.5rem; }
 .l-nav-links a { color: #94a3b8; text-decoration: none; font-size: 0.9rem; transition: color 0.2s; }
 .l-nav-links a:hover { color: #e2e8f0; }
+.partner-link {
+  padding: 0.4rem 1rem; border-radius: 8px; border: 1px solid rgba(34,197,94,0.4);
+  color: #4ade80 !important; font-size: 0.9rem; font-weight: 500; transition: all 0.2s;
+}
+.partner-link:hover { border-color: #4ade80; background: rgba(34,197,94,0.1); }
 .btn-outline {
   padding: 0.4rem 1rem; border-radius: 8px; border: 1px solid #334155;
   color: #94a3b8 !important; font-size: 0.9rem;
