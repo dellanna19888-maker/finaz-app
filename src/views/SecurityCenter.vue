@@ -1,36 +1,30 @@
 <template>
   <div class="sec-page">
-    <!-- Header -->
     <div class="page-header">
       <div>
         <h1>🛡️ Security &amp; Rechenzentrum</h1>
-        <p class="sub">Cyber Security Scanner + Live Infrastruktur-Monitor — dein Dashboard für sichere Systeme.</p>
+        <p class="sub">Cyber Security Scanner + Live Infrastruktur-Monitor + automatische E-Mail-Berichte</p>
       </div>
     </div>
 
-    <!-- Tabs -->
     <div class="tabs">
-      <button :class="['tab-btn', { active: tab === 'scanner' }]" @click="tab = 'scanner'">🔍 Security Scanner</button>
+      <button :class="['tab-btn', { active: tab === 'scanner' }]" @click="tab = 'scanner'">🔍 Scanner</button>
       <button :class="['tab-btn', { active: tab === 'dc' }]" @click="tab = 'dc'; loadMetrics()">🖥️ Rechenzentrum</button>
+      <button :class="['tab-btn', { active: tab === 'monitor' }]" @click="tab = 'monitor'; loadSites()">📧 Monitoring</button>
     </div>
 
     <!-- ===== SECURITY SCANNER ===== -->
     <div v-if="tab === 'scanner'" class="panel">
       <div class="scan-box">
-        <input
-          v-model="scanUrl"
-          class="url-input"
-          placeholder="z. B. example.com oder https://mysite.de"
-          @keydown.enter="runScan"
-        />
+        <input v-model="scanUrl" class="url-input" placeholder="z. B. example.com oder https://mysite.de" @keydown.enter="runScan" />
         <button class="btn" :disabled="scanning || !scanUrl.trim()" @click="runScan">
           {{ scanning ? 'Scannt…' : 'Scan starten' }}
         </button>
       </div>
       <p v-if="scanError" class="error-msg">⚠ {{ scanError }}</p>
 
-      <!-- Ergebnis -->
       <div v-if="scanResult" class="scan-result">
+        <!-- Score-Zeile -->
         <div class="score-row">
           <div :class="['grade-badge', gradeClass(scanResult.grade)]">{{ scanResult.grade }}</div>
           <div class="score-info">
@@ -40,63 +34,71 @@
           <div :class="['https-badge', scanResult.https ? 'ok' : 'fail']">
             {{ scanResult.https ? '🔒 HTTPS aktiv' : '⚠ Kein HTTPS' }}
           </div>
-          <button class="btn-pdf" @click="exportPdf" title="PDF-Bericht exportieren">📄 PDF</button>
+          <button class="btn-icon" @click="exportPdf" title="Bericht exportieren">📄 Export</button>
         </div>
 
-        <div class="checks-grid">
-          <div v-for="c in scanResult.checks" :key="c.label" :class="['check-card', c.present ? 'ok' : 'missing']">
-            <div class="check-icon">{{ c.present ? '✅' : '❌' }}</div>
-            <div class="check-info">
-              <div class="check-label">{{ c.label }}</div>
-              <div v-if="c.value" class="check-val">{{ truncate(c.value, 60) }}</div>
-              <div v-else class="check-missing">Nicht gesetzt – {{ weight(c.weight) }} Punkte fehlen</div>
+        <!-- Checks mit Fix-Anleitungen -->
+        <div class="checks-list">
+          <div v-for="c in scanResult.checks" :key="c.label" :class="['check-row', c.present ? 'ok' : 'missing']">
+            <div class="check-main">
+              <span class="check-icon">{{ c.present ? '✅' : '❌' }}</span>
+              <div class="check-info">
+                <span class="check-label">{{ c.label }}</span>
+                <span v-if="c.value" class="check-val">{{ truncate(c.value, 70) }}</span>
+                <span v-else class="check-missing">Fehlt – {{ c.weight }} Punkte</span>
+              </div>
+              <button v-if="!c.present" class="btn-fix-toggle" @click="toggleFix(c.label)">
+                {{ openFix === c.label ? '▲ Schließen' : '🔧 Wie beheben?' }}
+              </button>
+            </div>
+
+            <!-- Fix-Anleitung aufklappbar -->
+            <div v-if="!c.present && openFix === c.label" class="fix-guide">
+              <div class="fix-tabs">
+                <button v-for="t in fixTabs" :key="t" :class="['fix-tab', { active: fixLang === t }]" @click="fixLang = t">{{ t }}</button>
+              </div>
+              <div class="fix-code">
+                <pre>{{ fixGuides[c.label]?.[fixLang] || '# Kein Beispiel verfügbar' }}</pre>
+                <button class="btn-copy-code" @click="copyCode(fixGuides[c.label]?.[fixLang] || '')">📋 Kopieren</button>
+              </div>
+              <p class="fix-hint">{{ fixGuides[c.label]?.hint || '' }}</p>
             </div>
           </div>
         </div>
 
-        <div class="recs">
-          <h3>Empfehlungen</h3>
-          <ul>
-            <li v-if="!scanResult.https">🔴 <strong>HTTPS aktivieren</strong> – alle Daten werden unverschlüsselt übertragen</li>
-            <li v-for="c in scanResult.checks.filter(x => !x.present)" :key="c.label">
-              🟡 <strong>{{ c.label }}</strong> Header hinzufügen (+{{ weight(c.weight) }} Punkte)
-            </li>
-            <li v-if="scanResult.score >= 80">🟢 Gute Sicherheitskonfiguration! Weiter so.</li>
-          </ul>
+        <!-- Seite für E-Mail-Monitoring speichern -->
+        <div class="monitor-save">
+          <h3>📧 Automatische Berichte aktivieren</h3>
+          <p>Erhalte jede Woche einen Security-Bericht für diese Website per E-Mail.</p>
+          <div v-if="!monitorSaved" class="monitor-form">
+            <input v-model="monitorEmail" type="email" placeholder="deine@email.de" class="mon-input" />
+            <button class="btn btn-green" :disabled="savingMonitor || !monitorEmail" @click="saveMonitor">
+              {{ savingMonitor ? '…' : '✅ Wöchentlichen Bericht aktivieren' }}
+            </button>
+          </div>
+          <div v-else class="monitor-ok">
+            ✅ Wöchentliche Berichte aktiviert für <strong>{{ monitorEmail }}</strong>
+          </div>
+          <p v-if="monitorError" class="error-msg">{{ monitorError }}</p>
         </div>
       </div>
 
-      <!-- Erklärungs-Box -->
+      <!-- Info-Karten wenn noch kein Scan -->
       <div v-if="!scanResult" class="info-cards">
         <div class="info-card">
-          <div class="info-icon">🔒</div>
-          <h3>Was wird geprüft?</h3>
-          <ul>
-            <li>HTTPS / SSL-Verschlüsselung</li>
-            <li>HTTP Sicherheitsheader (7 Checks)</li>
-            <li>Sicherheitsscore 0–100</li>
-            <li>Note A+ bis F</li>
-          </ul>
+          <div class="info-icon">🔍</div>
+          <h3>7 Security-Checks</h3>
+          <ul><li>HTTPS / SSL</li><li>HSTS</li><li>Content-Security-Policy</li><li>X-Frame-Options</li><li>X-Content-Type-Options</li><li>Referrer-Policy</li><li>Permissions-Policy</li></ul>
         </div>
         <div class="info-card">
-          <div class="info-icon">💼</div>
-          <h3>Für wen?</h3>
-          <ul>
-            <li>Website-Betreiber</li>
-            <li>IT-Abteilungen</li>
-            <li>Agenturen & Freelancer</li>
-            <li>E-Commerce Shops</li>
-          </ul>
+          <div class="info-icon">🔧</div>
+          <h3>Fix-Anleitungen</h3>
+          <ul><li>Apache (.htaccess)</li><li>Nginx Konfiguration</li><li>Node.js / Express</li><li>WordPress</li></ul>
         </div>
         <div class="info-card">
-          <div class="info-icon">💰</div>
-          <h3>Als Abo verkaufen</h3>
-          <ul>
-            <li>Free: 1 Scan/Tag</li>
-            <li>Pro 29€/Monat: unbegrenzt</li>
-            <li>Team 99€/Monat: API-Zugang</li>
-            <li>Enterprise: individuell</li>
-          </ul>
+          <div class="info-icon">📧</div>
+          <h3>Automatische Berichte</h3>
+          <ul><li>Wöchentlicher Scan</li><li>E-Mail bei Problemen</li><li>Score-Verlauf</li><li>Sofort-Alarm bei Änderung</li></ul>
         </div>
       </div>
     </div>
@@ -104,28 +106,17 @@
     <!-- ===== RECHENZENTRUM MONITOR ===== -->
     <div v-if="tab === 'dc'" class="panel">
       <div class="dc-toolbar">
-        <span class="dc-ts">Letzte Aktualisierung: {{ lastTs }}</span>
-        <button class="btn btn-sm" :disabled="loadingDc" @click="loadMetrics">
-          {{ loadingDc ? '…' : '↻ Aktualisieren' }}
-        </button>
-        <label class="auto-label">
-          <input v-model="autoRefresh" type="checkbox" @change="toggleAuto" /> Auto (5s)
-        </label>
+        <span class="dc-ts">Aktualisiert: {{ lastTs }}</span>
+        <button class="btn btn-sm" :disabled="loadingDc" @click="loadMetrics">{{ loadingDc ? '…' : '↻ Aktualisieren' }}</button>
+        <label class="auto-label"><input v-model="autoRefresh" type="checkbox" @change="toggleAuto" /> Auto (5s)</label>
       </div>
-
       <p v-if="dcError" class="error-msg">⚠ {{ dcError }}</p>
-
-      <!-- Alerts -->
       <div v-if="dcAlerts.length" class="alert-bar">
         <div v-for="(a, i) in dcAlerts" :key="i" :class="['alert-item', a.level]">
           {{ a.level === 'critical' ? '🔴' : '🟡' }} <strong>{{ a.node }}</strong>: {{ a.msg }}
         </div>
       </div>
-      <div v-else-if="dcNodes.length" class="alert-bar ok">
-        <span>✅ Alle Systeme laufen normal</span>
-      </div>
-
-      <!-- Server Grid -->
+      <div v-else-if="dcNodes.length" class="alert-bar ok"><span>✅ Alle Systeme normal</span></div>
       <div class="nodes-grid">
         <div v-for="n in dcNodes" :key="n.id" :class="['node-card', n.status]">
           <div class="node-head">
@@ -135,45 +126,65 @@
           </div>
           <div class="node-loc">📍 {{ n.location }}</div>
           <div class="metrics">
-            <div class="metric">
-              <div class="metric-label">CPU</div>
-              <div class="metric-bar">
-                <div :class="['bar-fill', barClass(n.cpu)]" :style="{ width: n.cpu + '%' }"></div>
-              </div>
-              <div class="metric-val">{{ n.cpu }}%</div>
-            </div>
-            <div class="metric">
-              <div class="metric-label">RAM</div>
-              <div class="metric-bar">
-                <div :class="['bar-fill', barClass(n.ram)]" :style="{ width: n.ram + '%' }"></div>
-              </div>
-              <div class="metric-val">{{ n.ram }}%</div>
-            </div>
-            <div class="metric">
-              <div class="metric-label">Netz</div>
-              <div class="metric-bar">
-                <div class="bar-fill net" :style="{ width: n.net + '%' }"></div>
-              </div>
-              <div class="metric-val">{{ n.net }}%</div>
-            </div>
-            <div class="metric">
-              <div class="metric-label">Disk</div>
-              <div class="metric-bar">
-                <div :class="['bar-fill', barClass(n.disk)]" :style="{ width: n.disk + '%' }"></div>
-              </div>
-              <div class="metric-val">{{ n.disk }}%</div>
+            <div v-for="m in [['CPU', n.cpu], ['RAM', n.ram], ['Netz', n.net], ['Disk', n.disk]]" :key="m[0]" class="metric">
+              <div class="metric-label">{{ m[0] }}</div>
+              <div class="metric-bar"><div :class="['bar-fill', m[0] === 'Netz' ? 'net' : barClass(+m[1])]" :style="{ width: m[1] + '%' }"></div></div>
+              <div class="metric-val">{{ m[1] }}%</div>
             </div>
           </div>
           <div class="node-uptime">⬆ Uptime: {{ n.uptime }}h</div>
         </div>
       </div>
+    </div>
 
-      <!-- Leere Zustandsanzeige -->
-      <div v-if="!dcNodes.length && !loadingDc" class="info-cards">
-        <div class="info-card">
-          <div class="info-icon">🖥️</div>
-          <h3>Rechenzentrum Monitor</h3>
-          <p>Klicke auf "Aktualisieren" um Metriken zu laden.</p>
+    <!-- ===== E-MAIL MONITORING ===== -->
+    <div v-if="tab === 'monitor'" class="panel">
+      <div class="mon-header">
+        <div>
+          <h2>📧 Überwachte Websites</h2>
+          <p class="sub">Jede Woche automatisch gescannt und per E-Mail gemeldet.</p>
+        </div>
+        <button class="btn" @click="showAddForm = !showAddForm">+ Website hinzufügen</button>
+      </div>
+
+      <!-- Neue Website hinzufügen -->
+      <div v-if="showAddForm" class="add-site-form">
+        <input v-model="newSiteUrl" class="url-input" placeholder="https://meinewebsite.de" />
+        <input v-model="newSiteEmail" type="email" class="url-input" placeholder="bericht@email.de" />
+        <button class="btn btn-green" :disabled="addingsite || !newSiteUrl || !newSiteEmail" @click="addSite">
+          {{ addingsite ? '…' : 'Speichern' }}
+        </button>
+      </div>
+
+      <!-- Site-Liste -->
+      <div v-if="monitoredSites.length" class="sites-list">
+        <div v-for="s in monitoredSites" :key="s.url" class="site-row">
+          <div class="site-info">
+            <div class="site-url">{{ s.url }}</div>
+            <div class="site-meta">📧 {{ s.email }} · Letzter Scan: {{ s.lastScan ? formatDate(s.lastScan) : 'Noch nicht' }}</div>
+          </div>
+          <div v-if="s.lastScore" :class="['site-grade', gradeClass(s.lastGrade || 'F')]">{{ s.lastGrade }}</div>
+          <div class="site-actions">
+            <button class="btn btn-sm" @click="scanNow(s.url)">▶ Jetzt scannen</button>
+            <button class="btn-remove" @click="removeSite(s.url)">✕</button>
+          </div>
+        </div>
+      </div>
+
+      <div v-else-if="!loadingSites" class="empty-mon">
+        <div class="empty-icon">📭</div>
+        <p>Noch keine Websites überwacht.</p>
+        <p class="sub">Füge deine erste Website hinzu und erhalte wöchentliche Security-Berichte per E-Mail.</p>
+      </div>
+
+      <!-- E-Mail-Konfiguration Hinweis -->
+      <div class="email-config-hint">
+        <strong>⚙️ E-Mail-Versand konfigurieren</strong>
+        <p>Für automatische Berichte diese Variablen in Render setzen:</p>
+        <div class="env-list">
+          <code>SMTP_HOST</code> = z.B. smtp.gmail.com
+          <code>SMTP_USER</code> = deine@gmail.com
+          <code>SMTP_PASS</code> = App-Passwort
         </div>
       </div>
     </div>
@@ -183,128 +194,122 @@
 <script setup lang="ts">
 import { ref, onUnmounted } from 'vue'
 
-type Tab = 'scanner' | 'dc'
+type Tab = 'scanner' | 'dc' | 'monitor'
 const tab = ref<Tab>('scanner')
 
 // ── Security Scanner ──────────────────────────────────────────────────────────
-interface CheckResult {
-  label: string
-  present: boolean
-  value: string | null
-  weight: number
-}
-interface ScanResult {
-  url: string
-  https: boolean
-  score: number
-  grade: string
-  checks: CheckResult[]
-  status: number
-}
+interface CheckResult { label: string; present: boolean; value: string | null; weight: number }
+interface ScanResult { url: string; https: boolean; score: number; grade: string; checks: CheckResult[] }
 
 const scanUrl = ref('')
 const scanning = ref(false)
 const scanError = ref('')
 const scanResult = ref<ScanResult | null>(null)
+const openFix = ref('')
+const fixLang = ref('Apache')
+const fixTabs = ['Apache', 'Nginx', 'Node.js', 'WordPress']
+
+const monitorEmail = ref('')
+const monitorSaved = ref(false)
+const savingMonitor = ref(false)
+const monitorError = ref('')
 
 async function runScan() {
   if (!scanUrl.value.trim() || scanning.value) return
-  scanning.value = true
-  scanError.value = ''
-  scanResult.value = null
+  scanning.value = true; scanError.value = ''; scanResult.value = null; monitorSaved.value = false
   try {
-    const res = await fetch('/api/security/scan', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url: scanUrl.value.trim() }),
-    })
+    const res = await fetch('/api/security/scan', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: scanUrl.value.trim() }) })
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || 'Scan fehlgeschlagen')
     scanResult.value = data
-  } catch (err) {
-    scanError.value = (err as Error).message
-  } finally {
-    scanning.value = false
-  }
+  } catch (err) { scanError.value = (err as Error).message }
+  finally { scanning.value = false }
 }
 
-function gradeClass(grade: string) {
-  if (grade === 'A+' || grade === 'A') return 'grade-a'
-  if (grade === 'B') return 'grade-b'
-  if (grade === 'C') return 'grade-c'
-  return 'grade-f'
-}
+function toggleFix(label: string) { openFix.value = openFix.value === label ? '' : label }
+function truncate(s: string, n: number) { return s.length > n ? s.slice(0, n) + '…' : s }
+function gradeClass(g: string) { return g === 'A+' || g === 'A' ? 'grade-a' : g === 'B' ? 'grade-b' : g === 'C' ? 'grade-c' : 'grade-f' }
 
-function truncate(s: string, n: number) {
-  return s.length > n ? s.slice(0, n) + '…' : s
-}
+async function copyCode(text: string) { await navigator.clipboard.writeText(text) }
 
-function weight(w: number) {
-  return w + ' Punkte'
+async function saveMonitor() {
+  if (!scanResult.value || !monitorEmail.value) return
+  savingMonitor.value = true; monitorError.value = ''
+  try {
+    const res = await fetch('/api/monitor/add', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: scanResult.value.url, email: monitorEmail.value }) })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error)
+    monitorSaved.value = true
+  } catch (e: unknown) { monitorError.value = (e as Error).message }
+  finally { savingMonitor.value = false }
 }
 
 function exportPdf() {
   if (!scanResult.value) return
   const r = scanResult.value
-  const date = new Date().toLocaleDateString('de-DE')
-  const checks = r.checks.map(c =>
-    `  ${c.present ? '✓' : '✗'} ${c.label.padEnd(28)} ${c.present ? 'OK' : `FEHLT (${c.weight} Punkte)`}`
-  ).join('\n')
-  const missing = r.checks.filter(c => !c.present)
-  const recs = missing.length
-    ? missing.map(c => `  → ${c.label} Header hinzufügen`).join('\n')
-    : '  → Keine Maßnahmen erforderlich'
-
-  const content = `
-SECURITY SCAN BERICHT
-=====================
-Erstellt am: ${date}
-URL: ${r.url}
-
-ERGEBNIS
---------
-Note:   ${r.grade}
-Score:  ${r.score}/100
-HTTPS:  ${r.https ? 'Aktiv ✓' : 'Nicht aktiv ✗'}
-
-SICHERHEITS-CHECKS
-------------------
-${checks}
-
-EMPFEHLUNGEN
-------------
-${recs}
-
----
-Erstellt mit SecureHub Security Scanner
-`.trim()
-
-  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
+  const content = `SECURITY SCAN BERICHT\n${'='.repeat(21)}\nErstellt: ${new Date().toLocaleDateString('de-DE')}\nURL: ${r.url}\n\nNote: ${r.grade} | Score: ${r.score}/100 | HTTPS: ${r.https ? 'Ja' : 'Nein'}\n\nCHECKS\n------\n${r.checks.map(c => `${c.present ? '✓' : '✗'} ${c.label}: ${c.present ? 'OK' : 'FEHLT'}`).join('\n')}\n\nErstellt mit SecureHub`
   const a = document.createElement('a')
-  a.href = URL.createObjectURL(blob)
-  a.download = `security-report-${new Date().toISOString().slice(0, 10)}.txt`
-  a.click()
-  URL.revokeObjectURL(a.href)
+  a.href = URL.createObjectURL(new Blob([content], { type: 'text/plain;charset=utf-8' }))
+  a.download = `security-${new Date().toISOString().slice(0, 10)}.txt`
+  a.click(); URL.revokeObjectURL(a.href)
+}
+
+// Fix-Anleitungen mit echtem Code
+const fixGuides: Record<string, Record<string, string> & { hint: string }> = {
+  'HSTS': {
+    hint: 'HSTS erzwingt HTTPS und schützt vor Downgrade-Angriffen. Nur aktivieren wenn HTTPS vollständig eingerichtet ist.',
+    Apache: `# In .htaccess oder Apache-Config:\nHeader always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"`,
+    Nginx: `# In nginx.conf server-Block:\nadd_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;`,
+    'Node.js': `// Express Middleware:\napp.use((req, res, next) => {\n  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');\n  next();\n});`,
+    WordPress: `// In functions.php:\nadd_action('send_headers', function() {\n  header('Strict-Transport-Security: max-age=31536000; includeSubDomains');\n});`,
+  },
+  'Content-Security-Policy': {
+    hint: 'CSP verhindert XSS-Angriffe. Starte mit einer lockeren Policy und verschärfe sie schrittweise.',
+    Apache: `Header always set Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'"`,
+    Nginx: `add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'" always;`,
+    'Node.js': `res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self'");`,
+    WordPress: `header("Content-Security-Policy: default-src 'self'");`,
+  },
+  'X-Frame-Options': {
+    hint: 'Verhindert Clickjacking-Angriffe indem deine Seite nicht in iFrames eingebettet werden kann.',
+    Apache: `Header always set X-Frame-Options "DENY"\n# Oder: "SAMEORIGIN" wenn eigene iFrames nötig`,
+    Nginx: `add_header X-Frame-Options "DENY" always;`,
+    'Node.js': `res.setHeader('X-Frame-Options', 'DENY');`,
+    WordPress: `header('X-Frame-Options: DENY');`,
+  },
+  'X-Content-Type-Options': {
+    hint: 'Verhindert MIME-Type Sniffing. Einfach zu setzen, hohe Wirkung.',
+    Apache: `Header always set X-Content-Type-Options "nosniff"`,
+    Nginx: `add_header X-Content-Type-Options "nosniff" always;`,
+    'Node.js': `res.setHeader('X-Content-Type-Options', 'nosniff');`,
+    WordPress: `header('X-Content-Type-Options: nosniff');`,
+  },
+  'Referrer-Policy': {
+    hint: 'Kontrolliert welche Referrer-Informationen bei Links weitergegeben werden.',
+    Apache: `Header always set Referrer-Policy "strict-origin-when-cross-origin"`,
+    Nginx: `add_header Referrer-Policy "strict-origin-when-cross-origin" always;`,
+    'Node.js': `res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');`,
+    WordPress: `header('Referrer-Policy: strict-origin-when-cross-origin');`,
+  },
+  'Permissions-Policy': {
+    hint: 'Deaktiviert Browser-Features die deine Seite nicht benötigt (Kamera, Mikrofon, etc.).',
+    Apache: `Header always set Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=()"`,
+    Nginx: `add_header Permissions-Policy "geolocation=(), microphone=(), camera=()" always;`,
+    'Node.js': `res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');`,
+    WordPress: `header('Permissions-Policy: geolocation=(), microphone=(), camera=()');`,
+  },
+  'X-XSS-Protection': {
+    hint: 'Aktiviert den XSS-Filter älterer Browser. Moderne Browser nutzen stattdessen CSP.',
+    Apache: `Header always set X-XSS-Protection "1; mode=block"`,
+    Nginx: `add_header X-XSS-Protection "1; mode=block" always;`,
+    'Node.js': `res.setHeader('X-XSS-Protection', '1; mode=block');`,
+    WordPress: `header('X-XSS-Protection: 1; mode=block');`,
+  },
 }
 
 // ── Rechenzentrum Monitor ─────────────────────────────────────────────────────
-interface DcNode {
-  id: string
-  name: string
-  role: string
-  location: string
-  cpu: number
-  ram: number
-  net: number
-  disk: number
-  status: 'ok' | 'warning' | 'critical'
-  uptime: number
-}
-interface DcAlert {
-  node: string
-  level: string
-  msg: string
-}
+interface DcNode { id: string; name: string; role: string; location: string; cpu: number; ram: number; net: number; disk: number; status: 'ok'|'warning'|'critical'; uptime: number }
+interface DcAlert { node: string; level: string; msg: string }
 
 const dcNodes = ref<DcNode[]>([])
 const dcAlerts = ref<DcAlert[]>([])
@@ -315,34 +320,64 @@ const autoRefresh = ref(false)
 let autoTimer: ReturnType<typeof setInterval> | null = null
 
 async function loadMetrics() {
-  loadingDc.value = true
-  dcError.value = ''
+  loadingDc.value = true; dcError.value = ''
   try {
     const res = await fetch('/api/dc/metrics')
     const data = await res.json()
-    if (!res.ok) throw new Error(data.error || 'Fehler beim Laden')
-    dcNodes.value = data.nodes
-    dcAlerts.value = data.alerts
+    if (!res.ok) throw new Error(data.error)
+    dcNodes.value = data.nodes; dcAlerts.value = data.alerts
     lastTs.value = new Date(data.ts).toLocaleTimeString('de-DE')
-  } catch (err) {
-    dcError.value = (err as Error).message
-  } finally {
-    loadingDc.value = false
-  }
+  } catch (err) { dcError.value = (err as Error).message }
+  finally { loadingDc.value = false }
 }
 
 function toggleAuto() {
   if (autoTimer) { clearInterval(autoTimer); autoTimer = null }
   if (autoRefresh.value) autoTimer = setInterval(loadMetrics, 5000)
 }
+function barClass(v: number) { return v > 90 ? 'critical' : v > 75 ? 'warning' : 'ok' }
+onUnmounted(() => { if (autoTimer) clearInterval(autoTimer) })
 
-function barClass(val: number) {
-  return val > 90 ? 'critical' : val > 75 ? 'warning' : 'ok'
+// ── Monitoring ─────────────────────────────────────────────────────────────────
+interface MonSite { url: string; email: string; lastScore?: number; lastGrade?: string; lastScan?: string }
+
+const monitoredSites = ref<MonSite[]>([])
+const loadingSites = ref(false)
+const showAddForm = ref(false)
+const newSiteUrl = ref('')
+const newSiteEmail = ref('')
+const addingsite = ref(false)
+
+async function loadSites() {
+  loadingSites.value = true
+  try {
+    const res = await fetch('/api/monitor/list')
+    const data = await res.json()
+    monitoredSites.value = data.sites || []
+  } catch { /* ignore */ }
+  finally { loadingSites.value = false }
 }
 
-onUnmounted(() => {
-  if (autoTimer) clearInterval(autoTimer)
-})
+async function addSite() {
+  addingsite.value = true
+  try {
+    const res = await fetch('/api/monitor/add', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: newSiteUrl.value, email: newSiteEmail.value }) })
+    if (res.ok) { newSiteUrl.value = ''; newSiteEmail.value = ''; showAddForm.value = false; await loadSites() }
+  } catch { /* ignore */ }
+  finally { addingsite.value = false }
+}
+
+async function removeSite(url: string) {
+  await fetch('/api/monitor/remove', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }) })
+  await loadSites()
+}
+
+async function scanNow(url: string) {
+  await fetch('/api/monitor/scan-now', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }) })
+  setTimeout(loadSites, 3000)
+}
+
+function formatDate(d: string) { return new Date(d).toLocaleDateString('de-DE') }
 </script>
 
 <style scoped>
@@ -351,135 +386,136 @@ onUnmounted(() => {
 .page-header h1 { font-size: 1.6rem; font-weight: 700; color: #e2e8f0; margin: 0 0 0.3rem; }
 .sub { color: #94a3b8; font-size: 0.9rem; margin: 0; }
 
-/* Tabs */
-.tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; }
-.tab-btn {
-  padding: 0.6rem 1.4rem; border-radius: 8px; border: 1px solid #334155;
-  background: #1e293b; color: #94a3b8; cursor: pointer; font-size: 0.95rem; transition: all 0.2s;
-}
+.tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+.tab-btn { padding: 0.6rem 1.4rem; border-radius: 8px; border: 1px solid #334155; background: #1e293b; color: #94a3b8; cursor: pointer; font-size: 0.9rem; transition: all 0.2s; }
 .tab-btn.active { background: #3b82f6; border-color: #3b82f6; color: #fff; }
 .tab-btn:hover:not(.active) { border-color: #60a5fa; color: #e2e8f0; }
 
 .panel { animation: fadeIn 0.2s ease; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 
-/* Scanner */
 .scan-box { display: flex; gap: 0.75rem; margin-bottom: 1rem; }
-.url-input {
-  flex: 1; padding: 0.7rem 1rem; border-radius: 10px; border: 1px solid #334155;
-  background: #0f172a; color: #e2e8f0; font-size: 1rem;
-}
+.url-input { flex: 1; padding: 0.7rem 1rem; border-radius: 10px; border: 1px solid #334155; background: #0f172a; color: #e2e8f0; font-size: 0.95rem; }
 .url-input:focus { outline: none; border-color: #3b82f6; }
-.error-msg { color: #f87171; background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.3); padding: 0.6rem 1rem; border-radius: 8px; margin-bottom: 1rem; }
+.error-msg { color: #f87171; background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.3); padding: 0.6rem 1rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.88rem; }
 
 /* Score */
 .scan-result { margin-top: 1rem; }
-.score-row {
-  display: flex; align-items: center; gap: 1.5rem;
-  background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 1.2rem 1.5rem; margin-bottom: 1.5rem;
-}
-.grade-badge {
-  width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-  font-size: 1.5rem; font-weight: 700; flex-shrink: 0;
-}
+.score-row { display: flex; align-items: center; gap: 1.25rem; background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 1.2rem 1.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+.grade-badge { width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; font-weight: 700; flex-shrink: 0; }
 .grade-a { background: #052e16; color: #4ade80; border: 2px solid #4ade80; }
 .grade-b { background: #0c4a6e; color: #38bdf8; border: 2px solid #38bdf8; }
 .grade-c { background: #451a03; color: #fb923c; border: 2px solid #fb923c; }
 .grade-f { background: #3f0000; color: #f87171; border: 2px solid #f87171; }
-
-.score-num { font-size: 2rem; font-weight: 700; color: #e2e8f0; }
-.score-max { font-size: 1rem; color: #64748b; }
-.score-sub { font-size: 0.8rem; color: #64748b; word-break: break-all; }
-.https-badge { padding: 0.4rem 0.9rem; border-radius: 999px; font-size: 0.85rem; font-weight: 600; margin-left: auto; }
+.score-num { font-size: 1.9rem; font-weight: 700; color: #e2e8f0; }
+.score-max { font-size: 0.95rem; color: #64748b; }
+.score-sub { font-size: 0.78rem; color: #64748b; word-break: break-all; }
+.https-badge { padding: 0.35rem 0.85rem; border-radius: 999px; font-size: 0.82rem; font-weight: 600; }
 .https-badge.ok { background: rgba(74,222,128,0.15); color: #4ade80; border: 1px solid rgba(74,222,128,0.3); }
 .https-badge.fail { background: rgba(248,113,113,0.15); color: #f87171; border: 1px solid rgba(248,113,113,0.3); }
-.btn-pdf {
-  margin-left: auto; padding: 0.4rem 0.9rem; border-radius: 8px; border: 1px solid #334155;
-  background: #1e293b; color: #94a3b8; cursor: pointer; font-size: 0.85rem; white-space: nowrap;
-  transition: all 0.2s;
-}
-.btn-pdf:hover { border-color: #60a5fa; color: #e2e8f0; }
+.btn-icon { padding: 0.4rem 0.9rem; border-radius: 8px; border: 1px solid #334155; background: #1e293b; color: #94a3b8; cursor: pointer; font-size: 0.82rem; margin-left: auto; }
+.btn-icon:hover { border-color: #60a5fa; color: #e2e8f0; }
 
-/* Checks */
-.checks-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0.75rem; margin-bottom: 1.5rem; }
-.check-card {
-  display: flex; gap: 0.75rem; align-items: flex-start;
-  background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 0.8rem 1rem;
-}
-.check-card.ok { border-color: rgba(74,222,128,0.2); }
-.check-card.missing { border-color: rgba(248,113,113,0.2); }
-.check-icon { font-size: 1.2rem; flex-shrink: 0; line-height: 1.4; }
-.check-label { font-weight: 600; color: #e2e8f0; font-size: 0.9rem; }
-.check-val { font-size: 0.75rem; color: #64748b; margin-top: 0.15rem; word-break: break-all; }
-.check-missing { font-size: 0.75rem; color: #f87171; margin-top: 0.15rem; }
+/* Checks mit Fix-Guides */
+.checks-list { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.5rem; }
+.check-row { background: #1e293b; border: 1px solid #334155; border-radius: 10px; overflow: hidden; }
+.check-row.ok { border-color: rgba(74,222,128,0.2); }
+.check-row.missing { border-color: rgba(248,113,113,0.2); }
+.check-main { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; }
+.check-icon { font-size: 1.1rem; flex-shrink: 0; }
+.check-info { flex: 1; min-width: 0; }
+.check-label { font-weight: 600; color: #e2e8f0; font-size: 0.88rem; display: block; }
+.check-val { font-size: 0.72rem; color: #64748b; word-break: break-all; }
+.check-missing { font-size: 0.75rem; color: #f87171; }
+.btn-fix-toggle { padding: 0.3rem 0.75rem; border-radius: 6px; border: 1px solid rgba(251,191,36,0.4); background: rgba(251,191,36,0.08); color: #fbbf24; cursor: pointer; font-size: 0.78rem; white-space: nowrap; flex-shrink: 0; }
+.btn-fix-toggle:hover { background: rgba(251,191,36,0.15); }
 
-/* Recommendations */
-.recs { background: #0f172a; border: 1px solid #1e293b; border-radius: 10px; padding: 1rem 1.25rem; }
-.recs h3 { margin: 0 0 0.75rem; color: #e2e8f0; font-size: 1rem; }
-.recs ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.4rem; }
-.recs li { font-size: 0.88rem; color: #cbd5e1; }
+/* Fix-Anleitung */
+.fix-guide { border-top: 1px solid #334155; padding: 1rem; background: #0f172a; }
+.fix-tabs { display: flex; gap: 0.4rem; margin-bottom: 0.75rem; }
+.fix-tab { padding: 0.25rem 0.75rem; border-radius: 6px; border: 1px solid #334155; background: transparent; color: #64748b; cursor: pointer; font-size: 0.8rem; }
+.fix-tab.active { background: #1e293b; color: #e2e8f0; border-color: #475569; }
+.fix-code { position: relative; background: #020817; border: 1px solid #1e293b; border-radius: 8px; }
+.fix-code pre { margin: 0; padding: 0.85rem 2.5rem 0.85rem 1rem; font-size: 0.8rem; color: #94a3b8; white-space: pre-wrap; word-break: break-all; line-height: 1.6; font-family: monospace; }
+.btn-copy-code { position: absolute; top: 0.5rem; right: 0.5rem; padding: 0.2rem 0.5rem; border-radius: 5px; border: 1px solid #334155; background: #1e293b; color: #64748b; cursor: pointer; font-size: 0.72rem; }
+.btn-copy-code:hover { color: #e2e8f0; }
+.fix-hint { font-size: 0.78rem; color: #64748b; margin: 0.6rem 0 0; line-height: 1.5; }
 
-/* Info Cards */
+/* Monitoring speichern */
+.monitor-save { background: #0f172a; border: 1px solid rgba(59,130,246,0.2); border-radius: 12px; padding: 1.25rem; }
+.monitor-save h3 { margin: 0 0 0.35rem; color: #e2e8f0; font-size: 1rem; }
+.monitor-save p { color: #94a3b8; font-size: 0.85rem; margin: 0 0 0.85rem; }
+.monitor-form { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+.mon-input { flex: 1; min-width: 200px; padding: 0.6rem 0.9rem; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #e2e8f0; font-size: 0.9rem; }
+.btn-green { background: #16a34a !important; border-color: #16a34a !important; }
+.monitor-ok { color: #4ade80; font-size: 0.9rem; }
+
+/* Info-Cards */
 .info-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; margin-top: 1rem; }
-.info-card {
-  background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 1.25rem;
-}
+.info-card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 1.25rem; }
 .info-icon { font-size: 2rem; margin-bottom: 0.5rem; }
 .info-card h3 { margin: 0 0 0.5rem; color: #e2e8f0; font-size: 1rem; }
 .info-card ul { list-style: none; padding: 0; margin: 0; }
-.info-card li { font-size: 0.85rem; color: #94a3b8; padding: 0.2rem 0; }
+.info-card li { font-size: 0.82rem; color: #94a3b8; padding: 0.2rem 0; }
 .info-card li::before { content: '• '; color: #3b82f6; }
-.info-card p { font-size: 0.88rem; color: #94a3b8; margin: 0; }
 
-/* DC Toolbar */
+/* DC Monitor */
 .dc-toolbar { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; }
 .dc-ts { font-size: 0.82rem; color: #64748b; }
-.btn-sm { padding: 0.35rem 0.8rem; font-size: 0.85rem; }
-.auto-label { display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: #94a3b8; cursor: pointer; }
-
-/* Alert Bar */
-.alert-bar {
-  border-radius: 10px; padding: 0.7rem 1rem; margin-bottom: 1rem;
-  display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;
-  background: rgba(15,23,42,0.8); border: 1px solid #334155;
-}
-.alert-bar.ok { border-color: rgba(74,222,128,0.3); color: #4ade80; font-size: 0.9rem; }
+.btn-sm { padding: 0.35rem 0.8rem; font-size: 0.82rem; }
+.auto-label { display: flex; align-items: center; gap: 0.4rem; font-size: 0.82rem; color: #94a3b8; cursor: pointer; }
+.alert-bar { border-radius: 10px; padding: 0.7rem 1rem; margin-bottom: 1rem; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; background: rgba(15,23,42,0.8); border: 1px solid #334155; }
+.alert-bar.ok { border-color: rgba(74,222,128,0.3); color: #4ade80; font-size: 0.88rem; }
 .alert-item { font-size: 0.85rem; color: #e2e8f0; }
 .alert-item.critical { color: #f87171; }
 .alert-item.warning { color: #fbbf24; }
-
-/* Node Cards */
-.nodes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; }
-.node-card {
-  background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 1rem 1.2rem;
-  transition: border-color 0.2s;
-}
+.nodes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
+.node-card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 1rem 1.2rem; }
 .node-card.warning { border-color: rgba(251,191,36,0.4); }
 .node-card.critical { border-color: rgba(248,113,113,0.4); }
 .node-head { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem; }
-.status-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.status-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
 .status-dot.ok { background: #4ade80; box-shadow: 0 0 6px #4ade80; }
 .status-dot.warning { background: #fbbf24; box-shadow: 0 0 6px #fbbf24; }
 .status-dot.critical { background: #f87171; box-shadow: 0 0 6px #f87171; }
-.node-role { margin-left: auto; font-size: 0.75rem; color: #64748b; background: #0f172a; padding: 0.1rem 0.5rem; border-radius: 999px; }
-.node-loc { font-size: 0.78rem; color: #64748b; margin-bottom: 0.75rem; }
-
-/* Metrics */
+.node-role { margin-left: auto; font-size: 0.72rem; color: #64748b; background: #0f172a; padding: 0.1rem 0.5rem; border-radius: 999px; }
+.node-loc { font-size: 0.75rem; color: #64748b; margin-bottom: 0.75rem; }
 .metrics { display: flex; flex-direction: column; gap: 0.4rem; }
 .metric { display: flex; align-items: center; gap: 0.5rem; }
-.metric-label { width: 32px; font-size: 0.72rem; color: #64748b; flex-shrink: 0; }
-.metric-bar { flex: 1; height: 6px; background: #0f172a; border-radius: 3px; overflow: hidden; }
+.metric-label { width: 30px; font-size: 0.7rem; color: #64748b; flex-shrink: 0; }
+.metric-bar { flex: 1; height: 5px; background: #0f172a; border-radius: 3px; overflow: hidden; }
 .bar-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
 .bar-fill.ok { background: #4ade80; }
 .bar-fill.warning { background: #fbbf24; }
 .bar-fill.critical { background: #f87171; }
 .bar-fill.net { background: #60a5fa; }
-.metric-val { width: 40px; font-size: 0.75rem; color: #94a3b8; text-align: right; flex-shrink: 0; }
-.node-uptime { font-size: 0.75rem; color: #475569; margin-top: 0.75rem; }
+.metric-val { width: 38px; font-size: 0.72rem; color: #94a3b8; text-align: right; flex-shrink: 0; }
+.node-uptime { font-size: 0.72rem; color: #475569; margin-top: 0.75rem; }
+
+/* Monitoring Tab */
+.mon-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
+.mon-header h2 { margin: 0 0 0.25rem; font-size: 1.2rem; color: #e2e8f0; }
+.add-site-form { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1.25rem; background: #0f172a; padding: 1rem; border-radius: 10px; border: 1px solid #334155; }
+.sites-list { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.5rem; }
+.site-row { display: flex; align-items: center; gap: 1rem; background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 0.9rem 1.1rem; flex-wrap: wrap; }
+.site-info { flex: 1; min-width: 0; }
+.site-url { font-weight: 600; color: #e2e8f0; font-size: 0.9rem; }
+.site-meta { font-size: 0.78rem; color: #64748b; margin-top: 0.2rem; }
+.site-grade { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.9rem; flex-shrink: 0; }
+.site-actions { display: flex; gap: 0.5rem; align-items: center; }
+.btn-remove { padding: 0.3rem 0.6rem; border-radius: 6px; border: 1px solid rgba(248,113,113,0.3); background: transparent; color: #f87171; cursor: pointer; font-size: 0.82rem; }
+.btn-remove:hover { background: rgba(248,113,113,0.1); }
+.empty-mon { text-align: center; padding: 3rem 1rem; color: #64748b; }
+.empty-icon { font-size: 3rem; margin-bottom: 0.75rem; }
+.empty-mon p { margin: 0 0 0.4rem; }
+.email-config-hint { background: #0f172a; border: 1px solid #1e293b; border-radius: 10px; padding: 1rem 1.25rem; margin-top: 1.5rem; }
+.email-config-hint strong { color: #e2e8f0; display: block; margin-bottom: 0.4rem; font-size: 0.9rem; }
+.email-config-hint p { color: #64748b; font-size: 0.82rem; margin: 0 0 0.5rem; }
+.env-list { display: flex; flex-direction: column; gap: 0.3rem; }
+.env-list code { background: #1e293b; padding: 0.2rem 0.5rem; border-radius: 5px; font-size: 0.8rem; color: #60a5fa; }
 
 @media (max-width: 600px) {
-  .scan-box { flex-direction: column; }
-  .score-row { flex-wrap: wrap; gap: 1rem; }
-  .https-badge { margin-left: 0; }
+  .scan-box, .monitor-form, .add-site-form { flex-direction: column; }
+  .score-row { gap: 0.75rem; }
 }
 </style>

@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import Anthropic from '@anthropic-ai/sdk'
+import nodemailer from 'nodemailer'
 import 'dotenv/config'
 import { evaluate, mapCountryToJurisdiction } from '../src/compliance/gateway'
 import { writeDecisionLog, readRecentDecisions } from './logger'
@@ -556,6 +557,185 @@ app.get('/api/affiliate/stats/:code', (req: Request, res: Response) => {
   if (!aff) return res.status(404).json({ error: 'Affiliate-Code nicht gefunden.' })
   res.json(aff)
 })
+
+// ── Monitoring / Automatische E-Mail-Berichte ────────────────────────────────
+const MON_FILE = join(dirname(fileURLToPath(import.meta.url)), 'monitored-sites.json')
+
+interface ScanResult {
+  label: string; present: boolean; value: string | null; weight: number
+}
+interface MonitoredSite {
+  url: string; email: string; label: string
+  lastScore: number | null; lastGrade: string | null
+  lastScan: string | null; addedAt: string
+}
+
+function loadSites(): MonitoredSite[] {
+  try { return JSON.parse(readFileSync(MON_FILE, 'utf-8')) } catch { return [] }
+}
+function saveSites(sites: MonitoredSite[]) {
+  writeFileSync(MON_FILE, JSON.stringify(sites, null, 2))
+}
+
+async function scanUrl(rawUrl: string): Promise<{ https: boolean; score: number; grade: string; checks: ScanResult[] } | null> {
+  let target = rawUrl.trim()
+  if (!/^https?:\/\//i.test(target)) target = 'https://' + target
+  try {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 8000)
+    let response: globalThis.Response
+    let usedHttps = target.startsWith('https')
+    try {
+      response = await fetch(target, { method: 'HEAD', signal: controller.signal, redirect: 'follow' })
+    } catch {
+      if (usedHttps) {
+        response = await fetch(target.replace(/^https/i, 'http'), { method: 'HEAD', signal: controller.signal, redirect: 'follow' })
+        usedHttps = false
+      } else return null
+    }
+    clearTimeout(timer)
+    const headers = Object.fromEntries(response.headers.entries())
+    const checks = [
+      { key: 'strict-transport-security', label: 'HSTS', weight: 20 },
+      { key: 'content-security-policy', label: 'Content-Security-Policy', weight: 20 },
+      { key: 'x-frame-options', label: 'X-Frame-Options', weight: 15 },
+      { key: 'x-content-type-options', label: 'X-Content-Type-Options', weight: 15 },
+      { key: 'referrer-policy', label: 'Referrer-Policy', weight: 10 },
+      { key: 'permissions-policy', label: 'Permissions-Policy', weight: 10 },
+      { key: 'x-xss-protection', label: 'X-XSS-Protection', weight: 10 },
+    ]
+    const results: ScanResult[] = checks.map((c) => ({ label: c.label, present: !!headers[c.key], value: headers[c.key] || null, weight: c.weight }))
+    let score = usedHttps ? 10 : 0
+    for (const r of results) if (r.present) score += r.weight
+    const grade = score >= 90 ? 'A+' : score >= 80 ? 'A' : score >= 70 ? 'B' : score >= 50 ? 'C' : score >= 30 ? 'D' : 'F'
+    return { https: usedHttps, score, grade, checks: results }
+  } catch { return null }
+}
+
+function createMailTransport() {
+  const host = process.env.SMTP_HOST
+  const port = Number(process.env.SMTP_PORT || 587)
+  const user = process.env.SMTP_USER
+  const pass = process.env.SMTP_PASS
+  if (!host || !user || !pass) return null
+  return nodemailer.createTransport({ host, port, secure: port === 465, auth: { user, pass } })
+}
+
+async function sendReportEmail(site: MonitoredSite, result: { https: boolean; score: number; grade: string; checks: ScanResult[] }) {
+  const transport = createMailTransport()
+  if (!transport) return
+  const missing = result.checks.filter((c) => !c.present).map((c) => `<li>❌ ${c.label}</li>`).join('')
+  const present = result.checks.filter((c) => c.present).map((c) => `<li>✅ ${c.label}</li>`).join('')
+  const gradeColor = result.grade.startsWith('A') ? '#22c55e' : result.grade === 'B' ? '#84cc16' : result.grade === 'C' ? '#f59e0b' : '#ef4444'
+  const html = `
+    <div style="font-family:sans-serif;max-width:560px;margin:0 auto;background:#020817;color:#e2e8f0;border-radius:12px;padding:2rem;">
+      <h2 style="color:#60a5fa;margin-top:0">🛡️ SecureHub – Wöchentlicher Sicherheitsbericht</h2>
+      <p>Website: <strong>${site.url}</strong></p>
+      <div style="background:#0f172a;border-radius:8px;padding:1rem;margin:1rem 0;display:flex;align-items:center;gap:1rem;">
+        <span style="font-size:3rem;font-weight:800;color:${gradeColor}">${result.grade}</span>
+        <div>
+          <div style="font-size:1.5rem;font-weight:700">${result.score}/100 Punkte</div>
+          <div style="color:#94a3b8;font-size:0.85rem">HTTPS: ${result.https ? '✅ Aktiv' : '❌ Fehlt'}</div>
+        </div>
+      </div>
+      ${present ? `<h3 style="color:#22c55e">Vorhanden:</h3><ul style="color:#cbd5e1">${present}</ul>` : ''}
+      ${missing ? `<h3 style="color:#ef4444">Fehlende Header:</h3><ul style="color:#cbd5e1">${missing}</ul>` : ''}
+      <hr style="border-color:#1e293b;margin:1.5rem 0">
+      <p style="color:#64748b;font-size:0.8rem">Du erhältst diesen Bericht wöchentlich von SecureHub.<br>
+      Abmelden: Öffne die App unter dem Monitoring-Tab und entferne die Website.</p>
+    </div>`
+  await transport.sendMail({
+    from: process.env.SMTP_FROM || process.env.SMTP_USER,
+    to: site.email,
+    subject: `SecureHub: ${site.url} – Note ${result.grade} (${result.score}/100)`,
+    html,
+  })
+}
+
+// Monitoring: Site hinzufügen
+app.post('/api/monitor/add', async (req: Request, res: Response) => {
+  const { url, email, label = '' } = req.body ?? {}
+  if (!url || !email) return res.status(400).json({ error: 'URL und E-Mail erforderlich.' })
+  const sites = loadSites()
+  if (sites.find((s) => s.url === url && s.email === email)) return res.json({ ok: true, message: 'Bereits vorhanden.' })
+  const result = await scanUrl(url)
+  const site: MonitoredSite = {
+    url, email,
+    label: label || url,
+    lastScore: result?.score ?? null,
+    lastGrade: result?.grade ?? null,
+    lastScan: result ? new Date().toISOString() : null,
+    addedAt: new Date().toISOString(),
+  }
+  sites.push(site)
+  saveSites(sites)
+  res.json({ ok: true, site })
+})
+
+// Monitoring: Liste abrufen
+app.get('/api/monitor/list', (req: Request, res: Response) => {
+  const { email } = req.query
+  const sites = loadSites()
+  const filtered = email ? sites.filter((s) => s.email === String(email)) : sites
+  res.json({ sites: filtered })
+})
+
+// Monitoring: Site entfernen
+app.post('/api/monitor/remove', (req: Request, res: Response) => {
+  const { url, email } = req.body ?? {}
+  if (!url || !email) return res.status(400).json({ error: 'URL und E-Mail erforderlich.' })
+  const sites = loadSites().filter((s) => !(s.url === url && s.email === email))
+  saveSites(sites)
+  res.json({ ok: true })
+})
+
+// Monitoring: Sofort-Scan einer Site
+app.post('/api/monitor/scan-now', async (req: Request, res: Response) => {
+  const { url, email } = req.body ?? {}
+  if (!url) return res.status(400).json({ error: 'URL erforderlich.' })
+  const result = await scanUrl(url)
+  if (!result) return res.status(502).json({ error: 'Scan fehlgeschlagen.' })
+  const sites = loadSites()
+  const site = sites.find((s) => s.url === url)
+  if (site) {
+    site.lastScore = result.score
+    site.lastGrade = result.grade
+    site.lastScan = new Date().toISOString()
+    saveSites(sites)
+    if (email) await sendReportEmail(site, result).catch((e) => console.error('E-Mail-Fehler:', e))
+  }
+  res.json({ ok: true, ...result })
+})
+
+// Wöchentlicher Scan-Job: läuft alle 7 Tage und sendet E-Mail-Berichte.
+// Für Render Free (24h Spin-Down): verwende stattdessen einen externen Cron-Dienst
+// (z. B. cron-job.org), der POST /api/monitor/weekly-run aufruft.
+async function weeklyRun() {
+  const sites = loadSites()
+  console.log(`Wöchentlicher Scan: ${sites.length} Seiten`)
+  for (const site of sites) {
+    try {
+      const result = await scanUrl(site.url)
+      if (!result) continue
+      site.lastScore = result.score
+      site.lastGrade = result.grade
+      site.lastScan = new Date().toISOString()
+      await sendReportEmail(site, result)
+    } catch (e) { console.error(`Scan-Fehler ${site.url}:`, e) }
+  }
+  saveSites(sites)
+  console.log('Wöchentlicher Scan abgeschlossen.')
+}
+
+// Externer Cron-Trigger (z. B. cron-job.org → POST /api/monitor/weekly-run)
+app.post('/api/monitor/weekly-run', async (_req: Request, res: Response) => {
+  res.json({ ok: true, message: 'Wöchentlicher Scan gestartet.' })
+  weeklyRun().catch((e) => console.error('weeklyRun Fehler:', e))
+})
+
+// Interner Timer: alle 7 Tage (nur wenn Prozess dauerhaft läuft)
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000
+setInterval(() => { weeklyRun().catch((e) => console.error('weeklyRun Fehler:', e)) }, WEEK_MS)
 
 // Gebautes Frontend ausliefern (dist/). SPA: alle Nicht-/api-GETs -> index.html.
 const dist = join(__dirname, '..', 'dist')
