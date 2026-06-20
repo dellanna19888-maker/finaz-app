@@ -14,6 +14,8 @@ KI-Operation prüft und protokolliert. **Ein Projekt, eine App** – alle frühe
 - 📚 **Wissen/Notizen:** Markdown-Editor mit KI (Generieren, Verbessern, Fortsetzen, Zusammenfassen, Übersetzen)
 - 💬 **Support-Assistent:** die Zentrale beantwortet Fragen sachlich aus deiner Wissensbasis
 - 🛡️ **Compliance (D-C-G):** jede KI-Anfrage läuft durch ein Gateway → **PASS / WARN / BLOCK** + Audit-Log
+- 📲 **PWA:** auf Handy/Desktop **installierbar** und offline lauffähig (App-Shell wird gecacht)
+- 💾 **Daten-Backup:** alle Inhalte als JSON **exportieren/importieren** (⚙️ Einstellungen) – Sicherung & Geräte-Umzug
 
 ## Architektur
 
@@ -67,6 +69,7 @@ der **KI-Finanzüberblick** und die KI-Funktionen der **Notizen** brauchen einen
 | `npm run dev:all` | Frontend + Backend parallel                      |
 | `npm run demo`    | Build + Backend auf **einem** Port (eine URL)    |
 | `npm run build`   | Typecheck + Produktions-Build (`dist/`)          |
+| `npm test`        | Unit-Tests (Vitest): Compliance-Gateway, Aktionen, Finanz-Aggregation |
 
 ## Konfiguration (`.env`)
 

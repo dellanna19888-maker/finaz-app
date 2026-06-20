@@ -8,23 +8,30 @@
       </p>
     </div>
 
+    <!-- Zeitraum + Währung -->
+    <div class="period-row">
+      <button class="chip" :class="{ on: period === 'all' }" @click="period = 'all'">Gesamt</button>
+      <button class="chip" :class="{ on: period === 'month' }" @click="period = 'month'">Dieser Monat</button>
+      <span class="spacer"></span>
+      <select v-model="store.currency" class="sel cur" title="Währung">
+        <option v-for="c in CURRENCIES" :key="c" :value="c">{{ c }}</option>
+      </select>
+    </div>
+
     <!-- Kennzahlen -->
     <div class="stats">
       <div class="stat in">
         <span class="stat-label">Einnahmen</span>
-        <span class="stat-val">{{ store.format(store.totalIncome) }}</span>
+        <span class="stat-val">{{ store.format(incomeSum) }}</span>
       </div>
       <div class="stat out">
         <span class="stat-label">Ausgaben</span>
-        <span class="stat-val">{{ store.format(store.totalExpense) }}</span>
+        <span class="stat-val">{{ store.format(expenseSum) }}</span>
       </div>
-      <div class="stat bal" :class="{ neg: store.balance < 0 }">
+      <div class="stat bal" :class="{ neg: balanceSum < 0 }">
         <span class="stat-label">Saldo</span>
-        <span class="stat-val">{{ store.format(store.balance) }}</span>
+        <span class="stat-val">{{ store.format(balanceSum) }}</span>
       </div>
-      <select v-model="store.currency" class="sel cur" title="Währung">
-        <option v-for="c in CURRENCIES" :key="c" :value="c">{{ c }}</option>
-      </select>
     </div>
 
     <!-- Neue Buchung -->
@@ -69,8 +76,18 @@
         </div>
         <button class="btn-ghost xs" title="Löschen" @click="store.deleteTransaction(t.id)">✕</button>
       </li>
-      <li v-if="!shown.length" class="muted empty-li">Keine Buchungen.</li>
+      <li v-if="!shown.length" class="muted empty-li">Keine Buchungen{{ period === 'month' ? ' in diesem Monat' : '' }}.</li>
     </ul>
+
+    <!-- Ausgaben nach Kategorie -->
+    <div v-if="expenseBreakdown.length" class="card2 breakdown">
+      <h2>Ausgaben nach Kategorie</h2>
+      <div v-for="b in expenseBreakdown" :key="b.cat" class="bar-row">
+        <span class="bar-cat">{{ b.cat }}</span>
+        <span class="bar-track"><span class="bar-fill" :style="{ width: b.pct + '%' }"></span></span>
+        <span class="bar-val">{{ store.format(b.val) }}</span>
+      </div>
+    </div>
 
     <!-- KI-Ausgabe -->
     <div v-if="panel" class="ai-panel">
@@ -109,8 +126,28 @@ const note = ref('')
 const date = ref(new Date().toISOString().slice(0, 10))
 
 const filter = ref<'all' | TxType>('all')
+const period = ref<'all' | 'month'>('all')
 
-const shown = computed(() => store.transactions.filter((t) => filter.value === 'all' || t.type === filter.value))
+const monthPrefix = new Date().toISOString().slice(0, 7) // 'YYYY-MM'
+const scoped = computed(() => store.transactions.filter((t) => period.value === 'all' || t.date.startsWith(monthPrefix)))
+const shown = computed(() => scoped.value.filter((t) => filter.value === 'all' || t.type === filter.value))
+
+const incomeSum = computed(() => scoped.value.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0))
+const expenseSum = computed(() => scoped.value.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0))
+const balanceSum = computed(() => incomeSum.value - expenseSum.value)
+
+// Ausgaben je Kategorie (für die Balken-Übersicht), größte zuerst.
+const expenseBreakdown = computed(() => {
+  const map: Record<string, number> = {}
+  for (const t of scoped.value) {
+    if (t.type !== 'expense') continue
+    const cat = t.category || 'Sonstiges'
+    map[cat] = (map[cat] || 0) + t.amount
+  }
+  const entries = Object.entries(map).sort((a, b) => b[1] - a[1])
+  const max = entries.length ? entries[0][1] : 0
+  return entries.map(([cat, val]) => ({ cat, val, pct: max ? Math.round((val / max) * 100) : 0 }))
+})
 
 // KI-Panel
 const panel = ref(false)
@@ -181,7 +218,9 @@ async function copy() {
 </script>
 
 <style scoped>
-.stats { display: grid; grid-template-columns: repeat(3, 1fr) auto; gap: 0.75rem; align-items: stretch; margin-bottom: 1.25rem; }
+.period-row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-bottom: 0.9rem; }
+.period-row .spacer { flex: 1; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; align-items: stretch; margin-bottom: 1.25rem; }
 .stat { display: flex; flex-direction: column; gap: 0.2rem; padding: 0.9rem 1rem; border-radius: 12px; border: 1px solid #334155; background: #1e293b; border-left: 3px solid #475569; }
 .stat.in { border-left-color: #34d399; }
 .stat.out { border-left-color: #f87171; }
@@ -192,7 +231,13 @@ async function copy() {
 .stat.in .stat-val { color: #34d399; }
 .stat.out .stat-val { color: #f87171; }
 .stat.bal.neg .stat-val { color: #f87171; }
-.cur { align-self: center; }
+
+.breakdown { margin-top: 1.25rem; }
+.bar-row { display: flex; align-items: center; gap: 0.6rem; margin: 0.45rem 0; }
+.bar-cat { flex: 0 0 30%; min-width: 0; color: #cbd5e1; font-size: 0.85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar-track { flex: 1; height: 10px; background: #0f172a; border: 1px solid #334155; border-radius: 999px; overflow: hidden; }
+.bar-fill { display: block; height: 100%; background: linear-gradient(90deg, #f59e0b, #f87171); border-radius: 999px; }
+.bar-val { flex: 0 0 auto; font-size: 0.82rem; color: #94a3b8; font-variant-numeric: tabular-nums; }
 
 .add-row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
 .add-row .instruction { flex: 1; min-width: 160px; }
@@ -228,7 +273,7 @@ async function copy() {
 .ai-output.md th, .ai-output.md td { border: 1px solid #334155; padding: 0.3rem 0.5rem; }
 
 @media (max-width: 700px) {
-  .stats { grid-template-columns: 1fr 1fr; }
-  .cur { grid-column: span 2; justify-self: start; }
+  .stats { grid-template-columns: 1fr; }
+  .bar-cat { flex-basis: 40%; }
 }
 </style>

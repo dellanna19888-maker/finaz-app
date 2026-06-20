@@ -11,7 +11,8 @@
     "start": "tsx server/index.ts",
     "api:dev": "tsx watch server/index.ts",
     "dev:all": "concurrently -k -n web,api -c blue,green \"npm:dev\" \"npm:api:dev\"",
-    "demo": "npm run build && npm run api"
+    "demo": "npm run build && npm run api",
+    "test": "vitest run"
   },
   "dependencies": {
     "@anthropic-ai/sdk": ">=0.40.0",
@@ -31,6 +32,7 @@
     "tsx": "^4.19.0",
     "typescript": "~6.0.2",
     "vite": "^8.0.12",
+    "vitest": "^3.2.6",
     "vue-tsc": "^3.2.8"
   },
   "optionalDependencies": {
