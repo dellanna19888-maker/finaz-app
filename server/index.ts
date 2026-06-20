@@ -345,34 +345,84 @@ app.post('/api/security/scan', async (req: Request, res: Response) => {
   }
 })
 
-// Rechenzentrum-Monitor: liefert simulierte Server-Metriken.
-// In Produktion würdest du hier echte Systeme per SSH/SNMP/Prometheus anbinden.
-const DC_NODES = [
-  { id: 'srv-01', name: 'Web Server 01', role: 'Web', location: 'Frankfurt' },
-  { id: 'srv-02', name: 'Web Server 02', role: 'Web', location: 'Frankfurt' },
-  { id: 'db-01', name: 'Database Primary', role: 'Database', location: 'Amsterdam' },
-  { id: 'db-02', name: 'Database Replica', role: 'Database', location: 'Amsterdam' },
-  { id: 'cache-01', name: 'Redis Cache', role: 'Cache', location: 'Frankfurt' },
-  { id: 'lb-01', name: 'Load Balancer', role: 'Network', location: 'Frankfurt' },
-]
+// ── Data Center Monitor: Real Agents + Simulated Fallback ────────────────────
+const DC_AGENTS_FILE = join(dirname(fileURLToPath(import.meta.url)), 'dc-agents.json')
 
+interface AgentRecord { id: string; name: string; token: string; role: string; location: string; registeredAt: string }
+interface AgentReport { id: string; name: string; role: string; location: string; cpu: number; ram: number; net: number; disk: number; uptime: number; ts: string }
+
+const agentReports = new Map<string, AgentReport>()
+
+function loadAgents(): Record<string, AgentRecord> {
+  try { return JSON.parse(readFileSync(DC_AGENTS_FILE, 'utf-8')) } catch { return {} }
+}
+function saveAgents(data: Record<string, AgentRecord>) {
+  writeFileSync(DC_AGENTS_FILE, JSON.stringify(data, null, 2))
+}
+function generateToken(): string {
+  return Array.from(crypto.getRandomValues(new Uint8Array(24))).map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
+const SIMULATED_DC_NODES = [
+  { id: 'sim-web-01', name: 'Web Server 01 (Demo)', role: 'Web', location: 'Frankfurt' },
+  { id: 'sim-db-01', name: 'Database (Demo)', role: 'Database', location: 'Amsterdam' },
+  { id: 'sim-cache-01', name: 'Redis Cache (Demo)', role: 'Cache', location: 'Frankfurt' },
+]
 function simMetric(base: number, variance: number) {
   return Math.min(100, Math.max(0, base + (Math.random() - 0.5) * variance * 2))
 }
 
+// Agent registrieren – gibt einen Token zurück
+app.post('/api/dc/register', (req: Request, res: Response) => {
+  const { name } = req.body ?? {}
+  if (!name) return res.status(400).json({ error: 'Name erforderlich.' })
+  const agents = loadAgents()
+  const token = generateToken()
+  const id = name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').slice(0, 32)
+  agents[token] = { id, name, token, role: 'Server', location: '', registeredAt: new Date().toISOString() }
+  saveAgents(agents)
+  console.log(`DC Agent registriert: ${name} (${id})`)
+  res.json({ ok: true, token, id })
+})
+
+// Agent sendet Metriken
+app.post('/api/dc/report', (req: Request, res: Response) => {
+  const { token, id, name, role, location, cpu, ram, net, disk, uptime, ts } = req.body ?? {}
+  if (!token || !id) return res.status(400).json({ error: 'token und id erforderlich.' })
+  const agents = loadAgents()
+  if (!agents[token]) return res.status(401).json({ error: 'Ungültiger Token.' })
+  agentReports.set(id, { id, name: name || id, role: role || 'Server', location: location || '', cpu: +cpu || 0, ram: +ram || 0, net: +net || 0, disk: +disk || 0, uptime: +uptime || 0, ts: ts || new Date().toISOString() })
+  res.json({ ok: true })
+})
+
 app.get('/api/dc/metrics', (_req: Request, res: Response) => {
-  const nodes = DC_NODES.map((n) => {
+  const now = Date.now()
+  const STALE_MS = 90_000 // Agent gilt nach 90s als offline
+
+  // Echte Agent-Berichte (nicht älter als 90s)
+  const realNodes = Array.from(agentReports.values())
+    .filter(r => now - new Date(r.ts).getTime() < STALE_MS)
+    .map(r => {
+      const status = r.cpu > 90 || r.ram > 95 ? 'critical' : r.cpu > 75 || r.ram > 85 ? 'warning' : 'ok' as const
+      return { ...r, status }
+    })
+
+  // Simulierte Nodes als Fallback wenn keine echten vorhanden
+  const simNodes = realNodes.length === 0 ? SIMULATED_DC_NODES.map(n => {
     const cpu = simMetric(n.role === 'Database' ? 45 : 30, 20)
     const ram = simMetric(n.role === 'Database' ? 70 : 50, 15)
     const net = simMetric(40, 30)
     const disk = simMetric(n.role === 'Database' ? 60 : 40, 5)
-    const status = cpu > 90 || ram > 95 ? 'critical' : cpu > 75 || ram > 85 ? 'warning' : 'ok'
+    const status = cpu > 90 || ram > 95 ? 'critical' : cpu > 75 || ram > 85 ? 'warning' : 'ok' as const
     return { ...n, cpu: +cpu.toFixed(1), ram: +ram.toFixed(1), net: +net.toFixed(1), disk: +disk.toFixed(1), status, uptime: Math.floor(Math.random() * 100 + 900) }
-  })
-  const alerts = nodes
-    .filter((n) => n.status !== 'ok')
-    .map((n) => ({ node: n.name, level: n.status, msg: n.cpu > 90 ? `CPU ${n.cpu}% kritisch` : `RAM ${n.ram}% hoch` }))
-  res.json({ nodes, alerts, ts: new Date().toISOString() })
+  }) : []
+
+  const nodes = realNodes.length > 0 ? realNodes : simNodes
+  const alerts = nodes.filter(n => n.status !== 'ok').map(n => ({
+    node: n.name, level: n.status,
+    msg: n.cpu > 90 ? `CPU ${n.cpu}% kritisch` : `RAM ${n.ram}% hoch`,
+  }))
+  res.json({ nodes, alerts, hasRealAgents: realNodes.length > 0, ts: new Date().toISOString() })
 })
 
 app.post('/api/assist', async (req: Request, res: Response) => {
@@ -501,11 +551,34 @@ app.get('/api/compliance/logs', async (req: Request, res: Response) => {
 // Digistore24 Webhook: wird aufgerufen wenn ein Kauf abgeschlossen wird.
 // Im Digistore24-Dashboard unter Produkt → IPN/Webhook diese URL eintragen:
 // https://deine-app.onrender.com/api/ds24/webhook
-app.post('/api/ds24/webhook', (req: Request, res: Response) => {
+app.post('/api/ds24/webhook', async (req: Request, res: Response) => {
   const { order_id, product_id, buyer_email, affiliate, amount_gross } = req.body ?? {}
   console.log(`Digistore24 Kauf: ${buyer_email} – Produkt ${product_id} – ${amount_gross}€`)
 
-  // Affiliate-Provision gutschreiben wenn ein Ref-Code vorhanden ist
+  // Plan ermitteln anhand der Produkt-ID aus .env
+  const proProductId   = process.env.DS24_PRO_PRODUCT_ID   || ''
+  const bizProductId   = process.env.DS24_BIZ_PRODUCT_ID   || ''
+  let newPlan = 'pro'
+  if (bizProductId && product_id === bizProductId) newPlan = 'business'
+  else if (proProductId && product_id === proProductId) newPlan = 'pro'
+
+  // Supabase: User-Plan aktualisieren (braucht SUPABASE_URL + SUPABASE_SERVICE_KEY)
+  const sbUrl = process.env.SUPABASE_URL
+  const sbKey = process.env.SUPABASE_SERVICE_KEY
+  if (sbUrl && sbKey && buyer_email) {
+    try {
+      const { createClient } = await import('@supabase/supabase-js')
+      const admin = createClient(sbUrl, sbKey, { auth: { autoRefreshToken: false, persistSession: false } })
+      const { data: list } = await admin.auth.admin.listUsers()
+      const found = list?.users?.find((u: { email?: string }) => u.email === buyer_email)
+      if (found) {
+        await admin.auth.admin.updateUserById(found.id, { user_metadata: { plan: newPlan } })
+        console.log(`Supabase Plan-Upgrade: ${buyer_email} → ${newPlan}`)
+      }
+    } catch (e) { console.error('Supabase-Upgrade-Fehler:', e) }
+  }
+
+  // Affiliate-Provision gutschreiben
   const affCode = (affiliate || '').toUpperCase()
   if (affCode) {
     const affs = loadAffiliates()

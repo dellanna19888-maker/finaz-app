@@ -107,8 +107,52 @@
     <div v-if="tab === 'dc'" class="panel">
       <div class="dc-toolbar">
         <span class="dc-ts">Aktualisiert: {{ lastTs }}</span>
+        <span v-if="hasRealAgents" class="badge-live">🟢 Live-Daten</span>
+        <span v-else class="badge-sim">🔵 Simuliert</span>
         <button class="btn btn-sm" :disabled="loadingDc" @click="loadMetrics">{{ loadingDc ? '…' : '↻ Aktualisieren' }}</button>
         <label class="auto-label"><input v-model="autoRefresh" type="checkbox" @change="toggleAuto" /> Auto (5s)</label>
+        <button class="btn btn-sm btn-outline-blue" @click="showAgentSetup = !showAgentSetup">⚙️ Agent einrichten</button>
+      </div>
+
+      <!-- Agent-Setup-Panel -->
+      <div v-if="showAgentSetup" class="agent-setup">
+        <h3>🔌 Echten Server verbinden</h3>
+        <p class="sub">Installiere den SecureHub Agent auf deinem Server – er sendet echte CPU/RAM-Daten.</p>
+        <div class="agent-steps">
+          <div class="agent-step">
+            <div class="step-num">1</div>
+            <div>
+              <strong>Agent registrieren</strong>
+              <div class="agent-reg-form">
+                <input v-model="agentName" class="url-input" placeholder="Server-Name z. B. Web-Server-01" />
+                <button class="btn" :disabled="registeringAgent || !agentName" @click="registerAgent">
+                  {{ registeringAgent ? '…' : 'Token erstellen' }}
+                </button>
+              </div>
+              <div v-if="agentToken" class="token-box">
+                <span class="token-label">Token:</span>
+                <code>{{ agentToken }}</code>
+                <button class="btn-copy-code" @click="copyCode(agentToken)">📋</button>
+              </div>
+            </div>
+          </div>
+          <div class="agent-step">
+            <div class="step-num">2</div>
+            <div>
+              <strong>Agent auf Server starten</strong>
+              <div class="fix-code" style="margin-top:0.5rem">
+                <pre>{{ agentCommand }}</pre>
+                <button class="btn-copy-code" @click="copyCode(agentCommand)">📋 Kopieren</button>
+              </div>
+            </div>
+          </div>
+          <div class="agent-step">
+            <div class="step-num">3</div>
+            <div>
+              <strong>Fertig!</strong> Der Agent meldet sich alle 30s. Klicke auf ↻ Aktualisieren um Live-Daten zu sehen.
+            </div>
+          </div>
+        </div>
       </div>
       <p v-if="dcError" class="error-msg">⚠ {{ dcError }}</p>
       <div v-if="dcAlerts.length" class="alert-bar">
@@ -247,11 +291,62 @@ async function saveMonitor() {
 function exportPdf() {
   if (!scanResult.value) return
   const r = scanResult.value
-  const content = `SECURITY SCAN BERICHT\n${'='.repeat(21)}\nErstellt: ${new Date().toLocaleDateString('de-DE')}\nURL: ${r.url}\n\nNote: ${r.grade} | Score: ${r.score}/100 | HTTPS: ${r.https ? 'Ja' : 'Nein'}\n\nCHECKS\n------\n${r.checks.map(c => `${c.present ? '✓' : '✗'} ${c.label}: ${c.present ? 'OK' : 'FEHLT'}`).join('\n')}\n\nErstellt mit SecureHub`
-  const a = document.createElement('a')
-  a.href = URL.createObjectURL(new Blob([content], { type: 'text/plain;charset=utf-8' }))
-  a.download = `security-${new Date().toISOString().slice(0, 10)}.txt`
-  a.click(); URL.revokeObjectURL(a.href)
+  const date = new Date().toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' })
+  const gc = r.grade.startsWith('A') ? '#16a34a' : r.grade === 'B' ? '#65a30d' : r.grade === 'C' ? '#d97706' : '#dc2626'
+  const rows = r.checks.map(c => `
+    <tr>
+      <td style="padding:9px 14px;border-bottom:1px solid #e5e7eb;font-size:1.1em">${c.present ? '✅' : '❌'}</td>
+      <td style="padding:9px 14px;border-bottom:1px solid #e5e7eb;font-weight:600;color:${c.present ? '#111' : '#dc2626'}">${c.label}</td>
+      <td style="padding:9px 14px;border-bottom:1px solid #e5e7eb;color:#6b7280;font-size:0.85em;word-break:break-all">${c.present ? (c.value || '✓ Vorhanden') : `Fehlt – ${c.weight} Punkte`}</td>
+    </tr>`).join('')
+  const passed = r.checks.filter(c => c.present).length
+  const html = `<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8">
+    <title>Security Bericht – ${r.url}</title>
+    <style>
+      *{box-sizing:border-box;margin:0;padding:0}
+      body{font-family:-apple-system,Arial,sans-serif;padding:40px;color:#111;background:#fff;line-height:1.5}
+      .header{display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:2px solid #e5e7eb;margin-bottom:28px}
+      .brand{font-size:1.2rem;font-weight:700;color:#1d4ed8}
+      .date{color:#6b7280;font-size:0.85rem}
+      .score-box{display:flex;align-items:center;gap:24px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:20px 28px;margin-bottom:28px}
+      .grade{width:76px;height:76px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:800;color:${gc};border:3px solid ${gc};flex-shrink:0}
+      .score-big{font-size:2.25rem;font-weight:800;color:#111}
+      .score-lbl{color:#6b7280;font-size:0.85rem}
+      .score-url{font-size:0.9rem;color:#374151;margin-bottom:6px;word-break:break-all}
+      .badge{display:inline-block;padding:3px 12px;border-radius:999px;font-size:0.8rem;font-weight:600}
+      .badge-ok{background:#dcfce7;color:#16a34a}
+      .badge-fail{background:#fee2e2;color:#dc2626}
+      h2{font-size:1rem;font-weight:600;color:#374151;margin-bottom:12px}
+      table{width:100%;border-collapse:collapse}
+      th{text-align:left;padding:9px 14px;background:#f3f4f6;color:#6b7280;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em}
+      .footer{margin-top:40px;padding-top:14px;border-top:1px solid #e5e7eb;color:#9ca3af;font-size:0.8rem;display:flex;justify-content:space-between}
+      @media print{body{padding:20px}@page{margin:1.5cm}}
+    </style></head><body>
+    <div class="header">
+      <div class="brand">🛡️ SecureHub – Security Bericht</div>
+      <div class="date">${date}</div>
+    </div>
+    <div class="score-box">
+      <div class="grade">${r.grade}</div>
+      <div>
+        <div class="score-url">${r.url}</div>
+        <div><span class="score-big">${r.score}</span> <span class="score-lbl">/ 100 Punkte</span></div>
+        <span class="badge ${r.https ? 'badge-ok' : 'badge-fail'}">${r.https ? '🔒 HTTPS aktiv' : '⚠ Kein HTTPS'}</span>
+      </div>
+    </div>
+    <h2>Security-Checks – ${passed} von ${r.checks.length} bestanden</h2>
+    <table><thead><tr><th></th><th>Header</th><th>Details</th></tr></thead>
+    <tbody>${rows}</tbody></table>
+    <div class="footer">
+      <span>🛡️ SecureHub Security Scanner · securehub.de</span>
+      <span>${r.url} · ${date}</span>
+    </div>
+    <script>window.onload=()=>{ window.print() }<\/script>
+  </body></html>`
+  const win = window.open('', '_blank', 'width=860,height=700')
+  if (!win) { alert('Bitte Pop-ups für diese Seite erlauben.'); return }
+  win.document.write(html)
+  win.document.close()
 }
 
 // Fix-Anleitungen mit echtem Code
@@ -317,7 +412,28 @@ const loadingDc = ref(false)
 const dcError = ref('')
 const lastTs = ref('–')
 const autoRefresh = ref(false)
+const hasRealAgents = ref(false)
 let autoTimer: ReturnType<typeof setInterval> | null = null
+
+// Agent Setup
+const showAgentSetup = ref(false)
+const agentName = ref('')
+const agentToken = ref('')
+const registeringAgent = ref(false)
+const agentCommand = ref('node dc-agent.mjs --server https://deine-app.onrender.com --token TOKEN --id SERVER-NAME')
+
+async function registerAgent() {
+  if (!agentName.value.trim()) return
+  registeringAgent.value = true
+  try {
+    const res = await fetch('/api/dc/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: agentName.value }) })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error)
+    agentToken.value = data.token
+    agentCommand.value = `node dc-agent.mjs --server ${window.location.origin} --token ${data.token} --id "${agentName.value.replace(/\s+/g, '-').toLowerCase()}"`
+  } catch (e: unknown) { console.error(e) }
+  finally { registeringAgent.value = false }
+}
 
 async function loadMetrics() {
   loadingDc.value = true; dcError.value = ''
@@ -326,6 +442,7 @@ async function loadMetrics() {
     const data = await res.json()
     if (!res.ok) throw new Error(data.error)
     dcNodes.value = data.nodes; dcAlerts.value = data.alerts
+    hasRealAgents.value = !!data.hasRealAgents
     lastTs.value = new Date(data.ts).toLocaleTimeString('de-DE')
   } catch (err) { dcError.value = (err as Error).message }
   finally { loadingDc.value = false }
@@ -462,6 +579,20 @@ function formatDate(d: string) { return new Date(d).toLocaleDateString('de-DE') 
 /* DC Monitor */
 .dc-toolbar { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; }
 .dc-ts { font-size: 0.82rem; color: #64748b; }
+.badge-live { padding: 0.2rem 0.7rem; border-radius: 999px; font-size: 0.75rem; background: rgba(74,222,128,0.15); color: #4ade80; border: 1px solid rgba(74,222,128,0.3); }
+.badge-sim { padding: 0.2rem 0.7rem; border-radius: 999px; font-size: 0.75rem; background: rgba(96,165,250,0.15); color: #60a5fa; border: 1px solid rgba(96,165,250,0.3); }
+.btn-outline-blue { border-color: rgba(59,130,246,0.4) !important; color: #60a5fa !important; }
+.btn-outline-blue:hover { border-color: #3b82f6 !important; }
+.agent-setup { background: #0f172a; border: 1px solid rgba(59,130,246,0.25); border-radius: 12px; padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; }
+.agent-setup h3 { color: #e2e8f0; margin: 0 0 0.35rem; font-size: 1rem; }
+.agent-steps { display: flex; flex-direction: column; gap: 1.25rem; margin-top: 1rem; }
+.agent-step { display: flex; gap: 1rem; align-items: flex-start; }
+.step-num { width: 28px; height: 28px; border-radius: 50%; background: #3b82f6; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: 700; flex-shrink: 0; }
+.agent-step strong { color: #e2e8f0; font-size: 0.9rem; display: block; margin-bottom: 0.5rem; }
+.agent-reg-form { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 0.6rem; }
+.token-box { display: flex; align-items: center; gap: 0.5rem; background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 0.5rem 0.75rem; margin-top: 0.4rem; }
+.token-label { font-size: 0.75rem; color: #64748b; flex-shrink: 0; }
+.token-box code { color: #60a5fa; font-size: 0.82rem; flex: 1; word-break: break-all; }
 .btn-sm { padding: 0.35rem 0.8rem; font-size: 0.82rem; }
 .auto-label { display: flex; align-items: center; gap: 0.4rem; font-size: 0.82rem; color: #94a3b8; cursor: pointer; }
 .alert-bar { border-radius: 10px; padding: 0.7rem 1rem; margin-bottom: 1rem; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; background: rgba(15,23,42,0.8); border: 1px solid #334155; }

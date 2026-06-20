@@ -70,5 +70,21 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem(DEMO_KEY)
   }
 
-  return { user, loading, error, isLoggedIn, email, plan, isPro, init, signUp, signIn, signOut }
+  async function upgradePlan(newPlan: string) {
+    error.value = ''
+    try {
+      if (supabaseEnabled && supabase && user.value) {
+        const { error: e } = await supabase.auth.updateUser({ data: { plan: newPlan } })
+        if (e) throw e
+        const { data } = await supabase.auth.getUser()
+        user.value = data.user
+      } else if (user.value) {
+        const updated = { ...user.value, user_metadata: { ...user.value.user_metadata, plan: newPlan } } as unknown as User
+        user.value = updated
+        localStorage.setItem(DEMO_KEY, JSON.stringify(updated))
+      }
+    } catch (e: unknown) { error.value = (e as Error).message }
+  }
+
+  return { user, loading, error, isLoggedIn, email, plan, isPro, init, signUp, signIn, signOut, upgradePlan }
 })
