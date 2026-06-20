@@ -6,9 +6,14 @@ import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { existsSync } from 'node:fs'
 import Anthropic from '@anthropic-ai/sdk'
+import Stripe from 'stripe'
 import 'dotenv/config'
 import { evaluate, mapCountryToJurisdiction } from '../src/compliance/gateway'
 import { writeDecisionLog, readRecentDecisions } from './logger'
+
+const stripe = process.env.STRIPE_SECRET_KEY
+  ? new Stripe(process.env.STRIPE_SECRET_KEY)
+  : null
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const PORT = Number(process.env.API_PORT || process.env.PORT || 3001)
@@ -473,6 +478,61 @@ app.get('/api/compliance/logs', async (req: Request, res: Response) => {
     res.json({ decisions: await readRecentDecisions(limit) })
   } catch (err) {
     res.status(500).json({ error: (err as Error)?.message || String(err) })
+  }
+})
+
+// Stripe: Checkout-Session erstellen → gibt URL zurück.
+app.post('/api/stripe/create-checkout', async (req: Request, res: Response) => {
+  if (!stripe) return res.status(503).json({ error: 'Stripe nicht konfiguriert. STRIPE_SECRET_KEY in .env setzen.' })
+  const { priceId, userEmail, successUrl, cancelUrl } = req.body ?? {}
+  if (!priceId) return res.status(400).json({ error: 'priceId fehlt.' })
+  try {
+    const session = await stripe.checkout.sessions.create({
+      mode: 'subscription',
+      payment_method_types: ['card'],
+      line_items: [{ price: priceId, quantity: 1 }],
+      customer_email: userEmail || undefined,
+      success_url: successUrl || `${req.headers.origin}/#/pricing?success=true`,
+      cancel_url: cancelUrl || `${req.headers.origin}/#/pricing?cancel=true`,
+      allow_promotion_codes: true,
+    })
+    res.json({ url: session.url })
+  } catch (err) {
+    res.status(500).json({ error: (err as Error)?.message || 'Stripe-Fehler.' })
+  }
+})
+
+// Stripe: Kundenportal (Abo verwalten, kündigen).
+app.post('/api/stripe/portal', async (req: Request, res: Response) => {
+  if (!stripe) return res.status(503).json({ error: 'Stripe nicht konfiguriert.' })
+  const { customerId } = req.body ?? {}
+  if (!customerId) return res.status(400).json({ error: 'customerId fehlt.' })
+  try {
+    const session = await stripe.billingPortal.sessions.create({
+      customer: customerId,
+      return_url: `${req.headers.origin}/#/pricing`,
+    })
+    res.json({ url: session.url })
+  } catch (err) {
+    res.status(500).json({ error: (err as Error)?.message || 'Stripe-Fehler.' })
+  }
+})
+
+// Stripe Webhook: Abo-Status nach Zahlung aktualisieren.
+app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), (req: Request, res: Response) => {
+  if (!stripe) return res.status(503).send('Stripe nicht konfiguriert.')
+  const sig = req.headers['stripe-signature'] as string
+  const secret = process.env.STRIPE_WEBHOOK_SECRET || ''
+  try {
+    const event = stripe.webhooks.constructEvent(req.body as Buffer, sig, secret)
+    if (event.type === 'checkout.session.completed') {
+      const s = event.data.object as Stripe.Checkout.Session
+      console.log(`Zahlung erfolgreich: ${s.customer_email} – ${s.id}`)
+    }
+    res.json({ received: true })
+  } catch (err) {
+    console.error('Webhook-Fehler:', (err as Error).message)
+    res.status(400).send(`Webhook Error: ${(err as Error).message}`)
   }
 })
 

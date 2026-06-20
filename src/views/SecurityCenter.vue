@@ -40,6 +40,7 @@
           <div :class="['https-badge', scanResult.https ? 'ok' : 'fail']">
             {{ scanResult.https ? '🔒 HTTPS aktiv' : '⚠ Kein HTTPS' }}
           </div>
+          <button class="btn-pdf" @click="exportPdf" title="PDF-Bericht exportieren">📄 PDF</button>
         </div>
 
         <div class="checks-grid">
@@ -242,6 +243,50 @@ function weight(w: number) {
   return w + ' Punkte'
 }
 
+function exportPdf() {
+  if (!scanResult.value) return
+  const r = scanResult.value
+  const date = new Date().toLocaleDateString('de-DE')
+  const checks = r.checks.map(c =>
+    `  ${c.present ? '✓' : '✗'} ${c.label.padEnd(28)} ${c.present ? 'OK' : `FEHLT (${c.weight} Punkte)`}`
+  ).join('\n')
+  const missing = r.checks.filter(c => !c.present)
+  const recs = missing.length
+    ? missing.map(c => `  → ${c.label} Header hinzufügen`).join('\n')
+    : '  → Keine Maßnahmen erforderlich'
+
+  const content = `
+SECURITY SCAN BERICHT
+=====================
+Erstellt am: ${date}
+URL: ${r.url}
+
+ERGEBNIS
+--------
+Note:   ${r.grade}
+Score:  ${r.score}/100
+HTTPS:  ${r.https ? 'Aktiv ✓' : 'Nicht aktiv ✗'}
+
+SICHERHEITS-CHECKS
+------------------
+${checks}
+
+EMPFEHLUNGEN
+------------
+${recs}
+
+---
+Erstellt mit SecureHub Security Scanner
+`.trim()
+
+  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(blob)
+  a.download = `security-report-${new Date().toISOString().slice(0, 10)}.txt`
+  a.click()
+  URL.revokeObjectURL(a.href)
+}
+
 // ── Rechenzentrum Monitor ─────────────────────────────────────────────────────
 interface DcNode {
   id: string
@@ -348,6 +393,12 @@ onUnmounted(() => {
 .https-badge { padding: 0.4rem 0.9rem; border-radius: 999px; font-size: 0.85rem; font-weight: 600; margin-left: auto; }
 .https-badge.ok { background: rgba(74,222,128,0.15); color: #4ade80; border: 1px solid rgba(74,222,128,0.3); }
 .https-badge.fail { background: rgba(248,113,113,0.15); color: #f87171; border: 1px solid rgba(248,113,113,0.3); }
+.btn-pdf {
+  margin-left: auto; padding: 0.4rem 0.9rem; border-radius: 8px; border: 1px solid #334155;
+  background: #1e293b; color: #94a3b8; cursor: pointer; font-size: 0.85rem; white-space: nowrap;
+  transition: all 0.2s;
+}
+.btn-pdf:hover { border-color: #60a5fa; color: #e2e8f0; }
 
 /* Checks */
 .checks-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0.75rem; margin-bottom: 1.5rem; }

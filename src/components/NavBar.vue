@@ -1,14 +1,22 @@
 <template>
   <!-- Top bar (desktop) -->
   <nav class="navbar">
-    <div class="brand">
-      <span class="brand-icon">🧠</span>
-      <span class="brand-name">Hub</span>
-    </div>
+    <RouterLink to="/" class="brand">
+      <span class="brand-icon">🛡️</span>
+      <span class="brand-name">SecureHub</span>
+    </RouterLink>
     <div class="nav-links">
       <RouterLink v-for="l in links" :key="l.to" :to="l.to" class="nav-link">{{ l.label }}</RouterLink>
     </div>
-    <RouterLink to="/settings" class="nav-gear" title="Einstellungen">⚙️</RouterLink>
+    <div class="nav-right">
+      <RouterLink to="/pricing" class="nav-pricing">⭐ Pro</RouterLink>
+      <template v-if="auth.isLoggedIn">
+        <span class="nav-user">{{ auth.email }}</span>
+        <button class="nav-logout" @click="auth.signOut()">Abmelden</button>
+      </template>
+      <RouterLink v-else to="/login" class="nav-login">Anmelden</RouterLink>
+      <RouterLink to="/settings" class="nav-gear" title="Einstellungen">⚙️</RouterLink>
+    </div>
   </nav>
 
   <!-- Bottom tab bar (mobile) -->
@@ -21,12 +29,13 @@
 </template>
 
 <script setup lang="ts">
+import { useAuthStore } from '../stores/auth'
+const auth = useAuthStore()
 const links = [
-  { to: '/', label: 'Zentrale', short: 'Zentrale', icon: '🧠' },
+  { to: '/app', label: 'Zentrale', short: 'App', icon: '🧠' },
   { to: '/tasks', label: 'Content', short: 'Content', icon: '🎬' },
   { to: '/channel', label: 'Kanal', short: 'Kanal', icon: '📊' },
   { to: '/notes', label: 'Wissen', short: 'Wissen', icon: '📚' },
-  { to: '/compliance', label: 'Compliance', short: 'Comp.', icon: '📋' },
   { to: '/security', label: 'Security', short: 'Security', icon: '🛡️' },
 ]
 </script>
@@ -45,7 +54,7 @@ const links = [
   z-index: 100;
 }
 
-.brand { display: flex; align-items: center; gap: 0.5rem; }
+.brand { display: flex; align-items: center; gap: 0.5rem; text-decoration: none; }
 .brand-icon { font-size: 1.5rem; }
 .brand-name {
   font-size: 1.25rem;
@@ -53,6 +62,18 @@ const links = [
   color: #e2e8f0;
   letter-spacing: 0.02em;
 }
+.nav-right { display: flex; align-items: center; gap: 0.5rem; }
+.nav-pricing {
+  padding: 0.3rem 0.75rem; border-radius: 6px; font-size: 0.82rem;
+  background: rgba(59,130,246,0.15); color: #60a5fa; text-decoration: none;
+  border: 1px solid rgba(59,130,246,0.3);
+}
+.nav-pricing:hover { background: rgba(59,130,246,0.25); }
+.nav-user { font-size: 0.8rem; color: #64748b; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nav-login { padding: 0.3rem 0.75rem; border-radius: 6px; font-size: 0.85rem; color: #94a3b8; text-decoration: none; border: 1px solid #334155; }
+.nav-login:hover { border-color: #60a5fa; color: #e2e8f0; }
+.nav-logout { padding: 0.3rem 0.6rem; border-radius: 6px; font-size: 0.8rem; color: #64748b; background: transparent; border: 1px solid #1e293b; cursor: pointer; }
+.nav-logout:hover { color: #f87171; border-color: rgba(248,113,113,0.3); }
 
 .nav-links { display: flex; gap: 0.5rem; }
 .nav-link {
