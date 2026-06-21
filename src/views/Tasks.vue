@@ -51,7 +51,7 @@
             <span v-if="t.due" class="tag" :class="{ over: isOverdue(t) }">📅 {{ t.due }}</span>
           </span>
         </div>
-        <button class="btn-ghost xs" title="Löschen" @click="store.deleteTask(t.id)">✕</button>
+        <button class="btn-ghost xs" title="Löschen" :aria-label="`Inhalt „${t.title}“ löschen`" @click="store.deleteTask(t.id)">✕</button>
       </li>
       <li v-if="!shown.length" class="muted empty-li">Nichts in diesem Status.</li>
     </ul>

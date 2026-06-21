@@ -74,7 +74,7 @@
             <span class="tag date">📅 {{ t.date }}</span>
           </span>
         </div>
-        <button class="btn-ghost xs" title="Löschen" @click="store.deleteTransaction(t.id)">✕</button>
+        <button class="btn-ghost xs" title="Löschen" :aria-label="`Buchung über ${store.format(t.amount)} löschen`" @click="store.deleteTransaction(t.id)">✕</button>
       </li>
       <li v-if="!shown.length" class="muted empty-li">Keine Buchungen{{ period === 'month' ? ' in diesem Monat' : '' }}.</li>
     </ul>

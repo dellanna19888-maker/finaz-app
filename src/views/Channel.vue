@@ -35,7 +35,7 @@
         <input v-model="c.handle" class="inp" placeholder="@konkurrent" />
         <input v-model.number="c.followers" type="number" min="0" class="inp sm" placeholder="Follower" />
         <input v-model="c.notes" class="inp grow" placeholder="Was posten sie? Auffälligkeiten?" />
-        <button class="btn-ghost xs" title="Entfernen" @click="store.deleteCompetitor(c.id)">✕</button>
+        <button class="btn-ghost xs" title="Entfernen" aria-label="Konkurrent entfernen" @click="store.deleteCompetitor(c.id)">✕</button>
       </div>
     </div>
 

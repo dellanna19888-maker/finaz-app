@@ -3,12 +3,12 @@
   <nav class="navbar">
     <div class="brand">
       <span class="brand-icon">🧠</span>
-      <span class="brand-name">Hub</span>
+      <span class="brand-name">Creator Hub</span>
     </div>
     <div class="nav-links">
       <RouterLink v-for="l in links" :key="l.to" :to="l.to" class="nav-link">{{ l.label }}</RouterLink>
     </div>
-    <RouterLink to="/settings" class="nav-gear" title="Einstellungen">⚙️</RouterLink>
+    <RouterLink to="/settings" class="nav-gear" title="Einstellungen" aria-label="Einstellungen">⚙️</RouterLink>
   </nav>
 
   <!-- Bottom tab bar (mobile) -->

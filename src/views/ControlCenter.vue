@@ -11,6 +11,18 @@
       </div>
     </div>
 
+    <div class="dash">
+      <RouterLink to="/tasks" class="dash-pill" title="Content-Plan öffnen">
+        🎬 <strong>{{ tasks.openCount }}</strong> in Arbeit
+      </RouterLink>
+      <RouterLink v-if="tasks.overdue.length" to="/tasks" class="dash-pill warn" title="Überfällige Inhalte">
+        ⏰ <strong>{{ tasks.overdue.length }}</strong> überfällig
+      </RouterLink>
+      <RouterLink to="/finance" class="dash-pill" title="Finanzen öffnen">
+        💰 Saldo <strong :class="{ neg: finance.balance < 0 }">{{ finance.format(finance.balance) }}</strong>
+      </RouterLink>
+    </div>
+
     <RouterLink v-if="!hasKey" to="/settings" class="keyhint">🔑 Kein API-Key gesetzt – hier eintragen (⚙️ Einstellungen)</RouterLink>
 
     <div ref="scroller" class="msgs">
@@ -275,6 +287,18 @@ onMounted(() => {
 <style scoped>
 .hub-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
 .head-actions { display: flex; gap: 0.5rem; flex-shrink: 0; }
+
+.dash { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
+.dash-pill {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  padding: 0.4rem 0.8rem; border-radius: 999px;
+  border: 1px solid #334155; background: #1e293b; color: #cbd5e1;
+  text-decoration: none; font-size: 0.85rem;
+}
+.dash-pill:hover { border-color: #60a5fa; color: #e2e8f0; }
+.dash-pill strong { color: #e2e8f0; }
+.dash-pill.warn { border-color: #6b2c2c; color: #fca5a5; }
+.dash-pill strong.neg { color: #f87171; }
 
 .msgs {
   display: flex;
