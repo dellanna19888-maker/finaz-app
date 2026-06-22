@@ -1,134 +1,125 @@
 <template>
-  <div class="ai-page">
+  <div class="page">
     <div class="page-header">
-      <h1>🎬 Content-Plan</h1>
-      <p class="sub">
-        Idee → Skript → Aufnahme → Schnitt → Veröffentlicht. Plane Inhalte per Hand oder über die 🧠 Zentrale.
-        {{ store.openCount }} in Arbeit · {{ store.doneCount }} veröffentlicht<span v-if="store.overdue.length"> · <span class="ov">{{ store.overdue.length }} überfällig</span></span>.
-      </p>
+      <h1>🎬 Content-Planer</h1>
+      <p class="sub">Deine Content-Pipeline — von der Idee bis zur Veröffentlichung.</p>
     </div>
 
-    <div class="card2">
-      <div class="add-row">
-        <input v-model="title" class="instruction" placeholder="Neue Idee / Inhalt … (Enter)" @keyup.enter="add" />
-        <input v-model="platform" class="sel plat" placeholder="Plattform" list="platforms" />
-        <datalist id="platforms">
-          <option>YouTube</option><option>TikTok</option><option>Instagram</option><option>Reels</option>
-          <option>Shorts</option><option>Podcast</option><option>Newsletter</option><option>Blog</option>
-          <option>X</option><option>LinkedIn</option>
-        </datalist>
-        <select v-model="status" class="sel">
-          <option v-for="s in STATUSES" :key="s.key" :value="s.key">{{ s.label }}</option>
+    <!-- Add task -->
+    <div class="card">
+      <h2>➕ Neue Idee / Aufgabe</h2>
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+        <input v-model="newTitle" class="inp" style="flex:1;min-width:180px" placeholder="Titel / Idee …" @keydown.enter="addTask" />
+        <select v-model="newPlatform" class="sel" style="width:130px">
+          <option value="">Plattform …</option>
+          <option>YouTube</option><option>TikTok</option><option>Instagram</option>
+          <option>LinkedIn</option><option>Newsletter</option><option>Podcast</option>
         </select>
-        <select v-model="priority" class="sel">
-          <option value="low">niedrig</option><option value="normal">normal</option><option value="high">hoch</option>
-        </select>
-        <input v-model="due" type="date" class="sel" />
-        <button class="btn" :disabled="!title.trim()" @click="add">Hinzufügen</button>
+        <button class="btn btn-primary" :disabled="!newTitle.trim()" @click="addTask">Hinzufügen</button>
       </div>
     </div>
 
-    <div class="filters">
-      <button class="chip" :class="{ on: statusFilter === 'all' }" @click="statusFilter = 'all'">Alle</button>
-      <button v-for="s in STATUSES" :key="s.key" class="chip" :class="{ on: statusFilter === s.key }" @click="statusFilter = s.key">{{ s.label }}</button>
-      <select v-model="projFilter" class="sel">
-        <option value="">Alle Projekte</option>
-        <option v-for="p in store.projects" :key="p" :value="p">{{ p }}</option>
-      </select>
+    <!-- Pipeline view -->
+    <div class="card">
+      <h2>🔄 Pipeline-Übersicht</h2>
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.75rem">
+        <button v-for="s in STATUSES" :key="s.key"
+          class="btn btn-sm" :class="activeFilter === s.key ? 'btn-primary' : 'btn-ghost'"
+          @click="activeFilter = activeFilter === s.key ? '' : s.key">
+          {{ s.label }}
+          <span style="background:rgba(255,255,255,0.15);border-radius:999px;padding:0.1rem 0.4rem;font-size:0.7rem;margin-left:0.2rem">
+            {{ countByStatus(s.key) }}
+          </span>
+        </button>
+        <button class="btn btn-sm" :class="activeFilter === '' ? 'btn-primary' : 'btn-ghost'" @click="activeFilter = ''">Alle ({{ tasks.tasks.length }})</button>
+      </div>
     </div>
 
-    <ul class="tasks">
-      <li v-for="t in shown" :key="t.id" class="task" :class="'st-' + t.status">
-        <select class="status-sel" :value="t.status" @change="onStatus(t.id, $event)" title="Status">
-          <option v-for="s in STATUSES" :key="s.key" :value="s.key">{{ s.label }}</option>
-        </select>
-        <div class="task-main">
-          <span class="task-title" :class="{ live: t.status === 'live' }">{{ t.title }}</span>
-          <span class="meta">
-            <span v-if="t.platform" class="tag plat-tag">{{ t.platform }}</span>
-            <span class="prio" :class="'p-' + t.priority">{{ prioLabel(t.priority) }}</span>
-            <span v-if="t.project" class="tag">{{ t.project }}</span>
-            <span v-if="t.due" class="tag" :class="{ over: isOverdue(t) }">📅 {{ t.due }}</span>
-          </span>
+    <!-- Empty -->
+    <div v-if="!visibleTasks.length" class="card" style="text-align:center;padding:2rem">
+      <p class="muted">Keine Aufgaben — füge oben deine erste Content-Idee hinzu!</p>
+    </div>
+
+    <!-- Task list -->
+    <div class="task-list">
+      <div v-for="t in visibleTasks" :key="t.id" class="task-item" :class="{ done: t.done }">
+        <input type="checkbox" class="task-check" :checked="t.done" @change="tasks.toggleTask(t.id)" />
+        <div class="task-body">
+          <div class="task-title">{{ t.title }}</div>
+          <div class="task-meta">
+            <span class="tag" :class="statusTagClass(t.status)">{{ statusLabel(t.status) }}</span>
+            <span v-if="t.platform" class="tag">{{ t.platform }}</span>
+            <span v-if="t.priority === 'high'" class="tag urgent">🔴 Prio</span>
+            <span v-if="t.due" class="muted">📅 {{ t.due }}</span>
+          </div>
+          <div v-if="t.notes" class="muted" style="margin-top:0.25rem;font-size:0.8rem">{{ t.notes }}</div>
         </div>
-        <button class="btn-ghost xs" title="Löschen" @click="store.deleteTask(t.id)">✕</button>
-      </li>
-      <li v-if="!shown.length" class="muted empty-li">Nichts in diesem Status.</li>
-    </ul>
+        <div style="display:flex;gap:0.35rem;flex-shrink:0;align-items:center">
+          <!-- Pipeline advance -->
+          <button v-if="nextStatus(t.status)" class="btn btn-ghost btn-sm" style="font-size:0.75rem" @click="tasks.setStatus(t.id, nextStatus(t.status)!)">
+            → {{ nextStatusLabel(t.status) }}
+          </button>
+          <button class="btn btn-ghost btn-sm" style="color:var(--red);border-color:transparent" @click="tasks.deleteTask(t.id)">✕</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats row -->
+    <div class="card" style="margin-top:1rem">
+      <div style="display:flex;gap:1.5rem;flex-wrap:wrap">
+        <div style="text-align:center">
+          <div style="font-size:1.5rem;font-weight:700;color:var(--accent2)">{{ tasks.tasks.length }}</div>
+          <div class="muted">Gesamt</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:1.5rem;font-weight:700;color:var(--amber)">{{ tasks.openCount }}</div>
+          <div class="muted">In Arbeit</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:1.5rem;font-weight:700;color:var(--green)">{{ tasks.doneCount }}</div>
+          <div class="muted">Veröffentlicht</div>
+        </div>
+        <div v-if="tasks.overdue.length" style="text-align:center">
+          <div style="font-size:1.5rem;font-weight:700;color:var(--red)">{{ tasks.overdue.length }}</div>
+          <div class="muted">Überfällig</div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useTaskStore, STATUSES, type Priority, type ContentStatus, type Task } from '../stores/tasks'
+import { useTaskStore, STATUSES, type ContentStatus } from '../stores/tasks'
 
-const store = useTaskStore()
+const tasks = useTaskStore()
+const newTitle = ref('')
+const newPlatform = ref('')
+const activeFilter = ref<ContentStatus | ''>('')
 
-const title = ref('')
-const platform = ref('')
-const status = ref<ContentStatus>('idee')
-const priority = ref<Priority>('normal')
-const due = ref('')
+const visibleTasks = computed(() => {
+  if (!activeFilter.value) return tasks.tasks
+  return tasks.tasks.filter(t => t.status === activeFilter.value)
+})
 
-const statusFilter = ref<ContentStatus | 'all'>('all')
-const projFilter = ref('')
-
-const shown = computed(() =>
-  store.tasks.filter((t) => {
-    if (statusFilter.value !== 'all' && t.status !== statusFilter.value) return false
-    if (projFilter.value && t.project !== projFilter.value) return false
-    return true
-  }),
-)
-
-function add() {
-  if (!title.value.trim()) return
-  store.addTask({ title: title.value.trim(), platform: platform.value.trim(), status: status.value, priority: priority.value, due: due.value })
-  title.value = ''
-  platform.value = ''
-  due.value = ''
-  status.value = 'idee'
-  priority.value = 'normal'
+function countByStatus(s: ContentStatus) { return tasks.tasks.filter(t => t.status === s).length }
+function statusLabel(k: string) { return STATUSES.find(s => s.key === k)?.label ?? k }
+function statusTagClass(s: string) {
+  const m: Record<string, string> = { live: 'post', idee: '', skript: 'reel', aufnahme: 'reel', schnitt: 'urgent' }
+  return m[s] || ''
 }
-function onStatus(id: string, e: Event) {
-  store.setStatus(id, (e.target as HTMLSelectElement).value as ContentStatus)
+
+const ORDER = STATUSES.map(s => s.key)
+function nextStatus(current: ContentStatus): ContentStatus | null {
+  const i = ORDER.indexOf(current); return i < ORDER.length - 1 ? ORDER[i + 1] : null
 }
-function prioLabel(p: Priority) {
-  return p === 'high' ? 'hoch' : p === 'low' ? 'niedrig' : 'normal'
+function nextStatusLabel(current: ContentStatus): string {
+  const n = nextStatus(current); return n ? statusLabel(n) : ''
 }
-function isOverdue(t: Task) {
-  return !t.done && !!t.due && t.due < new Date().toISOString().slice(0, 10)
+
+function addTask() {
+  const title = newTitle.value.trim(); if (!title) return
+  tasks.addTask({ title, platform: newPlatform.value, status: 'idee', priority: 'normal' })
+  newTitle.value = ''; newPlatform.value = ''
 }
 </script>
-
-<style scoped>
-.add-row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
-.add-row .instruction { flex: 1; min-width: 180px; }
-.plat { min-width: 120px; }
-.filters { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin: 1rem 0; }
-.chip { padding: 0.4rem 0.8rem; border-radius: 999px; border: 1px solid #334155; background: #1e293b; color: #cbd5e1; cursor: pointer; font-size: 0.82rem; }
-.chip.on { border-color: #60a5fa; color: #fff; background: rgba(96, 165, 250, 0.15); }
-.ov { color: #f87171; }
-
-.tasks { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; padding: 0; }
-.task { display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0.8rem; background: #1e293b; border: 1px solid #334155; border-left: 3px solid #475569; border-radius: 10px; }
-.task.st-idee { border-left-color: #64748b; }
-.task.st-skript { border-left-color: #f59e0b; }
-.task.st-aufnahme { border-left-color: #a78bfa; }
-.task.st-schnitt { border-left-color: #38bdf8; }
-.task.st-live { border-left-color: #34d399; }
-.status-sel { background: #0f172a; color: #e2e8f0; border: 1px solid #334155; border-radius: 8px; padding: 0.35rem 0.4rem; font-size: 0.8rem; flex-shrink: 0; cursor: pointer; }
-.task-main { flex: 1; display: flex; flex-direction: column; gap: 0.25rem; min-width: 0; }
-.task-title { color: #e2e8f0; word-break: break-word; }
-.task-title.live { color: #94a3b8; text-decoration: line-through; }
-.meta { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
-.prio { font-size: 0.72rem; padding: 0.1rem 0.45rem; border-radius: 999px; }
-.p-high { background: #7f1d1d; color: #fecaca; }
-.p-normal { background: #334155; color: #cbd5e1; }
-.p-low { background: #0f172a; color: #94a3b8; border: 1px solid #334155; }
-.tag { font-size: 0.72rem; color: #94a3b8; background: #0f172a; padding: 0.1rem 0.45rem; border-radius: 6px; border: 1px solid #334155; }
-.plat-tag { color: #93c5fd; border-color: #1e40af; }
-.tag.over { color: #fecaca; border-color: #7f1d1d; }
-.btn-ghost.xs { padding: 0.25rem 0.55rem; font-size: 0.9rem; line-height: 1; }
-.empty-li { padding: 1rem; text-align: center; }
-</style>
