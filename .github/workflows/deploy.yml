@@ -1,11 +1,10 @@
 name: Deploy to GitHub Pages
-# Re-Deploy nach Aktivierung von GitHub Pages (Source: GitHub Actions)
 
 on:
   push:
     branches:
-      - claude/jolly-curie-b05fh2
-      - claude/great-hawking-rmvkwh
+      - claude/modest-wozniak-9mgv0s
+      - main
   workflow_dispatch:
 
 permissions:
