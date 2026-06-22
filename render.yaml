@@ -1,9 +1,14 @@
 # Render-Blueprint: ein Web-Service, der Frontend + API/Compliance ausliefert.
-# Nutzung: in Render "New +" → "Blueprint" → dieses Repo wählen.
-# Danach die Env-Var ANTHROPIC_API_KEY als Secret im Dashboard setzen.
+#
+# So geht's:
+#   1. render.com → "New +" → "Blueprint" → dieses Repo wählen
+#   2. Render erkennt diese Datei automatisch
+#   3. Im Dashboard die Env-Var GEMINI_API_KEY als Secret eintragen
+#      (kostenloser Key von https://aistudio.google.com → "Get API key")
+#   4. "Apply" / "Deploy" → fertig. Besucher nutzen die KI gratis.
 services:
   - type: web
-    name: finaz-app
+    name: creator-hub
     runtime: node
     plan: free
     buildCommand: npm ci --include=dev && npm run build
@@ -12,8 +17,12 @@ services:
     envVars:
       - key: NODE_VERSION
         value: "22"
-      - key: CLAUDE_MODEL
-        value: claude-opus-4-8
-      # Secret – im Render-Dashboard eintragen, NICHT hier hardcoden:
+      - key: GEMINI_MODEL
+        value: gemini-2.0-flash
+      # Secret – im Render-Dashboard eintragen, NICHT hier hardcoden.
+      # Kostenloser Key: https://aistudio.google.com  →  "Get API key"
+      - key: GEMINI_API_KEY
+        sync: false
+      # Optional: bessere Qualität mit Claude (kostenpflichtig). Leer lassen für gratis.
       - key: ANTHROPIC_API_KEY
         sync: false

@@ -52,3 +52,22 @@ export function hasGeminiKey(): boolean {
 export function hasAnyKey(): boolean {
   return hasApiKey() || hasGeminiKey()
 }
+
+// Fragt den Server (/api/health), ob dort ein KI-Schlüssel hinterlegt ist.
+// So müssen vermarktete Besucher KEINEN eigenen Key eintragen – sie nutzen
+// den Server-Key (z. B. den kostenlosen Gemini-Key des Betreibers).
+let serverKeyCache: boolean | null = null
+
+export async function hasServerKey(): Promise<boolean> {
+  if (serverKeyCache !== null) return serverKeyCache
+  try {
+    const resp = await fetch('/api/health')
+    if (!resp.ok) { serverKeyCache = false; return false }
+    const data = (await resp.json()) as { envKey?: boolean; gemini?: boolean }
+    serverKeyCache = !!(data.envKey || data.gemini)
+    return serverKeyCache
+  } catch {
+    serverKeyCache = false
+    return false
+  }
+}

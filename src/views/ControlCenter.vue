@@ -16,7 +16,7 @@
       <strong>Demo-Modus</strong> — kostenlos &amp; ohne API-Key. Echte KI → ⚙️ Einstellungen.
     </div>
 
-    <RouterLink v-if="!hasKey && !demo" to="/settings" class="keyhint">
+    <RouterLink v-if="!hasKey && !demo && serverKey === false" to="/settings" class="keyhint">
       🔑 Kein API-Key — hier eintragen oder Demo-Modus aktivieren (kostenlos).
     </RouterLink>
 
@@ -93,7 +93,7 @@ import { useRouter } from 'vue-router'
 import { marked } from 'marked'
 import { useTaskStore } from '../stores/tasks'
 import type { Task } from '../stores/tasks'
-import { hasAnyKey } from '../lib/apiKey'
+import { hasAnyKey, hasServerKey } from '../lib/apiKey'
 import { runChat, type ChatMessage } from '../lib/chat'
 import { buildContext } from '../lib/appState'
 import { parseActions, stripActions, actionLabel, executeAction, type ChatAction } from '../lib/actions'
@@ -107,6 +107,7 @@ const tasks = useTaskStore()
 const router = useRouter()
 const hasKey = hasAnyKey()
 const demo = ref(isDemoMode())
+const serverKey = ref<boolean | null>(null)
 
 const agents = ref<AgentState[]>([
   { id: 'analyst',    icon: '🔍', name: 'Analyst',    role: 'Kanal-Analyse & Daten', state: 'idle', statusText: 'Bereit', preview: '' },
@@ -232,9 +233,11 @@ function reset() {
 }
 function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)) }
 
-onMounted(() => {
+onMounted(async () => {
+  // Prüfen, ob der Server einen KI-Key hat (vermarktete Besucher brauchen dann keinen eigenen).
+  serverKey.value = await hasServerKey()
   const p = localStorage.getItem('finaz_pending_prompt'); if (!p) return
   localStorage.removeItem('finaz_pending_prompt')
-  if (hasKey || isDemoMode()) send(p); else input.value = p
+  if (hasKey || isDemoMode() || serverKey.value) send(p); else input.value = p
 })
 </script>
