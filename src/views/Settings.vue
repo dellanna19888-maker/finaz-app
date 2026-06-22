@@ -65,6 +65,22 @@
       </div>
       <p class="muted">{{ gstatusMsg }}</p>
     </div>
+
+    <div class="card2">
+      <h2>💾 Daten sichern &amp; übertragen</h2>
+      <p class="muted" style="margin-bottom: 0.6rem">
+        Alle Inhalte (Content-Plan, Finanzen, Wissen, Kanal) liegen nur in diesem Browser.
+        Exportiere sie als Datei zur Sicherung oder um sie auf ein anderes Gerät zu übertragen.
+        API-Schlüssel und der Chat-Verlauf werden aus Datenschutzgründen <strong>nicht</strong> mitexportiert.
+      </p>
+      <div class="controls">
+        <button class="btn" @click="onExport">⬇ Exportieren</button>
+        <button class="btn-ghost" @click="fileInput?.click()">⬆ Importieren …</button>
+        <button class="btn-ghost danger" @click="onReset">🗑 Alle Daten zurücksetzen</button>
+        <input ref="fileInput" type="file" accept="application/json,.json" class="hidden-file" @change="onImport" />
+      </div>
+      <p class="muted" :class="dataStatusClass">{{ dataStatus }}</p>
+    </div>
   </div>
 </template>
 
@@ -72,6 +88,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { getApiKey, setApiKey, getGeminiKey, setGeminiKey } from '../lib/apiKey'
 import { runAssist } from '../lib/assist'
+import { downloadBackup, importJson, resetData } from '../lib/backup'
 
 const draft = ref(getApiKey())
 const saved = ref(getApiKey())
@@ -123,6 +140,49 @@ async function test() {
   else if (!testOut.value) testOut.value = '(leer)'
 }
 
+// --- Daten sichern / übertragen ---
+const fileInput = ref<HTMLInputElement | null>(null)
+const dataStatus = ref('')
+const dataStatusClass = computed(() => {
+  if (dataStatus.value.includes('Fehler') || dataStatus.value.includes('⚠')) return 'is-block'
+  if (dataStatus.value.includes('✓')) return 'is-ok'
+  return ''
+})
+
+function onExport() {
+  try {
+    downloadBackup()
+    dataStatus.value = '✓ Backup-Datei heruntergeladen.'
+  } catch (err) {
+    dataStatus.value = '⚠ Fehler beim Export: ' + (err as Error).message
+  }
+}
+
+function onImport(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  const reader = new FileReader()
+  reader.onload = () => {
+    try {
+      const res = importJson(String(reader.result))
+      dataStatus.value = `✓ ${res.imported.length} Datensätze importiert. App wird neu geladen …`
+      setTimeout(() => location.reload(), 800)
+    } catch (err) {
+      dataStatus.value = '⚠ Import-Fehler: ' + (err as Error).message
+    }
+  }
+  reader.onerror = () => (dataStatus.value = '⚠ Datei konnte nicht gelesen werden.')
+  reader.readAsText(file)
+  if (fileInput.value) fileInput.value.value = ''
+}
+
+function onReset() {
+  if (!confirm('Wirklich ALLE Inhalte (Content, Finanzen, Wissen, Kanal) löschen? Das kann nicht rückgängig gemacht werden.')) return
+  resetData()
+  dataStatus.value = '✓ Daten zurückgesetzt. App wird neu geladen …'
+  setTimeout(() => location.reload(), 800)
+}
+
 onMounted(async () => {
   try {
     const r = await fetch('/api/health')
@@ -132,3 +192,9 @@ onMounted(async () => {
   }
 })
 </script>
+
+<style scoped>
+.hidden-file { display: none; }
+.btn-ghost.danger { border-color: #6b2c2c; color: #f08a8a; }
+.btn-ghost.danger:hover { background: rgba(240, 138, 138, 0.08); }
+</style>

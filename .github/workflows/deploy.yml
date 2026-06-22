@@ -6,6 +6,7 @@ on:
     branches:
       - claude/jolly-curie-b05fh2
       - claude/great-hawking-rmvkwh
+      - claude/jade-projects-consolidate-gwup2w
   workflow_dispatch:
 
 permissions:

@@ -11,6 +11,18 @@
       </div>
     </div>
 
+    <div class="dash">
+      <RouterLink to="/tasks" class="dash-pill" title="Content-Plan öffnen">
+        🎬 <strong>{{ tasks.openCount }}</strong> in Arbeit
+      </RouterLink>
+      <RouterLink v-if="tasks.overdue.length" to="/tasks" class="dash-pill warn" title="Überfällige Inhalte">
+        ⏰ <strong>{{ tasks.overdue.length }}</strong> überfällig
+      </RouterLink>
+      <RouterLink to="/finance" class="dash-pill" title="Finanzen öffnen">
+        💰 Saldo <strong :class="{ neg: finance.balance < 0 }">{{ finance.format(finance.balance) }}</strong>
+      </RouterLink>
+    </div>
+
     <RouterLink v-if="!hasKey" to="/settings" class="keyhint">🔑 Kein API-Key gesetzt – hier eintragen (⚙️ Einstellungen)</RouterLink>
 
     <div ref="scroller" class="msgs">
@@ -65,6 +77,8 @@ import { useRouter } from 'vue-router'
 import { marked } from 'marked'
 import { useTaskStore } from '../stores/tasks'
 import type { Task } from '../stores/tasks'
+import { useFinanceStore } from '../stores/finance'
+import type { Transaction } from '../stores/finance'
 import { hasAnyKey } from '../lib/apiKey'
 import { runChat, type ChatMessage } from '../lib/chat'
 import { buildContext } from '../lib/appState'
@@ -78,9 +92,11 @@ interface Msg {
 interface Snapshot {
   tasks: Task[]
   notes: string
+  transactions: Transaction[]
 }
 
 const tasks = useTaskStore()
+const finance = useFinanceStore()
 const router = useRouter()
 const hasKey = hasAnyKey()
 
@@ -95,13 +111,13 @@ const lastAction = ref<{ key: string; msgIndex: number; label: string; snapshot:
 const scroller = ref<HTMLElement | null>(null)
 
 // Aktionen, die den App-Zustand verändern (Snapshot für Rückgängig).
-const MUTATING = new Set(['add_task', 'set_status', 'complete_task', 'reopen_task', 'update_task', 'delete_task', 'append_note'])
+const MUTATING = new Set(['add_task', 'set_status', 'complete_task', 'reopen_task', 'update_task', 'delete_task', 'append_note', 'add_income', 'add_expense', 'delete_transaction'])
 
 const suggestions = [
   'Analysiere meinen Kanal: 3 Verbesserungen + was die Konkurrenz macht',
   'Gib mir 10 YouTube-Video-Ideen zum Thema Produktivität',
   'Schreibe einen 30-Sekunden-Hook + Skript für ein TikTok',
-  'Plane meine Content-Woche aus den offenen Ideen',
+  'Buche 800€ Sponsoring-Einnahme und zeig mir meinen Saldo',
 ]
 
 const statusClass = computed(() => {
@@ -169,7 +185,7 @@ async function send(text: string, consent = false) {
   busy.value = true
   status.value = '… prüft / antwortet'
 
-  const outcome = await runChat({ messages: payload, context: buildContext(tasks), consent }, (delta) => {
+  const outcome = await runChat({ messages: payload, context: buildContext(tasks, finance), consent }, (delta) => {
     const m = messages.value[aiIndex]
     if (m) {
       m.content += delta
@@ -210,7 +226,7 @@ async function doAction(i: number, j: number, act: ChatAction) {
   if (!m) return
   const snap = MUTATING.has(act.tool) ? captureState() : null
   try {
-    const result = await executeAction(act, { tasks, router })
+    const result = await executeAction(act, { tasks, finance, router })
     done.value.add(key)
     // Ergebnis an die Assistenten-Nachricht anhängen → es bleibt Teil des
     // Dialogs, die KI kennt in der nächsten Runde den neuen Stand.
@@ -229,6 +245,7 @@ function captureState(): Snapshot {
   return {
     tasks: JSON.parse(JSON.stringify(tasks.tasks)) as Task[],
     notes: localStorage.getItem('finaz_notes') || '',
+    transactions: JSON.parse(JSON.stringify(finance.transactions)) as Transaction[],
   }
 }
 
@@ -236,6 +253,7 @@ function undo() {
   const la = lastAction.value
   if (!la || busy.value) return
   tasks.setAll(la.snapshot.tasks)
+  finance.setAll(la.snapshot.transactions)
   localStorage.setItem('finaz_notes', la.snapshot.notes)
   done.value.delete(la.key)
   const m = messages.value[la.msgIndex]
@@ -269,6 +287,18 @@ onMounted(() => {
 <style scoped>
 .hub-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
 .head-actions { display: flex; gap: 0.5rem; flex-shrink: 0; }
+
+.dash { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
+.dash-pill {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  padding: 0.4rem 0.8rem; border-radius: 999px;
+  border: 1px solid #334155; background: #1e293b; color: #cbd5e1;
+  text-decoration: none; font-size: 0.85rem;
+}
+.dash-pill:hover { border-color: #60a5fa; color: #e2e8f0; }
+.dash-pill strong { color: #e2e8f0; }
+.dash-pill.warn { border-color: #6b2c2c; color: #fca5a5; }
+.dash-pill strong.neg { color: #f87171; }
 
 .msgs {
   display: flex;

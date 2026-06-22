@@ -6,9 +6,11 @@
 import type { Router } from 'vue-router'
 import type { useTaskStore, Priority, ContentStatus } from '../stores/tasks'
 import { STATUSES } from '../stores/tasks'
+import type { useFinanceStore, TxType } from '../stores/finance'
 import { evaluate } from '../compliance/gateway'
 
 type TaskStore = ReturnType<typeof useTaskStore>
+type FinanceStore = ReturnType<typeof useFinanceStore>
 
 export interface ChatAction {
   tool: string
@@ -17,6 +19,7 @@ export interface ChatAction {
 
 export interface ActionContext {
   tasks: TaskStore
+  finance: FinanceStore
   router: Router
 }
 
@@ -58,6 +61,10 @@ function normStatus(v: unknown): ContentStatus {
 
 const isDate = (v: unknown) => /^\d{4}-\d{2}-\d{2}$/.test(String(v ?? ''))
 
+function normAmount(v: unknown): number {
+  return Math.abs(Number(v) || 0)
+}
+
 export function actionLabel(a: ChatAction): string {
   const ar = a.args as Record<string, string | number | boolean | undefined>
   switch (a.tool) {
@@ -75,6 +82,12 @@ export function actionLabel(a: ChatAction): string {
       return `Inhalt löschen (ID ${ar.id ?? '?'})`
     case 'append_note':
       return `Wissen/Notiz ergänzen (${String(ar.content ?? '').length} Zeichen)`
+    case 'add_income':
+      return `Einnahme buchen: ${normAmount(ar.amount)}${ar.category ? ` · ${ar.category}` : ''}`
+    case 'add_expense':
+      return `Ausgabe buchen: ${normAmount(ar.amount)}${ar.category ? ` · ${ar.category}` : ''}`
+    case 'delete_transaction':
+      return `Buchung löschen (ID ${ar.id ?? '?'})`
     case 'navigate':
       return `Wechseln zu ${ar.to ?? '?'}`
     case 'compliance_check':
@@ -84,7 +97,7 @@ export function actionLabel(a: ChatAction): string {
   }
 }
 
-const ROUTES = new Set(['/', '/tasks', '/channel', '/notes', '/compliance', '/settings'])
+const ROUTES = new Set(['/', '/tasks', '/channel', '/finance', '/notes', '/compliance', '/settings'])
 const NOTES_KEY = 'finaz_notes'
 
 export async function executeAction(a: ChatAction, ctx: ActionContext): Promise<string> {
@@ -156,6 +169,28 @@ export async function executeAction(a: ChatAction, ctx: ActionContext): Promise<
       const cur = localStorage.getItem(NOTES_KEY) || ''
       localStorage.setItem(NOTES_KEY, cur ? `${cur}\n\n${content}` : content)
       return 'Wissen/Notiz ergänzt (unter 📚 Wissen sichtbar).'
+    }
+    case 'add_income':
+    case 'add_expense': {
+      const amount = normAmount(ar.amount)
+      if (!amount) throw new Error('Betrag fehlt oder ist 0.')
+      const type: TxType = a.tool === 'add_expense' ? 'expense' : 'income'
+      ctx.finance.addTransaction({
+        type,
+        amount,
+        category: String(ar.category || ''),
+        note: String(ar.note || ''),
+        date: isDate(ar.date) ? String(ar.date) : undefined,
+      })
+      const label = type === 'income' ? 'Einnahme' : 'Ausgabe'
+      return `${label} über ${ctx.finance.format(amount)}${ar.category ? ` (${ar.category})` : ''} gebucht.`
+    }
+    case 'delete_transaction': {
+      const id = String(ar.id || '').trim()
+      const t = ctx.finance.transactions.find((x) => x.id === id)
+      if (!t) throw new Error(`Keine Buchung mit ID ${id} gefunden.`)
+      ctx.finance.deleteTransaction(id)
+      return `Buchung über ${ctx.finance.format(t.amount)} gelöscht.`
     }
     case 'navigate': {
       const to = String(ar.to || '')
