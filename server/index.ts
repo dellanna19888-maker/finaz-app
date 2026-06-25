@@ -245,6 +245,32 @@ const CHAT_SYSTEM_PROMPT = [
   'ausführen – der Block wird dem Nutzer zur Bestätigung angezeigt. Ist keine Aktion nötig, gib keinen Block aus.',
 ].join('\n')
 
+// J.A.R.I.S. – persönlicher KI-Assistent mit Iron-Man-Stil
+const JARIS_SYSTEM_PROMPT = [
+  'Du bist J.A.R.I.S. (Just A Rather Intelligent System), ein hochentwickelter persönlicher KI-Assistent.',
+  'Dein Charakter:',
+  '- Du sprichst den Nutzer stets mit "Sir" an – präzise, respektvoll, leicht ironisch wenn nötig.',
+  '- Deine Antworten sind brillant, strukturiert und effizient – kein unnötiges Füllwort.',
+  '- Du analysierst Situationen blitzschnell und präsentierst Lösungen mit militärischer Klarheit.',
+  '- Bei komplexen Themen gibst du zunächst eine "Lageeinschätzung", dann konkrete Handlungsoptionen.',
+  '- Gelegentlich kannst du einen trockenen Witz oder eine prägnante Beobachtung einstreuen.',
+  '- Du bist loyal, diskret und absolut vertrauenswürdig.',
+  '',
+  'Fähigkeiten:',
+  '- Strategieberatung: Content-Strategie, Business-Entscheidungen, Priorisierung, Risiko-Analyse',
+  '- Kreativarbeit: Skripte, Ideen, Captions, Hooks, Texte – immer mit Iron-Man-Präzision',
+  '- Analyse: Daten interpretieren, Muster erkennen, Optimierungspotenzial identifizieren',
+  '- Planung: Wochen-/Monatspläne, Priorisierungslisten, Action-Items',
+  '- Wissensmanagement: Informationen strukturieren, zusammenfassen, erweitern',
+  '',
+  'Antwortformat:',
+  '- Antworte auf Deutsch (außer der Nutzer verlangt explizit eine andere Sprache)',
+  '- Nutze klares, strukturiertes Markdown',
+  '- Beginne komplexe Antworten mit einer kurzen "Systemanalyse:" Zusammenfassung',
+  '- Halte dich an Fakten; spekuliere klar markiert als solche',
+  '- Keine langen Einleitungen oder Floskeln – direkt zum Punkt',
+].join('\n')
+
 function buildPrompt(action: string, text: string, instruction: string, language: string): string | null {
   const doc = text && text.trim() ? `\n\nDaten / Dokument:\n"""\n${text}\n"""` : ''
   switch (action) {
@@ -390,6 +416,53 @@ app.get('/api/compliance/logs', async (req: Request, res: Response) => {
   } catch (err) {
     res.status(500).json({ error: (err as Error)?.message || String(err) })
   }
+})
+
+// J.A.R.I.S.: persönlicher Iron-Man-Stil KI-Assistent, läuft durch das Compliance-Gateway.
+app.post('/api/jaris', async (req: Request, res: Response) => {
+  const { messages = [], consent = false } = req.body ?? {}
+
+  const history = (Array.isArray(messages) ? messages : [])
+    .filter(
+      (m: { role?: string; content?: string }) =>
+        m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.trim(),
+    )
+    .slice(-20)
+    .map((m: { role: string; content: string }) => ({ role: m.role as 'user' | 'assistant', content: String(m.content) }))
+  while (history.length && history[0].role !== 'user') history.shift()
+  const lastUser = [...history].reverse().find((m) => m.role === 'user')
+  if (!lastUser) return res.status(400).json({ error: 'Keine Nutzernachricht erhalten.' })
+
+  const jurisdiction = resolveJurisdiction(req)
+  const ev = evaluate({ action: 'chat', text: lastUser.content, consent: consent === true, jurisdiction, maxChars: MAX_CHARS })
+
+  try {
+    await writeDecisionLog(ev.logEntry)
+  } catch (err) {
+    return res.status(403).json({
+      blocked: true,
+      error: 'Audit-Log nicht schreibbar – Operation blockiert.',
+      reasons: [String((err as Error)?.message || err)],
+    })
+  }
+
+  res.setHeader('X-Compliance-Status', ev.status)
+  res.setHeader('X-Compliance-Jurisdiction', ev.jurisdiction)
+
+  if (ev.status === 'BLOCK') {
+    return res.status(403).json({ blocked: true, error: ev.decisionText, reasons: ev.reasons, compliance: ev.logEntry })
+  }
+  if (ev.originalStatus === 'WARN' && !ev.humanAuthorized) {
+    return res.status(428).json({ authorizationRequired: true, error: ev.decisionText, reasons: ev.reasons, compliance: ev.logEntry })
+  }
+
+  await streamModel(req, res, {
+    system: JARIS_SYSTEM_PROMPT,
+    messages: history,
+    userAnthropicKey: (req.headers['x-anthropic-key'] as string) || '',
+    userGeminiKey: (req.headers['x-gemini-key'] as string) || '',
+    maxTokens: 4096,
+  })
 })
 
 // Gebautes Frontend ausliefern (dist/). SPA: alle Nicht-/api-GETs -> index.html.

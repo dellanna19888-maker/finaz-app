@@ -23,6 +23,7 @@
 <script setup lang="ts">
 const links = [
   { to: '/', label: 'Zentrale', short: 'Zentrale', icon: '🧠' },
+  { to: '/jaris', label: 'J.A.R.I.S.', short: 'JARIS', icon: '🤖' },
   { to: '/tasks', label: 'Content', short: 'Content', icon: '🎬' },
   { to: '/channel', label: 'Kanal', short: 'Kanal', icon: '📊' },
   { to: '/notes', label: 'Wissen', short: 'Wissen', icon: '📚' },
